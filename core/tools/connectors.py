@@ -688,18 +688,24 @@ async def _postiz(payload: dict, cred: str) -> dict:
         return {"ok": False, "error": "conn:postiz must be '<api_key>|<integration_id>[|<base_url>]"}
     base = (base or "https://api.postiz.com").rstrip("/")
     text = payload.get("text") or ""
-    # Every platform validates a settings.__type — resolve the integration's
-    # provider so a bare text post passes schema checks where possible.
-    provider = ""
+    # Every platform validates a settings.__type — resolve each integration's
+    # provider so a bare text post passes schema checks where possible. integ
+    # may be one id, a comma list, or '*' (fan-out to every enabled channel).
+    by_id = {}
+    all_ids = []
     async with httpx.AsyncClient(timeout=15.0) as client:
         il = await client.get(f"{base}/public/v1/integrations",
                               headers={"authorization": key})
     if il.status_code < 400:
         data = il.json()
         for i in data if isinstance(data, list) else data.get("integrations", []):
-            if str(i.get("id")) == integ:
-                provider = i.get("identifier") or i.get("provider") or ""
-                break
+            iid = str(i.get("id"))
+            by_id[iid] = i.get("identifier") or i.get("provider") or ""
+            if not i.get("disabled"):
+                all_ids.append(iid)
+    targets = all_ids if integ == "*" else [s.strip() for s in integ.split(",") if s.strip()]
+    if not targets:
+        return {"ok": False, "error": "conn:postiz resolved zero target integrations"}
     import datetime as _dt
     return await _post(
         f"{base}/public/v1/posts",
@@ -709,10 +715,18 @@ async def _postiz(payload: dict, cred: str) -> dict:
             "date": _dt.datetime.now(_dt.timezone.utc).isoformat(),
             "shortLink": False, "tags": [],
             "posts": [{
-                "integration": {"id": integ},
+                "integration": {"id": iid},
                 "value": [{"content": text, "image": []}],
-                "settings": payload.get("settings") or ({"__type": provider} if provider else {}),
-            }],
+                "settings": payload.get("settings") or (
+                    {
+                        "__type": by_id.get(iid, ""),
+                        # Whop requires company+experience — Lazynext
+                        # community forum (ops/postiz/CHANNELS.md).
+                        **({"company": "biz_8CFM24RGaG1WsO",
+                            "experience": "exp_rQ6uPLpXZJICPE"}
+                           if by_id.get(iid) == "whop" else {}),
+                    }),
+            } for iid in targets],
         },
     )
 

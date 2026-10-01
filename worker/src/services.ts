@@ -1577,6 +1577,9 @@ async function callConnector(
                 ...(provider ? { __type: provider } : {}),
                 ...(titleful.has(provider) ? { title } : {}),
                 ...(provider === "wordpress" ? { type: "post" } : {}),
+                // Whop rejects posts without company+experience — the Lazynext
+                // community's public forum (ops/postiz/CHANNELS.md).
+                ...(provider === "whop" ? { company: "biz_8CFM24RGaG1WsO", experience: "exp_rQ6uPLpXZJICPE" } : {}),
               },
             };
           }),
