@@ -233,3 +233,16 @@ Field names per provider are exposed live at `GET /api/integrations` under
     -d '{"state":..,"code":..,"codeVerifier":"","timezone":"UTC"}'
   # verify: GET /api/integrations/list  (200 or 500 — check the list)
   ```
+
+### E2E publish verification (2026-10-01 — all three new channels PUBLISHED)
+
+- **mastodon** → https://mastodon.social/statuses/117365322608369151
+  (settings: `{"visibility":"public"}`)
+- **tumblr** → post id `829269184174276608` (releaseURL string in postiz is
+  malformed `lazynext/post/..` — the post itself is live on lazynext.tumblr.com;
+  settings used `{"title":"..","type":"link","url":"https://lazynext.com"}`)
+- **devto** → https://dev.to/lazynext/lazynext-an-autonomous-ai-company-os-2a1k
+  (settings: `title` + `tags` = array of `{value:<numeric dev.to tag id>,
+  label:<name>}` — fetch ids from `https://dev.to/api/tags?per_page=1000`,
+  `webdev=8 ai=307 devops=168 automation=88 saas=287`; comma-strings and
+  `["ai"]` both 400).
