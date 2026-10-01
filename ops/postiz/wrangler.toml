@@ -13,7 +13,7 @@ compatibility_flags = ["nodejs_compat"]
 # docker commit --change (first commit a0ae... wait 7578 captured sh -c sed
 # as entrypoint -> container start failure; docker commit on an
 # --entrypoint-overridden run inherits the override).
-image = "registry.cloudflare.com/85953070bae00da372951a8833bd3459/postiz-stack-postizstack@sha256:a0ae37d9dd0aae53c9f88b2ac61365522daf461344bd611ef9d3ee2b9644a1d7"
+image = "registry.cloudflare.com/85953070bae00da372951a8833bd3459/postiz-stack-postizstack@sha256:e6c72b43d9c6f522a408c0d0140dfd44d5f5a93738d9d2c3f3d4973ae36b2ca4"
 class_name = "PostizStack"
 max_instances = 1
 # fat stack: postgres + redis + temporal + node — dev/lite OOM instantly.

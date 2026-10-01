@@ -35,7 +35,7 @@ then `npx wrangler deploy` (config-only — same image, no rebuild).
 | Twitch | dev.twitch.tv/console/apps | `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET` | Channel-panel / stream-info posts |
 | Kick | kick.com/settings/developer | `KICK_CLIENT_ID`, `KICK_SECRET` | Streaming-community posts |
 | VK | vk.com/apps → create app | `VK_ID` | Russian-network wall posts |
-| Whop | whop.com → developer dashboard | `WHOP_CLIENT_ID` | Community posts |
+| Whop | whop.com → developer dashboard | `WHOP_CLIENT_ID`, `WHOP_CLIENT_SECRET` | Confidential OAuth app; `client_secret` must be an **app API key with the `oauth:token_exchange` grant** — the app's *default* key can't gain grants, so create a second key (name "Postiz OAuth") with it and use THAT secret. Provider is patched to send `client_secret` + `code_challenge_method=S256` |
 | MeWe | developers.mewe.com → app | `MEWE_APP_ID`, `MEWE_API_KEY` (+`MEWE_HOST`) | OAuth app approval |
 | Farcaster | neynar.com → app + signer | `NEYNAR_APP_FID`, `NEYNAR_APP_MNEMONIC`, `NEYNAR_CLIENT_ID`, `NEYNAR_SECRET_KEY`, `NEYNAR_SPONSOR_SIGNERS` | Casts via Neynar signer sponsorship |
 
@@ -100,7 +100,10 @@ Field names per provider are exposed live at `GET /api/integrations` under
   bluesky `cmupthq69000109pqvjyx05mb` (`lazynext.bsky.social`, app
   password `BLUESKY_APP_PASSWORD` in `.env` — created under Settings →
   App Passwords, not the account password — **E2E PUBLISHED** to the
-  public AT feed on 2026-10-01). Reddit `u/lazynext` account exists
+  public AT feed on 2026-10-01) · whop `cmuq0rsjq000109q…`
+  (`lazynext`/`Lazynext`, OAuth app `app_avfWYCznr7Zt2D`, connected
+  2026-10-01 night 2 — see section below for the 3-part fix).
+  Reddit `u/lazynext` account exists
   (Google-OAuth) but its OAuth app registration is bot-score-gated on
   fresh accounts — finish at reddit.com/prefs/apps (form prefilled:
   web app `Lazynext Social`, callback `…/integrations/social/reddit`).
@@ -422,10 +425,34 @@ GitHub `lazynext` is a hidden squatted account (404 but reserved) — fallback
 - **Whop business** `biz_8CFM24RGaG1WsO` created (type=Software,
   revenue=Under-$50k, not-migrating, site=lazynext.com). Company API key
   minted (`WHOP_COMPANY_API_KEY` in `.env`) AND OAuth app `Lazynext Social`
-  `app_avfWYCznr7Zt2D` created — Public client mode (Postiz uses PKCE, no
-  secret), redirect `…/integrations/social/whop`, permissions
-  `company:basic:read` + `forum:post:create` + `forum:read` saved.
-  `WHOP_CLIENT_ID=app_avfWYCznr7Zt2D` + `WHOP_CLIENT_SECRET` (apik_GMKn…)
-  set as secrets.
+  `app_avfWYCznr7Zt2D` created — redirect `…/integrations/social/whop`.
+  `WHOP_CLIENT_ID=app_avfWYCznr7Zt2D` set as secret.
 - App deleted+recreated (`a0357032-…` → fresh) to force a fresh instance
   rather than wait out the idle sleep; connect pending warm boot.
+
+## 2026-10-01 (night 2) — WHOP CONNECTED ✅
+
+- **Whop integration live** — `whop | lazynext` (`Lazynext`) appears in
+  `/api/public/v1/integrations` (8 channels total). OAuth round-trips cleanly.
+- Three stacked fixes it took:
+  1. `WHOP_CLIENT_SECRET` was missing from the env passthrough list in
+     `ops/postiz/src/index.ts` — the container got `undefined` and
+     `JSON.stringify` dropped the key → `client_secret is required`. Added to
+     the list; redeploy forwards it via `envVars`.
+  2. The compiled `whop.provider.js` never sent `client_secret` at all —
+     patched both backend + orchestrator dist copies (docker cp → commit →
+     push), image `sha256:e6c72b43d9c6` pinned in `wrangler.toml`.
+  3. Whop rejects the exchange unless the client secret carries the
+     `oauth:token_exchange` grant. The app's *default* api key is immutable
+     (`The default api key cannot be modified`) and the dashboard's
+     Permissions UI never fired its save mutation under automation — so a
+     second app API key `apik_SQF2…` ("Postiz OAuth") was created via
+     `POST /api/v1/api_keys` with
+     `permissions:{statements:[{actions:[...11 perms],grant:true}]}` and its
+     secret became `WHOP_CLIENT_SECRET` (`.env` + worker secret).
+  4. Whop token exchange accepts any app-bound api key as `client_secret`
+     (verified: dummy code → `invalid_grant` = creds OK).
+- Whop app must stay **Confidential** mode + redirect exactly
+  `https://postiz.lazynext.com/integrations/social/whop`.
+- NOTE: `wrangler deploy` alone does NOT respawn a warm container — env
+  changes need app delete + redeploy (pg state survives via R2 dumps).
