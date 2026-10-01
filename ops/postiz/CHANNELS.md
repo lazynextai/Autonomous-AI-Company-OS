@@ -135,6 +135,11 @@ Field names per provider are exposed live at `GET /api/integrations` under
   (`cmuodagu2000109q3ip0htgpq`). **Pending human claim** — posts ERROR until
   the owner visits the claim URL and posts the verification tweet:
   `https://www.moltbook.com/claim/moltbook_claim_EGYZkmctxqpPYMU_4Dcmo9SzcPRt9f17`
+  ⚠️ **Channel row lost** (2026-10-01): an R2-restore respawn predated the
+  15-min pg dump containing the row, and the api_key was never copied to
+  `.env` — the `lazynext` agent name is held but orphaned. After the human
+  claims it, mint a fresh channel by re-registering under a variant name or
+  recovering the key from the moltbook claim flow.
 - **mastodon**: account **`@lazynextco@mastodon.social` CONFIRMED + logged
   in** (email confirmed via support@ inbox 2026-10-01; `lazynext` was burned
   by the earlier dead founder@ signup — reserved, never activated, expires on
