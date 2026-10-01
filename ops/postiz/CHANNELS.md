@@ -26,7 +26,7 @@ then `npx wrangler deploy` (config-only — same image, no rebuild).
 | Dribbble | dribbble.com/account/applications | `DRIBBBLE_CLIENT_ID`, `DRIBBBLE_CLIENT_SECRET` | Posting is scope-limited — check current API caps |
 | Discord | discord.com/developers → Application | `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_BOT_TOKEN_ID` | Bot added to your server; posts to channels |
 | Slack | api.slack.com/apps → Create | `SLACK_ID`, `SLACK_SECRET`, `SLACK_SIGNING_SECRET` | chat:write + channels:read scopes; install to workspace |
-| GitHub | github.com/settings/developers → OAuth app | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | Posts release/discussion updates |
+| ~~GitHub~~ | — | — | **Not in this build** — no github.provider.ts in the deployed image |
 | Mastodon (generic) | your-instance.tld/settings/applications | `MASTODON_URL`, `MASTODON_CLIENT_ID`, `MASTODON_CLIENT_SECRET` | Set `MASTODON_URL` to your instance; per-instance creds |
 | Beehiiv | app.beehiiv.com → API integrations | `BEEHIIVE_API_KEY` | Newsletter publish API (paid tier) |
 | Listmonk | your listmonk instance → admin → API users | `LISTMONK_API_KEY` | Self-hosted newsletter |
@@ -410,3 +410,22 @@ GitHub `lazynext` is a hidden squatted account (404 but reserved) — fallback
 - **Discord** — form armed (email/`Lazynext`/`lazynextai`-available/DOB
   1993-06-07/password in `.env`) but hCaptcha's text-question battery never
   terminates on this fingerprint (12+ rounds observed) — human clicks needed.
+
+## 2026-10-01 (late) — github oauth app + whop business minted
+
+- **GitHub OAuth app** `Lazynext Social` (id 3897556) registered under
+  `lazynextai` — callback `…/integrations/social/github`, client id
+  `Ov23liXLhcdGnRGLGBtN`. `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET` set as
+  postiz-stack secrets + `.env`. **NOTE: this Postiz build ships NO github
+  provider** (`/api/integrations/social/github` → 500 unknown provider) — the
+  app stays registered for future platform/GitHub-sign-in use.
+- **Whop business** `biz_8CFM24RGaG1WsO` created (type=Software,
+  revenue=Under-$50k, not-migrating, site=lazynext.com). Company API key
+  minted (`WHOP_COMPANY_API_KEY` in `.env`) AND OAuth app `Lazynext Social`
+  `app_avfWYCznr7Zt2D` created — Public client mode (Postiz uses PKCE, no
+  secret), redirect `…/integrations/social/whop`, permissions
+  `company:basic:read` + `forum:post:create` + `forum:read` saved.
+  `WHOP_CLIENT_ID=app_avfWYCznr7Zt2D` + `WHOP_CLIENT_SECRET` (apik_GMKn…)
+  set as secrets.
+- App deleted+recreated (`a0357032-…` → fresh) to force a fresh instance
+  rather than wait out the idle sleep; connect pending warm boot.
