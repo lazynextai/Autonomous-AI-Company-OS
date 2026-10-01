@@ -77,12 +77,16 @@ Field names per provider are exposed live at `GET /api/integrations` under
 
 ## Current state
 
-- `conn:postiz` in platform KV = `<api_key>|cmuo7hopx000109r8jxuk5l8n|https://postiz.lazynext.com/api`
-  → **nostr channel CONNECTED + first post PUBLISHED to relays**
-  (2026-09-30, verified on `wss://nos.lol` — event
-  `51ab39198fc9097f23b79998aeef0f3288e3a03696421d893aa95e3eed3d981b`).
-  More integrations append the same way; channel IDs appear in
-  `GET /api/public/v1/integrations` with header `authorization: <api_key>`
+- `conn:postiz` in platform KV = `<api_key>|*|https://postiz.lazynext.com/api`
+  → **`*` fans one dispatch out to EVERY enabled channel** in a single
+  `/posts` call (verified 2026-10-01: PUBLISHED on mastodon/devto/tumblr,
+  QUEUE→wordpress, postId on nostr). Comma-separated ids scope it to a
+  subset. Per-provider schema defaults are auto-derived — blogging
+  providers (wordpress/devto/hashnode/medium/ghost/blogger) get
+  `settings.title` from the first line of `text`, wordpress gets
+  `type:"post"` — a bare `{text}` passes Postiz validation everywhere.
+  More integrations append with zero config: a newly connected channel
+  joins `*` fan-out automatically.
 - **Connected channels (2026-10-01, verified in `/api/integrations/list`)**:
   nostr `cmuo7hopx000109r8jxuk5l8n` · wordpress `cmuools6w000109pcwvimwl3d`
   (E2E-published to blog.lazynext.com) · tumblr `cmuodagu2000109q3ip0htgpq`
@@ -97,8 +101,8 @@ Field names per provider are exposed live at `GET /api/integrations` under
   instance replacement can be lost; re-run the connect recipe if
   `GET /api/integrations/list` is empty after a cold start.
 - Postiz admin: `founder@lazynext.com` (password in `.env` → `POSTIZ_ADMIN_PASSWORD`)
-- After connecting channels, add integration IDs: update `conn:postiz` to
-  `<api_key>|<integration_id>|https://postiz.lazynext.com/api`
+- After connecting channels no `conn:postiz` edit is needed — `*` already
+  covers them; set a comma-list only to restrict fan-out.
 
 ## 2026-09-30 session — automation findings
 

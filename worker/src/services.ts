@@ -1535,30 +1535,51 @@ async function callConnector(
       if (!integ)
         return { ok: false, status: 500, error: "conn:postiz must be '<api_key>|<integration_id>[|<base_url>]'" };
       const base = (baseRaw || "https://api.postiz.com").replace(/\/+$/, "");
-      // Every platform validates a settings.__type — resolve the
+      // Every platform validates a settings.__type — resolve each
       // integration's provider so a bare text post passes schema checks
-      // where possible.
-      let provider = "";
+      // where possible. integ may be one id, a comma list, or '*' — the
+      // Postiz social backend then fans one dispatch out to every connected
+      // (non-disabled) channel in a single /posts call.
+      const byId = new Map<string, string>();
       const il = await connPost(`${base}/public/v1/integrations`, {
         method: "GET", headers: { authorization: key },
       });
+      const all: string[] = [];
       if (il.ok) {
         const list = Array.isArray(il.body)
-          ? (il.body as { id?: unknown; identifier?: string; provider?: string }[])
-          : (((il.body as { integrations?: unknown[] })?.integrations ?? []) as { id?: unknown; identifier?: string; provider?: string }[]);
-        for (const i of list)
-          if (String(i.id) === integ) { provider = i.identifier ?? i.provider ?? ""; break; }
+          ? (il.body as { id?: unknown; identifier?: string; provider?: string; disabled?: boolean }[])
+          : (((il.body as { integrations?: unknown[] })?.integrations ?? []) as { id?: unknown; identifier?: string; provider?: string; disabled?: boolean }[]);
+        for (const i of list) {
+          byId.set(String(i.id), i.identifier ?? i.provider ?? "");
+          if (!i.disabled) all.push(String(i.id));
+        }
       }
+      const targets = integ === "*"
+        ? all
+        : integ.split(",").map((s) => s.trim()).filter(Boolean);
+      if (!targets.length)
+        return { ok: false, status: 503, error: "conn:postiz resolved zero target integrations" };
+      // Blogging providers schema-check settings.title — derive one from the
+      // first line/sentence so a bare {text} dispatch passes validation.
+      const title = (text.split(/\r?\n|\.\s+/)[0] || text).slice(0, 120) || text.slice(0, 80);
+      const titleful = new Set(["wordpress", "devto", "hashnode", "medium", "ghost", "blogger"]);
       return connPost(`${base}/public/v1/posts`, {
         method: "POST",
         headers: { authorization: key, "content-type": "application/json" },
         body: JSON.stringify({
           type: "now", date: new Date().toISOString(), shortLink: false, tags: [],
-          posts: [{
-            integration: { id: integ },
-            value: [{ content: text, image: [] }],
-            settings: (b.settings as object) ?? (provider ? { __type: provider } : {}),
-          }],
+          posts: targets.map((id) => {
+            const provider = byId.get(id) ?? "";
+            return {
+              integration: { id },
+              value: [{ content: text, image: [] }],
+              settings: (b.settings as object) ?? {
+                ...(provider ? { __type: provider } : {}),
+                ...(titleful.has(provider) ? { title } : {}),
+                ...(provider === "wordpress" ? { type: "post" } : {}),
+              },
+            };
+          }),
         }),
       });
     }
