@@ -91,10 +91,26 @@ Field names per provider are exposed live at `GET /api/integrations` under
   nostr `cmuo7hopx000109r8jxuk5l8n` · wordpress `cmuools6w000109pcwvimwl3d`
   (E2E-published to blog.lazynext.com) · tumblr `cmuodagu2000109q3ip0htgpq`
   (`lazynext`) · mastodon `cmupefohe000109ph49w66h3t` (`@lazynextco`) ·
-  devto `cmupehqjv000309pha7fjxdt1` (`@lazynext`) · dribbble (OAuth app
-  `Postiz - Lazynext Social`, secrets `wrangler secret put` on
-  `postiz-stack` → container env, callback `…/integrations/social/dribbble`
-  verified live).
+  devto `cmupehqjv000309pha7fjxdt1` (`@lazynext`) · dribbble
+  `cmupr02wv000609prco0aasun` (`@lazynext`, OAuth app `Postiz - Lazynext
+  Social`, secrets `wrangler secret put` on `postiz-stack` → container env,
+  callback `…/integrations/social/dribbble` — **E2E PUBLISHED** shot
+  `dribbble.com/shots/27777473` on 2026-10-01; needs `settings.title` +
+  400×300/800×600 image, uploaded via `/api/public/v1/upload`) ·
+  bluesky `cmupthq69000109pqvjyx05mb` (`lazynext.bsky.social`, app
+  password `BLUESKY_APP_PASSWORD` in `.env` — created under Settings →
+  App Passwords, not the account password — **E2E PUBLISHED** to the
+  public AT feed on 2026-10-01). Reddit `u/lazynext` account exists
+  (Google-OAuth) but its OAuth app registration is bot-score-gated on
+  fresh accounts — finish at reddit.com/prefs/apps (form prefilled:
+  web app `Lazynext Social`, callback `…/integrations/social/reddit`).
+- **Public API note**: current postiz-app uses org-level `apiKey` +
+  `PublicAuthMiddleware` on `@Controller('/public/v1')` — reached from
+  outside as `{domain}/api/public/v1/*` (nginx strips `/api/`). The raw
+  key goes in `Authorization:` with NO Bearer prefix. The JWT-guarded
+  dashboard route `/api/integrations/list` returns 401 for the apiKey —
+  that's auth-shape, not a bad key. `GET /api/user/self`'s `publicApi`
+  field IS `organization.apiKey` for admin roles.
 - **nostr publish fix (image `8192316a`)**: the released provider passed the
   hex-string password to `finalizeEvent` (needs Uint8Array — "expected
   Uint8Array, got type=string"). Patched via Dockerfile `sed` + registry
