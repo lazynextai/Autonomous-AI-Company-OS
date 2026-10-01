@@ -246,3 +246,45 @@ Field names per provider are exposed live at `GET /api/integrations` under
   label:<name>}` — fetch ids from `https://dev.to/api/tags?per_page=1000`,
   `webdev=8 ai=307 devops=168 automation=88 saas=287`; comma-strings and
   `["ai"]` both 400).
+
+## Identity normalization sweep (2026-10-01) — support@lazynext.com everywhere, one account per platform
+
+Canonical identity: email `support@lazynext.com`, handle `lazynext` (or
+`lazynextai`/`lazynext-ai` when squatted), company `Lazynext`, `+91
+9199366166`. Duplicates → keep canonical, delete the rest.
+
+### Accounts confirmed/created this pass
+
+- **docker hub** → `lazynextai` created via Google sign-in (canonical
+  `lazynext` genuinely held — namespace check rejected it). Email code-verified.
+- **dribbble** → `lazynext` (canonical!) created via Google sign-in; auto-handle
+  `lazynext-lazynext` corrected in account settings. **OAuth app registered**
+  (`Postiz - Lazynext Social`, redirect `postiz.lazynext.com/integrations/social/dribbble`,
+  client id/secret set as worker secrets `DRIBBBLE_CLIENT_ID/SECRET` —
+  env passthrough already covers them; live on next container spawn →
+  channel connectable).
+- **whop** → `lazynext` claimed (auto `amenstorageb4` → renamed). Magic-code
+  login, no OAuth surface for postiz anyway.
+- **mewe** → Google-linked account exists but onboarding name-form rejects
+  synthetic events — stuck mid-signup; user finishes manually.
+- **youtube** → `@lazynext` already ours via the Google Workspace login.
+- **rumble** → `rumble.com/user/Lazynext` already ours.
+
+### User-gated (verified, cannot bypass)
+
+- **GitHub rename** `Lazynext-AI` → `lazynext`: `lazynext` is FREE, but the
+  rename needs the account password + TOTP/recovery — account-recovery path
+  quoted 1–3 business days. Personal account, not an org.
+- **Google profile name** is `Lazynext Lazynext` (leaks into every future
+  Google-OAuth signup) — fields disabled at myaccount.google.com because it's
+  Workspace-admin-managed; fix at admin.google.com → Users (owner password
+  reauth).
+- **Mastodon `lazynext`**: dead unconfirmed row, login rejected, no mailbox —
+  `@lazynextco` stays canonical; dead row purges eventually.
+- **Postiz admin email** stays `founder@lazynext.com` — no email-change route
+  in this build; internal service credential, not a public account.
+- **beehiiv** PerimeterX captcha | **skool** signup form never renders |
+  **tiktok** SSL/geo-blocked | **discord** hCaptcha | **bluesky/telegram**
+  phone SMS | **instagram/pinterest** bot-scored | **hashnode** WAF-429 |
+  **lemmy** application review | **X/twitch/kick** `lazynext` squatted |
+  **linkedin/facebook/threads/meta** app-review + bot gates.
