@@ -7,7 +7,13 @@ compatibility_flags = ["nodejs_compat"]
 # wrangler builds Dockerfile and pushes to the CF registry on deploy.
 # To skip the local build, pin a pushed digest instead:
 #   image = "registry.cloudflare.com/85953070bae00da372951a8833bd3459/postiz-stack-postizstack@sha256:8192316a2ce034aa82205ffcb21eb6b22421cada4199f28f5efbc1ac16d2f504"
-image = "registry.cloudflare.com/85953070bae00da372951a8833bd3459/postiz-stack-postizstack@sha256:8192316a2ce034aa82205ffcb21eb6b22421cada4199f28f5efbc1ac16d2f504"
+# tumblr-basic2 = 8192316a base + tumblr.provider.js scopes += 'basic' (both
+# backend + orchestrator dist copies; without 'basic' Tumblr issues
+# unexchangeable auth codes -> social-connect 500). ENTRYPOINT preserved via
+# docker commit --change (first commit a0ae... wait 7578 captured sh -c sed
+# as entrypoint -> container start failure; docker commit on an
+# --entrypoint-overridden run inherits the override).
+image = "registry.cloudflare.com/85953070bae00da372951a8833bd3459/postiz-stack-postizstack@sha256:a0ae37d9dd0aae53c9f88b2ac61365522daf461344bd611ef9d3ee2b9644a1d7"
 class_name = "PostizStack"
 max_instances = 1
 # fat stack: postgres + redis + temporal + node — dev/lite OOM instantly.
