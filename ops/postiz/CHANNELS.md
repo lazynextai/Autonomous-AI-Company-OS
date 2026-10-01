@@ -91,7 +91,10 @@ Field names per provider are exposed live at `GET /api/integrations` under
   nostr `cmuo7hopx000109r8jxuk5l8n` · wordpress `cmuools6w000109pcwvimwl3d`
   (E2E-published to blog.lazynext.com) · tumblr `cmuodagu2000109q3ip0htgpq`
   (`lazynext`) · mastodon `cmupefohe000109ph49w66h3t` (`@lazynextco`) ·
-  devto `cmupehqjv000309pha7fjxdt1` (`@lazynext`).
+  devto `cmupehqjv000309pha7fjxdt1` (`@lazynext`) · dribbble (OAuth app
+  `Postiz - Lazynext Social`, secrets `wrangler secret put` on
+  `postiz-stack` → container env, callback `…/integrations/social/dribbble`
+  verified live).
 - **nostr publish fix (image `8192316a`)**: the released provider passed the
   hex-string password to `finalizeEvent` (needs Uint8Array — "expected
   Uint8Array, got type=string"). Patched via Dockerfile `sed` + registry
