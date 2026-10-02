@@ -613,6 +613,8 @@ Notes:
 | blogger | `lazynext.blogspot.com` free | — | **user-gated** — Google `confirmidentifier` reauth ("Verify that it's you") fires on blogger.com navigation; needs the Google Workspace password. `.env` only has the `GOOGLE_APP_PASSWORD` placeholder. |
 | codepen.io | `lazynext` | — | **blocked** — signup probe returns 403 (bot-scored CDN edge, same class as npm/Linktree). |
 | imgur.com | `lazynext` | — | free (user/ pages 200 as soft-404 for nonexistent users) — low value, not claimed. |
+| behance.net | **lazynext** (`Lazynext AI`) | support@ via Google → Adobe ID | **live 2026-10-02** — `behance.net/lazynext` → 200. Google OAuth creates a federated Adobe ID (DOB month+year + country required; last name mandatory — set `AI`, matching MeWe convention). Auto-slug `lazynextai` renamed to canonical `lazynext` via Account settings → "Behance URL" (Edit → Apply → confirm). Headline/Company/Website filled. |
+| indiehackers.com | `lazynext` (free) | — | **blocked** — Google-OAuth-only signup; Firebase popup→parent session handoff never persists in the automation browser (same partition issue as SoundCloud pass 1). Retried twice; lands signed-out. |
 | disqus.com / indiehackers.com / linktr.ee | `lazynext` | — | slug free at Disqus + IndieHackers; `linktr.ee` hard-fails `ERR_SSL_PROTOCOL_ERROR` from this IP (flagged edge, same class as npm). All deferred — none are Postiz channels; Linktree would only aggregate links already owned. |
 
 **IP-flag pattern (2026-10-02):** this network edge is now broadly flagged —
