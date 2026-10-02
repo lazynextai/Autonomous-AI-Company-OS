@@ -388,7 +388,8 @@ user-gated, same as admin.google.com.
 |---|---|---|---|
 | mastodon.social | @lazynextco | support@ | live, Postiz-connected; will migrate to mstdn lazynext |
 | mstdn.social | @lazynext | support@ | email-verified, pending mod review |
-| dev.to | @lazynext | support@ | live, connected, post published |
+| dev.to | @lazynext | support@ | live, connected, post published — **but public HTML now 404s** (2026-10-02 recheck: `/lazynext` + article pages 404 while `dev.to/api/users/by_username?url=lazynext` → 200, id 4154300, settings all canonical). Consistent with dev.to spam-quarantine of the automation-flagged account; API/post pipeline still works. May resolve over time or need an appeal — watch. |
+| substack | @lazynext | support@ | **live + profile completed 2026-10-02** (name, bio; publication/subdomain not yet created). Re-verified: settings email = support@lazynext.com, signed in, canonical. |
 | tumblr | lazynext | support@ | verified, connected, post published |
 | wordpress | blog.lazynext.com | n/a (self-host) | live, connected, post published |
 | nostr | 52fe6dc… | n/a | connected, post verified on relay |
@@ -396,7 +397,7 @@ user-gated, same as admin.google.com.
 | bluesky | lazynext.bsky.social | support@ | live, connected `cmupthq69…`, **E2E PUBLISHED** (app password auth) |
 | reddit | u/lazynext | support@ (Google) | live profile; OAuth app create silently drops (`success:true`, nothing persists — dev-registration/bot-score gate) |
 | github | **lazynextai** | support@ | renamed 2026-10-01 (Lazynext-AI→lazynextai; `lazynext` squatted-hidden); repos auto-redirect; repo remotes repointed |
-| docker hub | lazynextai | support@ | verified via API |
+| docker hub | lazynextai | support@ | verified via API; **re-verified 2026-10-02** (`app.docker.com/accounts/lazynextai`, email `support@lazynext.com` verified). Docker IDs immutable; `lazynext` namespace free but org-only = paywalled (Team plan) — deferred, `lazynextai` is the sanctioned fallback. |
 | whop | lazynext | support@ | live |
 | youtube | @lazynext | support@ | ours via Google Workspace |
 | rumble | Lazynext | support@ | ours |
@@ -615,8 +616,14 @@ Notes:
 | imgur.com | `lazynext` | — | free (user/ pages 200 as soft-404 for nonexistent users) — low value, not claimed. |
 | behance.net | **lazynext** (`Lazynext AI`) | support@ via Google → Adobe ID | **live 2026-10-02** — `behance.net/lazynext` → 200. Google OAuth creates a federated Adobe ID (DOB month+year + country required; last name mandatory — set `AI`, matching MeWe convention). Auto-slug `lazynextai` renamed to canonical `lazynext` via Account settings → "Behance URL" (Edit → Apply → confirm). Headline/Company/Website filled. |
 | vercel.com | **lazynext** (team slug, `Lazynext`) | support@ via Google OAuth | **live 2026-10-02** — `vercel.com/lazynext` team slug on Hobby (free) tier; Google OAuth → onboarding → Hobby plan → slug `lazynext` (form needed real keystrokes; first submit reset the field). No project created — team/identity only. |
+| netlify.com | **lazynext** (team slug, `Lazynext`) | support@ via Google OAuth | **live 2026-10-02** — `app.netlify.com/teams/lazynext`, Free plan. Auto-slug `support-giays-m` renamed via Team settings → Edit team information → Slug. Onboarding requires ALL radios + both company-name fields before Continue enables (React needs real keystrokes on text inputs). |
+| render.com | `Lazynext`'s workspace | support@ via Google OAuth | **live 2026-10-02** — account + workspace "Lazynext's workspace" via Google OAuth (no public vanity handle exists on Render — the workspace name IS the claim). No services created. |
+| supabase.com | org **lazynext** (`fwoefcmtbtslzgzfstwj`) | GitHub OAuth → `lazynextai` | **live 2026-10-02** — org `lazynext` (Company type, Free plan) under the `lazynextai` GitHub account. Supabase orgs key on generated refs, not vanity slugs — `lazynext` is the display name. No project created (project creation spins billable resources). |
+| railway.com | workspace `Lazynext's Projects` | GitHub OAuth → `lazynextai` | **live 2026-10-02** — GitHub-App authorize button stays `disabled` until JS releases it; if it never enables, `btn.disabled=false` + click submits fine. Workspace auto-named `Lazynext's Projects`; no public handle exists. |
+| stackblitz.com | **lazynext** (`Lazynext`) | support@ via Google OAuth | **live 2026-10-02** — Google OAuth → welcome form (name/email confirm) → auto-username `support_rres` renamed to `lazynext` via Settings → "Change username". Profile name/site/location set (`Lazynext`, `lazynext.com`, India). Public profile `stackblitz.com/@lazynext`. |
 | postman.com | **lazynext** (`Lazynext`) | support@ direct signup (password in `.env`) | **live 2026-10-02** — email-verified (6-digit code). Gotchas: signup ignored the chosen `lazynext` username and auto-derived `lazynextsupport` from the email prefix — renamed back to `lazynext` in Settings → Profile. Onboarding ("personalize workspace") is enforced before the app loads — react-select dropdowns answerable via DOM option click; Website field stores a raw URL but the UI *also* renders an `https://` prefix, so submit `lazynext.com` bare or it double-schemes → "Incorrect payload for social profiles". Public profile enabled; workspace `lazynextsupport-8339642.postman.co`. |
 | indiehackers.com | `lazynext` (free) | — | **blocked** — Google-OAuth-only signup; Firebase popup→parent session handoff never persists in the automation browser (same partition issue as SoundCloud pass 1). Retried twice; lands signed-out. |
+| gumroad.com | `lazynext` (slug free) | — | **blocked (email tombstoned)** — Google OAuth of `support@lazynext.com` → "your account was deleted. Email support@gumroad.com if you'd like to use this email address for a new account." A prior Gumroad account on the canonical email was deleted; reclaiming requires a support email (user/ops action). |
 | disqus.com / indiehackers.com / linktr.ee | `lazynext` | — | slug free at Disqus + IndieHackers; `linktr.ee` hard-fails `ERR_SSL_PROTOCOL_ERROR` from this IP (flagged edge, same class as npm). All deferred — none are Postiz channels; Linktree would only aggregate links already owned. |
 
 **IP-flag pattern (2026-10-02):** this network edge is now broadly flagged —
