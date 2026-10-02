@@ -650,3 +650,17 @@ codepen 403, telegram/bluesky phone gates. Google-OAuth platforms still work
 cleanly (Google session reputation carries them); raw-email signups on
 CDN-fronted sites are the failures. Remaining social-presence claims likely
 need the same browser session on a residential IP or the user's own clicks.
+
+## 2026-10-02 (AI inference + MCP registry sweep) — 9 claimed
+
+| Platform | Handle | Email | Status |
+|---|---|---|---|
+| groq.com (GroqCloud) | org `Lazynext` (`org_01kpheq9qcf3ergpw4sdbm1xn8`) | support@ via Google OAuth | **live 2026-10-02** — console live; default org `Personal` renamed to `Lazynext`. No public vanity URL (account-level claim); no API key minted yet. |
+| together.ai | account `Lazynext` | support@ via Google OAuth | **live 2026-10-02** — "Welcome, Lazynext" dashboard. Account-level claim; no keys/resources created. |
+| mistral.ai (La Plateforme) | workspace `Default Workspace` | support@ via Google OAuth | **live 2026-10-02** — `console.mistral.ai` signed in. No public vanity handle; no keys minted. |
+| fal.ai | username `support-qfdrpcbd95t5` (copy-only) | GitHub OAuth → `lazynextai` | **live 2026-10-02** — dashboard live. Username is email-derived and immutable (same class as Replicate); support ticket is the only rename path — documented, not pursued. |
+| fireworks.ai | Account ID **lazynext** | Google OAuth | **live 2026-10-02** — `lazynext` accepted at onboarding (editable Account ID field, ToS checkbox + use-case survey gate). Console reached. |
+| cerebras.ai (Cerebras Cloud) | org `org_8m8dn5m99wkn8trmy9ep5jfc` / project `prj_5epw64jv53j9crvtpdtdd933` | support@ via Google OAuth | **live 2026-10-02** — onboarding chose **limited free credits**, skipped payment. Doubled `Lazynext Lazynext` full name corrected to `Lazynext`, company `Lazynext`. No public vanity handle (opaque org/project refs). |
+| deepinfra.com | business account `Lazynext` | GitHub OAuth → `lazynextai` | **live 2026-10-02** — Finish Sign Up stays disabled until the "optional" Title + Use-case fields are filled (Founder / "Autonomous AI company operating system — agent orchestration and inference"). |
+| smithery.ai | namespace **lazynext** | GitHub OAuth → `lazynextai`, support@ email-verified | **live 2026-10-02** — `smithery.ai/lazynext` namespace claimed (availability-checked in the New-namespace dialog). GitHub OAuth does NOT complete registration — a separate WorkOS code emails to support@ (sender shows as "Clavia"; search `from:smithery OR from:workos`). Profile route is `/settings/profile`, NOT `/console/account` (404). This is the publishing handle for our MCP servers. |
+| glama.ai | workspace `LazyNext` | support@ via Google OAuth | **live 2026-10-02** — signup intent "Host MCP Servers" → workspace `LazyNext`, member name is Google-derived `Lazynext Lazynext` (no profile rename surface in settings — fixed at Google account level only). This is the second MCP registry claim. |
