@@ -675,3 +675,13 @@ need the same browser session on a residential IP or the user's own clicks.
 | poe.com | `lazynext` (slug free) | support@ via Google OAuth (in-flight) | **user-gated (SMS)** — Google OAuth linked, then Poe demanded phone verification: "We use your phone for verification during each sign in" — code sent via SMS to `+91 9199366166`. Browser tab parked on the code-entry screen; needs the user to relay the SMS code, then set username `lazynext` in settings. |
 | odysee.com | **@lazynext** (`Lazynext`) | support@ direct (password in `.env` `ODYSEE_PASSWORD`) | **live 2026-10-02** — email-verified (link click + one reCAPTCHA checkbox auto-passed), channel `@lazynext` created at `odysee.com/@lazynext:8a626d86…` ("Confirming" = LBRY chain settle, normal). Title `Lazynext`, website `lazynext.com` set. |
 | dailymotion.com | **user/lazynext** (`Lazynext`) | support@ direct (password in `.env` `DAILYMOTION_PASSWORD`) | **live 2026-10-02** — `dailymotion.com/user/lazynext` → 200. Studio → Account → Username field is PRE-FILLED with the auto `suppobym712` — typing prepends (got `lazynextsuppobym712`); select-all + retype required, live URL preview confirms. Email verify = 30-day grace; "Verify email" banner clicked but mail hadn't arrived at check time — retry from the banner. |
+
+## 2026-10-02 — MCP directories + launch platforms
+
+| Platform | Handle | Email | Status |
+|---|---|---|---|
+| pulsemcp.com | — | — | **submissions paused** — site banner: submissions paused since 2026-09-03; they auto-ingest the official registry, so our `com.lazynext/accessibility-checker` listing will surface when submissions reopen. No action needed. |
+| mcp.run (Turbo MCP) | — | — | **deferred** — rebranded to Turbo MCP; now enterprise/console product, no public server registry. Not a listing surface. |
+| mcp.so | — | — | **paywalled** — submit flow exists but publishing requires a **$39** fee. Skipped pending founder spend decision. |
+| opentools.com | — | — | **sales-gated** — adding a server requires booking a call; no self-serve submission. |
+| uneed.best | **lazynext** | support@ direct (password in `.env` `UNEED_PASSWORD`) | **live 2026-10-02** — email+password signup, `lazynext` username, email confirmed via Gmail link → signed-in avatar `lazynext`. Product submission itself is a launch-slot/queue decision (free waiting line vs paid fast-track) — account ready when a launch is scheduled. |
