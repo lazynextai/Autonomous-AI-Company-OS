@@ -703,3 +703,11 @@ need the same browser session on a residential IP or the user's own clicks.
 | rapidapi.com | Personal Account (`Lazynext`) | support@ via Google OAuth | **live 2026-10-02** — Google OAuth → consent → `/hub` signed in, Console + "Personal Account" context live. Public `/user/` profile pages don't render for accounts with no published API. Provider registration (to list our scan API) is a separate flow at `/provider`. |
 | saashub.com | `lazynext` (fields filled) | support@ | **captcha-gated** — register submits → 422 + hCaptcha "I am human" image challenge appears (not auto-passable). Fields retained (username+email), password cleared on 422. Retry needs a human captcha solve or accessibility-cookie path. |
 | dribbble.com | `lazynext` (slug free) | — | **edge-blocked** — `dribbble.com` returns 202 perimeter challenge to this browser (signup route redirected to a landing page). Same class as npm/linktree IP-flag. |
+
+## 2026-10-02 — AI directories + launch boards
+
+| Platform | Handle | Email | Status |
+|---|---|---|---|
+| futurepedia.io | account (no public handle) | support@ direct (pw `FUTUREPEDIA_PASSWORD`) | **live 2026-10-02** — full form incl. phone (country selector must be set to India FIRST, then `+919199366166` via native setter — normal fill drops to `+91`) + `employeeCount=1` (required despite "optional" label) + visible reCAPTCHA checkbox (auto-passed). Landed `/welcome`. Profile/tool submission beyond onboarding not yet done. |
+| slashdot.org | — | — | **blocked** — registration endpoint returns 403 to this browser/network (SourceForge sister site, no creds port). Deferred. |
+| devhunt.org | GitHub-bound `@lazynextai` | via GitHub OAuth (`lazynextai`) | **live 2026-10-02** — GitHub/Google-OAuth-only site (no email signup; providers used "to filter out bots"). GitHub-bound identity like crates.io — canonical exception. No public profile pages (`@x` links in nav point to x.com); the account exists for tool submissions + voting. DevHunt index also lists x.com/threads/discord — those map to existing sweep items. |
