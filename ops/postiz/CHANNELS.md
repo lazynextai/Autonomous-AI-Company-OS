@@ -390,6 +390,11 @@ user-gated, same as admin.google.com.
 | discord | (form ready: lazynextai) | support@ | captcha battery loops on automation fingerprint — human clicks needed |
 | instagram | unknown (digest mails) | ? | Meta bot-scored |
 | pinterest | not ours (existing lazynext ≠ ours) | — | signup silently drops |
+| stackoverflow | Lazynext (users/33177966) | support@ (Google) | live — already existed, verified session 2026-10-02 |
+| producthunt | @lazynext | support@ | live — already existed, verified session 2026-10-02 |
+| peerlist | Lazynext | support@ | live — already existed, verified session 2026-10-02 |
+| substack | @lazynext | support@ | **live + profile completed 2026-10-02** (name, bio; publication/subdomain not yet created) |
+| hackernews | lazynext claimed? | n/a (no email) | `HN_PASSWORD` in .env; login POST now reCAPTCHA-gated — can't verify ownership; `lazynextai` free if it's not ours |
 
 **One-account rule check**: no platform has two live Lazynext accounts.
 mastodon.social's dead `lazynext` row is unconfirmed (invisible, purges on
@@ -410,6 +415,9 @@ GitHub `lazynext` is a hidden squatted account (404 but reserved) — fallback
   `Incorrect response` to automated submits — fresh accounts are bot-scored
   on app creation; needs one human click. Redirect URI:
   `https://postiz.lazynext.com/integrations/social/reddit`.
+  Retried 2026-10-02: reCAPTCHA checkbox now auto-passes instantly
+  (mature Google session), but the create-app POST is still silently
+  dropped — form re-renders populated, captcha resets, no app row.
 - **GitHub** — signed in via Google + mobile-push 2FA, renamed
   `Lazynext-AI` → `lazynextai` (`lazynext` 404s but is reserved by a hidden
   account). GitHub auto-redirects repos web+git; repo remotes repointed to
