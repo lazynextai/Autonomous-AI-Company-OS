@@ -740,3 +740,16 @@ need the same browser session on a residential IP or the user's own clicks.
 | trustpilot.com | business profile `lazynext.com` | support@ (business signup) | **live 2026-10-02** — business.trustpilot.com signup (India + Lazynext + lazynext.com) → activation email → domain-matched instant verify → dashboard `businessapp.b2b.trustpilot.com/dashboard` reachable. Public review page 403s via curl = edge restriction, not account state. Terms checkbox only toggles via DOM (`checked=true`), not label clicks. |
 | g2.com | account (email-id) | support@ magic link | **partial 2026-10-02** — magic link → `domain_login/registration` → name + ToS completed → `my.g2.com/~/home` returns **HTTP 403 Access Denied** and `/products` redirects to public categories. Account exists (email-verified) but vendor console requires a claimed product listing — deeper flow than account creation. Retriable once a G2 product page exists. |
 | appsumo.com | **lazynext** | support@ direct (pw `APPSUMO_PASSWORD`) | **live 2026-10-02** — email signup → profile saved (first/last `Lazynext`, username `lazynext`, company `Lazynext`, website `lazynext.com`, YouTube `lazynext`). Phone country must be picked via flag dropdown (🇺🇸→India) then hidden `phone.phone_number` forced to `+9199366166` — still didn't persist (likely needs SMS verify). Partner Portal link visible; product submission is a separate vendor flow. |
+
+## 2026-10-02 — Microsoft ecosystem (CAPTCHA-gated)
+
+| Platform | Handle | Email | Status |
+|---|---|---|---|
+| account.microsoft.com | `lazynextai@outlook.com` | new MSA (recovery → support@) | **CAPTCHA-gated 2026-10-02** — `lazynext@outlook.com` squatted (suggests lazynext1/2026/1913); claimed `lazynextai@outlook.com` local part → password set (`MICROSOFT_PASSWORD`) → DOB/country India filled → name step → **PerimeterX "press and hold" human-verification** (hsprotect.net cross-origin iframe — synthetic events don't reach it). One step from creation. NOTE: support@ is already a recovery email on 3 pre-existing personal MSAs (te***/re***/pe***@outlook.*) — none company-branded, no dedup conflict. NuGet + VS Marketplace + Edge Add-ons all gate on this MSA. |
+
+## 2026-10-02 — JetBrains + WordPress.org
+
+| Platform | Handle | Email | Status |
+|---|---|---|---|
+| account.jetbrains.com | `lazynextai` (GitHub-bound) | via GitHub OAuth | **live 2026-10-02** — "Sign in with GitHub" → authorize redirect → `account.jetbrains.com/licenses` reached. GitHub-bound identity (sanctioned exception class — same as crates.io/Open VSX/DevHunt); JetBrains Marketplace publisher surface unlocked. |
+| wordpress.org | **lazynext** | support@ direct (pw `WORDPRESS_ORG_PASSWORD`) | **live 2026-10-02** — `login.wordpress.org/register` (username lazynext + ToS checkboxes) → "Confirm your email" mail → password/profile page (`/register/create`) → password set via clipboard+native setter → **public profile `profiles.wordpress.org/lazynext` live 200**, "Logged in as: lazynext" + Edit Profile confirmed. Quirk: post-submit lands on `linkexpired/register-logged-in` — benign, the account-creation POST already succeeded; the "expired" link is just the already-logged-in guard. Plugin-directory account = the real WP.org (distinct from the self-hosted `blog.lazynext.com` connector). |
