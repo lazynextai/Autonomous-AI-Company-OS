@@ -1541,16 +1541,18 @@ async function callConnector(
       // Postiz social backend then fans one dispatch out to every connected
       // (non-disabled) channel in a single /posts call.
       const byId = new Map<string, string>();
+      const siteById = new Map<string, string>();
       const il = await connPost(`${base}/public/v1/integrations`, {
         method: "GET", headers: { authorization: key },
       });
       const all: string[] = [];
       if (il.ok) {
         const list = Array.isArray(il.body)
-          ? (il.body as { id?: unknown; identifier?: string; provider?: string; disabled?: boolean }[])
-          : (((il.body as { integrations?: unknown[] })?.integrations ?? []) as { id?: unknown; identifier?: string; provider?: string; disabled?: boolean }[]);
+          ? (il.body as { id?: unknown; identifier?: string; provider?: string; disabled?: boolean; internalId?: string }[])
+          : (((il.body as { integrations?: unknown[] })?.integrations ?? []) as { id?: unknown; identifier?: string; provider?: string; disabled?: boolean; internalId?: string }[]);
         for (const i of list) {
           byId.set(String(i.id), i.identifier ?? i.provider ?? "");
+          if (i.internalId) siteById.set(String(i.id), i.internalId);
           if (!i.disabled) all.push(String(i.id));
         }
       }
@@ -1559,6 +1561,17 @@ async function callConnector(
         : integ.split(",").map((s) => s.trim()).filter(Boolean);
       if (!targets.length)
         return { ok: false, status: 503, error: "conn:postiz resolved zero target integrations" };
+      // Self-hosted wordpress channel targets a CF Container that sleeps after
+      // 30m idle — Postiz's publish fetch times out against a cold start
+      // (~45s) and the post lands in ERROR. Pre-warm the site before dispatch.
+      const wpId = targets.find((id) => byId.get(id) === "wordpress");
+      if (wpId) {
+        const site = siteById.get(wpId);
+        const origin = (site?.startsWith("http") ? site : "https://blog.lazynext.com").replace(/\/+$/, "");
+        try {
+          await fetch(origin, { signal: AbortSignal.timeout(75000) });
+        } catch { /* wake attempt is best-effort */ }
+      }
       // Blogging providers schema-check settings.title — derive one from the
       // first line/sentence so a bare {text} dispatch passes validation.
       const title = (text.split(/\r?\n|\.\s+/)[0] || text).slice(0, 120) || text.slice(0, 80);
@@ -1583,7 +1596,9 @@ async function callConnector(
               settings: (b.settings as object) ?? {
                 ...(provider ? { __type: provider } : {}),
                 ...(titleful.has(provider) ? { title } : {}),
-                ...(provider === "wordpress" ? { type: "post" } : {}),
+                // wordpress settings.type IS the REST route slug — "posts",
+                // not "post" (singular → /wp-json/wp/v2/post → rest_no_route).
+                ...(provider === "wordpress" ? { type: "posts" } : {}),
                 // Whop rejects posts without company+experience — the Lazynext
                 // community's public forum (ops/postiz/CHANNELS.md).
                 ...(provider === "whop" ? { company: "biz_8CFM24RGaG1WsO", experience: "exp_rQ6uPLpXZJICPE" } : {}),

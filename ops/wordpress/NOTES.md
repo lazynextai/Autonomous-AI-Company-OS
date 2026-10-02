@@ -56,8 +56,10 @@ stage died.
   `https://blog.lazynext.com` + `lazynext` + app password (`WP_APP_PASSWORD`
   in `.env`).
 - Publish path: `POST /api/public/v1/posts` with
-  `settings: {title, type:"post"}` (wordpress requires `title`, `type`, and
-  `value[].image` array even if empty).
+  `settings: {title, type:"posts"}` (wordpress requires `title`, `type`, and
+  `value[].image` array even if empty). **`type` is the REST route slug** —
+  `"posts"`→`/wp-json/wp/v2/posts`; `"post"`→404 `rest_no_route` → Postiz
+  reports `Unknown Error`.
 - **Persistence caveat**: runtime writes land in the container's sqlite —
   replaced on cold boot → any posts/settings made through the UI die with the
   instance. Baked-in state (install, app pw, permalinks) survives. This makes

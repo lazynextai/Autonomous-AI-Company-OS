@@ -84,7 +84,11 @@ Field names per provider are exposed live at `GET /api/integrations` under
   subset. Per-provider schema defaults are auto-derived — blogging
   providers (wordpress/devto/hashnode/medium/ghost/blogger) get
   `settings.title` from the first line of `text`, wordpress gets
-  `type:"post"` — a bare `{text}` passes Postiz validation everywhere.
+  `type:"posts"` — **the plural matters**: `settings.type` is interpolated
+  verbatim into the REST route (`/wp-json/wp/v2/{type}`), so `"post"`
+  404s `rest_no_route` → Postiz `Unknown Error` (verified fix 2026-10-03:
+  singular→plural flipped wordpress ERROR→PUBLISHED). A bare `{text}`
+  passes Postiz validation everywhere.
   More integrations append with zero config: a newly connected channel
   joins `*` fan-out automatically.
 - **Connected channels (2026-10-01, verified in `/api/integrations/list`)**:
