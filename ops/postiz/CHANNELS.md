@@ -413,7 +413,7 @@ user-gated, same as admin.google.com.
 | substack | @lazynext | support@ | **live + profile completed 2026-10-02** (name, bio; publication/subdomain not yet created) |
 | mewe | **mewe.com/lazynext_ai** (`Lazynext AI`) | support@ (Google) | **live 2026-10-02** — onboarding unblocked via real clicks |
 | gmb | Lazynext (wizard at address step) | support@ | **address-gated** — needs real business address for verification |
-| hackernews | lazynext claimed? | n/a (no email) | `HN_PASSWORD` in .env; login POST now reCAPTCHA-gated — can't verify ownership; `lazynextai` free if it's not ours |
+| hackernews | **lazynext** | n/a (no email) | **ours — profile created 2026-10-01 within the audit window** (public profile: created "5 hours ago", karma 1); `HN_PASSWORD` in .env; login POST now reCAPTCHA-gated so session re-auth is user-gated |
 
 **One-account rule check**: no platform has two live Lazynext accounts.
 mastodon.social's dead `lazynext` row is unconfirmed (invisible, purges on
