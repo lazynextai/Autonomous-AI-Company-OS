@@ -601,3 +601,23 @@ Notes:
 - OpenRouter is the natural LLM-gateway fallback for the platform brain — `OPENROUTER_API_KEY` gives access to every hosted model through one OpenAI-compatible endpoint (`https://openrouter.ai/api/v1`).
 - Replicate exception stands alongside the other documented noncanonical handles: GitHub `lazynextai`, GitLab `lazynextai`, Instagram `lazynext.ai`, MeWe `lazynext_ai`, Mastodon `@lazynextco`.
 - Deferred/not-pursued this pass: `test.pypi.org` (separate account, CI-only value), Keybase (needs desktop app for key ops), SourceForge (bot-walled probe, mirror-only value), OpenCollective/Patreon/Ko-fi (funding = business decision), RapidAPI/Postman API Network (distribution channels — revisit at launch), Packagist/NuGet/Maven (no PHP/.NET/Java SDKs in scope), Chrome Web Store ($5 fee + card, no extension planned). All probed `lazynext` slugs were unclaimed (404) except gitlab.com/lazynext (taken by third party — known).
+
+## 2026-10-02 (media/dev platform sweep) — Kaggle, Vimeo, SoundCloud claimed
+
+| Platform | Handle | Email | Status |
+|---|---|---|---|
+| kaggle.com | **lazynext** (`Lazynext`) | support@ via Google OAuth | **live 2026-10-02** — `kaggle.com/lazynext` → 200. Google leaked the doubled `Lazynext Lazynext` display name; corrected to `Lazynext` + profile URL set to `lazynext` during registration. |
+| vimeo.com | **lazynext** (`Lazynext`) | support@ via Google OAuth | **live 2026-10-02** — `vimeo.com/lazynext` → 200. Vanity URL replaced auto `user264210280`; profile bio set to the OS tagline. Gotchas: the doubled `Lazynext Lazynext` name fixed in Account settings; the public-profile visibility toggle needed the real `input[type=submit]` save (a plain `change` event never reached React state — a beforeunload dialog was the tell). |
+| soundcloud.com | **lazynext** (`Lazynext`) | support@ via Google OAuth | **live 2026-10-02** — `soundcloud.com/lazynext` → 200 (`og:title` `Lazynext`). OAuth popup completed but the parent iframe stayed signed-out on first pass; a second "Continue with Google" click ran the profile-completion form (display name fixed from `Lazynext Lazynext`, DOB 1993-06-07, gender "Prefer not to say") → slug `lazynext` auto-assigned. |
+| replit.com | **lazynext** (`Lazynext`) | support@ via Google OAuth | **created, pending phone verify** — auto-handle `support3894` renamed to `lazynext` (React fields need one real keystroke before Next enables — synthetic fills don't register). Dashboard shows `Lazynext`. Phone verification sent via **WhatsApp to +91 9199366166** — waiting on the 6-digit code (country select needs the exact `India` option; a fuzzy match picks British Indian Ocean Territory +246). `replit.com/@lazynext` 302s to login unauthenticated — no public probe possible. |
+| blogger | `lazynext.blogspot.com` free | — | **user-gated** — Google `confirmidentifier` reauth ("Verify that it's you") fires on blogger.com navigation; needs the Google Workspace password. `.env` only has the `GOOGLE_APP_PASSWORD` placeholder. |
+| codepen.io | `lazynext` | — | **blocked** — signup probe returns 403 (bot-scored CDN edge, same class as npm/Linktree). |
+| imgur.com | `lazynext` | — | free (user/ pages 200 as soft-404 for nonexistent users) — low value, not claimed. |
+| disqus.com / indiehackers.com / linktr.ee | `lazynext` | — | slug free at Disqus + IndieHackers; `linktr.ee` hard-fails `ERR_SSL_PROTOCOL_ERROR` from this IP (flagged edge, same class as npm). All deferred — none are Postiz channels; Linktree would only aggregate links already owned. |
+
+**IP-flag pattern (2026-10-02):** this network edge is now broadly flagged —
+npmjs (GitHub "unusual activity"), linktr.ee + disqus-style 403/SSL kills,
+codepen 403, telegram/bluesky phone gates. Google-OAuth platforms still work
+cleanly (Google session reputation carries them); raw-email signups on
+CDN-fronted sites are the failures. Remaining social-presence claims likely
+need the same browser session on a residential IP or the user's own clicks.
