@@ -109,8 +109,12 @@ Field names per provider are exposed live at `GET /api/integrations` under
   2026-10-01 night 2 — see section below for the 3-part fix).
   Reddit `u/lazynext` account exists
   (Google-OAuth) but its OAuth app registration is bot-score-gated on
-  fresh accounts — finish at reddit.com/prefs/apps (form prefilled:
-  web app `Lazynext Social`, callback `…/integrations/social/reddit`).
+  fresh accounts — retried 2026-10-02 with real reCAPTCHA solves:
+  `POST /api/updateapp` returns `"success":true` yet no app persists
+  (`/prefs/apps.json` → `{}`) — silent drop / developer-registration gate.
+  Needs a human retry in the logged-in browser or Reddit dev registration
+  (form prefilled: web app `Lazynext Social`, callback
+  `…/integrations/social/reddit`).
 - **Public API note**: current postiz-app uses org-level `apiKey` +
   `PublicAuthMiddleware` on `@Controller('/public/v1')` — reached from
   outside as `{domain}/api/public/v1/*` (nginx strips `/api/`). The raw
@@ -151,10 +155,12 @@ Field names per provider are exposed live at `GET /api/integrations` under
   first app had narrower scopes → "requested scope invalid" on authorize) →
   `MASTODON_URL/CLIENT_ID/CLIENT_SECRET` worker secrets updated; connect runs
   once the container picks them up on next spawn.
-- **gitlab**: `lazynext-ai` / support@ — **email VERIFIED** (code resent via
-  login flow, entered 2026-10-01; account live). `lazynext` is taken by a
-  stranger on gitlab.com — `lazynext-ai` stands. Code-hosting only, not a
-  Postiz channel.
+- **gitlab**: **`gitlab.com/lazynextai` CONFIRMED + logged in** (2026-10-02:
+  email+password login → 2FA code to support@ inbox → Google identity now
+  linked to the account). Group `gitlab.com/lazynext1` (named Lazynext) is
+  membered. `lazynext` top-level is squatted by an *unconfirmed* stranger
+  account — user rename to `lazynext` rejected "already been taken";
+  `lazynextai` stands. Code-hosting only, not a Postiz channel.
 - **tumblr**: account `lazynext` VERIFIED (settings page confirms
   support@lazynext.com + blog slug `lazynext`). **OAuth app registered**
   `Lazynext Postiz` → consumer key + secret in `.env` `TUMBLR_CLIENT_ID`/
@@ -199,8 +205,8 @@ Field names per provider are exposed live at `GET /api/integrations` under
   (`id:secret` format). Postiz has NO ghost provider — it's a platform-side
   surface (marketing agent posts via Ghost Admin REST API directly), not a
   social channel.
-- **GitLab note**: signup submitted, identity-verification code emailed to
-  `founder@lazynext.com`. Not a Postiz channel in this build — value is
+- **GitLab note** — resolved above: account is `lazynextai` (Google identity
+  linked, support@ verified). Not a Postiz channel in this build — value is
   code-hosting only; low priority vs. channel work.
 - **WordPress (self-hosted, `blog.lazynext.com`, LIVE)** — wordpress:
   php8.3-apache + sqlite dropin in its own CF container (`ops/wordpress/`,
@@ -255,9 +261,12 @@ Field names per provider are exposed live at `GET /api/integrations` under
 - **pinterest**: zero mails ever for support@ → the `lazynext` profile is
   NOT ours (a stranger's). Native signup + GSI Google button both silently
   drop under automation → user-action required.
-- **instagram**: digest mails exist for this mailbox → account probably
-  exists; Meta's reset flow disabled the input after submit but never
-  advanced — bot-scored. User-action: reset via phone or real browser.
+- **instagram**: account EXISTS — handle **`lazynext.ai`** (confirmed via
+  digest-mail profile link `username=lazynext.ai`, `target_user_id=41221136100`),
+  display name currently `hri5hikesh` — needs normalization to `Lazynext`.
+  Meta's reset flow disabled the input after submit but never advanced —
+  bot-scored. User-action: reset/login via phone or real browser, then set
+  display name to Lazynext (and claim `lazynext` if ever free).
 - **Same-session connect recipe (works for every OAuth provider once a
   browser tab can authorize)**:
   ```bash
@@ -327,10 +336,10 @@ Canonical identity: email `support@lazynext.com`, handle `lazynext` (or
 ## 2026-10-01 (evening) — verification + hCaptcha-unlock pass
 
 **Inbox-driven completions (browser Gmail, no IMAP needed):**
-- **GitLab** `lazynext-ai` email-verified via code from support@ inbox
-  (`767152` path). Username rename `lazynext-ai`→`lazynextai` pending: the
-  post-signup Welcome wizard (role/company/country listboxes) gates the app
-  and fights automation — finish manually or revisit; account is live.
+- **GitLab** `lazynextai` email-verified via code from support@ inbox —
+  rename completed 2026-10-02 (no wizard detour needed; direct
+  `/profile/account` path). `lazynext` squatted by unconfirmed stranger.
+  Google OAuth identity linked to the account during login.
 - **Tumblr** `lazynext` email-verified via the inbox verify link
   ("Congratulations! Now you're a real user."). OAuth app "Lazynext Postiz"
   already registered; channel already connected.
@@ -377,18 +386,18 @@ user-gated, same as admin.google.com.
 | nostr | 52fe6dc… | n/a | connected, post verified on relay |
 | dribbble | lazynext | support@ | live, connected, **E2E PUBLISHED** (shot 27777473) |
 | bluesky | lazynext.bsky.social | support@ | live, connected `cmupthq69…`, **E2E PUBLISHED** (app password auth) |
-| reddit | u/lazynext | support@ (Google) | live profile; OAuth app form bot-score-gated (human click needed on prefilled form) |
+| reddit | u/lazynext | support@ (Google) | live profile; OAuth app create silently drops (`success:true`, nothing persists — dev-registration/bot-score gate) |
 | github | **lazynextai** | support@ | renamed 2026-10-01 (Lazynext-AI→lazynextai; `lazynext` squatted-hidden); repos auto-redirect; repo remotes repointed |
 | docker hub | lazynextai | support@ | verified via API |
 | whop | lazynext | support@ | live |
 | youtube | @lazynext | support@ | ours via Google Workspace |
 | rumble | Lazynext | support@ | ours |
-| gitlab | lazynextai | support@ | verified + renamed + display name `Lazynext` |
+| gitlab | lazynextai | support@ | verified + renamed + display name `Lazynext`; Google identity linked 2026-10-02; group `gitlab.com/lazynext1` |
 | medium | @lazynextai | support@ | live (no API tokens offered → not connectable) |
-| telegram | +91 9199366166 | — | **number already registered on another device** — user installs app → "Send code via SMS" → claim + terminate other sessions + set @lazynext + 2SV |
+| telegram | +91 9199366166 | support@ (2SV-recovery email — code mail seen) | **number already registered on another device** — user installs app → "Send code via SMS" → claim + terminate other sessions + set @lazynext + 2SV |
 | vk | +91 9199366166 | — | web signup app-gated for IN numbers → VK mobile app → SMS |
 | discord | (form ready: lazynextai) | support@ | captcha battery loops on automation fingerprint — human clicks needed |
-| instagram | unknown (digest mails) | ? | Meta bot-scored |
+| instagram | **lazynext.ai** (id 41221136100) | support@ | exists (digest-mail link proves handle); display name `hri5hikesh` unnormalized; login bot-scored |
 | pinterest | not ours (existing lazynext ≠ ours) | — | signup silently drops |
 | stackoverflow | Lazynext (users/33177966) | support@ (Google) | live — already existed, verified session 2026-10-02 |
 | producthunt | @lazynext | support@ | live — already existed, verified session 2026-10-02 |
@@ -425,7 +434,9 @@ GitHub `lazynext` is a hidden squatted account (404 but reserved) — fallback
   `…-Operating-System` URL was surviving on a redirect).
 - **Telegram** — `+91 9199366166` resolves to an **existing account on
   another device** (both web clients route the code to the app, no SMS
-  fallback on web). Claim path documented for the user (install app →
+  fallback on web). support@lazynext.com is already the account's
+  2FA-recovery email (code mail `275461` seen in inbox — someone started
+  2SV setup). Claim path documented for the user (install app →
   SMS-fallback → terminate foreign sessions → @lazynext + 2SV).
 - **Discord** — form armed (email/`Lazynext`/`lazynextai`-available/DOB
   1993-06-07/password in `.env`) but hCaptcha's text-question battery never
