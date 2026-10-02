@@ -777,3 +777,18 @@ need the same browser session on a residential IP or the user's own clicks.
 |---|---|---|---|
 | login.ubuntu.com + snapcraft.io | **lazynext** | support@ direct (pw `UBUNTU_ONE_PASSWORD`) | **live 2026-10-02** — Ubuntu One SSO create-account (radio `value=create` reveals hidden fields) → email-validation link via Gmail → reCAPTCHA v2 token populated after anchor-iframe click → "Yes, I'm sure" → `+decide` → Snapcraft OpenID return → Developer Program Agreement (`i_agree` checkbox + Continue) → **`snapcraft.io/snaps` "My snaps" dashboard live as `Lazynext`**. Snap namespace `lazynext` claimable on first publish. |
 | alibabacloud.com | — | support@ (pw `ALIBABA_PASSWORD` staged) | **human-verification-gated** — intl register form lives in a `passport.alibabacloud.com` iframe (top page never hydrates). Enterprise type → Next → email+password filled (Strong, all rules pass) → Step-1 submit triggers **Baxia "nc" slide-to-verify** (`#baxia-dialog-content` iframe, `#nc_1__scale_text` track, `滑块` handle). `dragTo` snaps back — instant pointer path detected as bot; no stepped-mouse primitive in the browser toolset. Credentials staged in `.env`; founder can complete the slide manually in ~5s on the same form state. |
+
+## 2026-10-02 (evening) — support-email batch + Kick retry
+
+| Platform | Handle | Email | Status |
+|---|---|---|---|
+| gumroad.com | — | support@ | **support mail sent** — emailed `support@gumroad.com` from the support@ Gmail asking to release the deleted-account email for re-registration. Awaiting response. |
+| f6s.com | — | support@ | **support mail sent** — emailed `support@f6s.com` requesting the registration pause be lifted. Awaiting response. |
+| replicate.com | `lazynext-platform` | via GitHub `lazynextai` | **support mail sent** — emailed `support@replicate.com` requesting slug rename `lazynext-platform` → `lazynext` (fallback `lazynextai`). Awaiting response. |
+| dev.to | `lazynext` (api id 4154300) | support@ | **appeal sent** — emailed `yo@dev.to` re spam-quarantine (API account active, public profile/articles 404 after rename). Awaiting response. |
+| npmjs.com | — | — | **still IP-blocked** — signup probe re-403s on this network. Unchanged: needs non-flagged network → claim `@lazynext` → publish `sdk/js`. |
+| kick.com | `lazynextai` (attempted; `lazynext` squatted) | support@ (pw `KICK_PASSWORD` staged) | **Kasada-gated** — modal signup completes client-side (email/DOB/username/policy-compliant pw all valid, `verify/username` → 204 on `lazynextai`) but the register POST never fires: the `x-kpsdk` Kasada fingerprint POST returns **429**, so the submit silently aborts. Second attempt reached `web.kick.com/api/v1/user/identity/send-verification-code` → also **429** (retry-rate-limited). Human browser session required — same class as Alibaba slider / Microsoft press-and-hold. No duplicate created. |
+
+Notes:
+- Kick password policy discovered: 8–32 chars + lower + upper + digit + special char — the first generated password (alnum-only) failed client validation silently, which is why the first "taken"-cleared submit appeared dead.
+- All 4 support emails were composed + sent from the live support@ Gmail session via `?view=cm` compose URLs.
