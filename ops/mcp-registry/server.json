@@ -1,0 +1,18 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "com.lazynext/accessibility-checker",
+  "title": "Lazynext Accessibility Checker",
+  "description": "Scan URLs or HTML for WCAG 2.2 violations. 75-rule manifest, weighted score, shareable reports.",
+  "repository": {
+    "url": "https://github.com/Lazynext-AI/accessibility-checker",
+    "source": "github"
+  },
+  "version": "1.0.0",
+  "websiteUrl": "https://checker.lazynext.com",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://api.lazynext.com/mcp"
+    }
+  ]
+}
