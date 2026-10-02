@@ -309,8 +309,10 @@ Canonical identity: email `support@lazynext.com`, handle `lazynext` (or
   channel connectable).
 - **whop** → `lazynext` claimed (auto `amenstorageb4` → renamed). Magic-code
   login, no OAuth surface for postiz anyway.
-- **mewe** → Google-linked account exists but onboarding name-form rejects
-  synthetic events — stuck mid-signup; user finishes manually.
+- **mewe** → **`mewe.com/lazynext_ai` LIVE** (2026-10-02 — Google OAuth
+  chooser→onboarding finished: name `Lazynext AI`, interests
+  Technology+Business, premium skipped). Real Playwright clicks beat the
+  synthetic-event rejection that stalled it before.
 - **youtube** → `@lazynext` already ours via the Google Workspace login.
 - **rumble** → `rumble.com/user/Lazynext` already ours.
 
@@ -332,6 +334,12 @@ Canonical identity: email `support@lazynext.com`, handle `lazynext` (or
   phone SMS | **instagram/pinterest** bot-scored | **hashnode** WAF-429 |
   **lemmy** application review | **X/twitch/kick** `lazynext` squatted |
   **linkedin/facebook/threads/meta** app-review + bot gates.
+- **Google Business (gmb)** — wizard completed to the address step
+  (name `Lazynext`, type Online-retail, site lazynext.com, category
+  Software company) then stopped: Google demands a **physical business
+  address** for verification (no skip; fabricating one fails verification
+  and can flag the Workspace). User-action: provide a real address — the
+  wizard can resume from that step.
 
 ## 2026-10-01 (evening) — verification + hCaptcha-unlock pass
 
@@ -403,6 +411,8 @@ user-gated, same as admin.google.com.
 | producthunt | @lazynext | support@ | live — already existed, verified session 2026-10-02 |
 | peerlist | Lazynext | support@ | live — already existed, verified session 2026-10-02 |
 | substack | @lazynext | support@ | **live + profile completed 2026-10-02** (name, bio; publication/subdomain not yet created) |
+| mewe | **mewe.com/lazynext_ai** (`Lazynext AI`) | support@ (Google) | **live 2026-10-02** — onboarding unblocked via real clicks |
+| gmb | Lazynext (wizard at address step) | support@ | **address-gated** — needs real business address for verification |
 | hackernews | lazynext claimed? | n/a (no email) | `HN_PASSWORD` in .env; login POST now reCAPTCHA-gated — can't verify ownership; `lazynextai` free if it's not ours |
 
 **One-account rule check**: no platform has two live Lazynext accounts.
