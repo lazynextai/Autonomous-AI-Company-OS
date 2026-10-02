@@ -13,8 +13,11 @@ compatibility_flags = ["nodejs_compat"]
 # docker commit --change (first commit a0ae... wait 7578 captured sh -c sed
 # as entrypoint -> container start failure; docker commit on an
 # --entrypoint-overridden run inherits the override).
-image = "registry.cloudflare.com/85953070bae00da372951a8833bd3459/postiz-stack-postizstack@sha256:e6c72b43d9c6f522a408c0d0140dfd44d5f5a93738d9d2c3f3d4973ae36b2ca4"
-class_name = "PostizStack"
+# data2-exec = fresh-data2 + chmod 755 on /opt scripts (docker cp patch layers
+# landed 644 -> entrypoint.sh permission denied -> container crash-looped in
+# "starting" with zero R2 beacons; same trap as the patch_manifest.py note).
+image = "registry.cloudflare.com/85953070bae00da372951a8833bd3459/postiz-stack-postizstack@sha256:9de787c90ec1a4bb24acde4166c7488643ca3291de25721fd5e3b2eb775f0a29"
+class_name = "PostizStack2"
 max_instances = 1
 # fat stack: postgres + redis + temporal + node — dev/lite OOM instantly.
 instance_type = "standard-4"
@@ -23,8 +26,15 @@ observability = { enabled = true }
 
 [[durable_objects.bindings]]
 name = "POSTIZ"
-class_name = "PostizStack"
+class_name = "PostizStack2"
 
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["PostizStack"]
+
+# v2 2026-10-02: PostizStack's container volume wedged (pg_ctl stuck on a
+# corrupt /data/pg subtree) and CF keeps the volume across restarts and even
+# container-app deletion — only a new class gets a truly fresh container.
+[[migrations]]
+tag = "v2"
+renamed_classes = [{ from = "PostizStack", to = "PostizStack2" }]

@@ -6,7 +6,7 @@
 import { Container } from "@cloudflare/containers";
 
 interface Env {
-  POSTIZ: DurableObjectNamespace<PostizStack>;
+  POSTIZ: DurableObjectNamespace<PostizStack2>;
   JWT_SECRET?: string;
   POSTGRES_LOCAL_PASSWORD?: string;
   R2_ACCESS_KEY_ID?: string;
@@ -21,7 +21,7 @@ interface Env {
   CLOUDFLARE_REGION?: string;
 }
 
-export class PostizStack extends Container {
+export class PostizStack2 extends Container {
   defaultPort = 5000; // postiz-app bundled FE+BE port
   sleepAfter = "30m";
 
@@ -94,12 +94,41 @@ export class PostizStack extends Container {
       ),
     };
   }
+
+  // Secret rotation path: env vars are baked into the container process at
+  // start, so `wrangler secret put` alone never reaches a running container.
+  // POST /__admin/restart-container (header x-admin-key = ADMIN_RESTART_KEY
+  // worker secret) SIGTERMs it — the fs survives (same as the sleepAfter
+  // path) and the next request boots it with the current envVars.
+  override async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+    if (url.pathname === "/__admin/restart-container") {
+      const key = (this.env as Record<string, string | undefined>)
+        .ADMIN_RESTART_KEY;
+      if (!key || request.headers.get("x-admin-key") !== key) {
+        return new Response("forbidden", { status: 403 });
+      }
+      // ?hard=1 destroys the container outright — fs is wiped and the
+      // entrypoint's r2-restore.sh rebuilds pg from the latest R2 snapshot.
+      // Use when a wedged boot (dead pg/temporal) survives a plain restart.
+      if (url.searchParams.get("hard") === "1") {
+        await this.destroy();
+        return new Response("destroyed — next request rebuilds from R2");
+      }
+      await this.stop();
+      return new Response("stopped — next request boots it fresh");
+    }
+    return super.fetch(request);
+  }
 }
 
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     // One instance is enough — single-tenant scheduler, not a fleet.
-    const id = env.POSTIZ.idFromName("singleton");
+    // Bumped to singleton2 on 2026-10-02: a wedged boot left corrupt pg data
+    // on /data and container destroy() preserved the fs, so a fresh DO
+    // instance (= fresh container fs) was the only way to reach r2-restore.
+    const id = env.POSTIZ.idFromName("singleton2");
     const stub = env.POSTIZ.get(id);
     return stub.fetch(req);
   },

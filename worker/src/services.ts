@@ -1562,7 +1562,14 @@ async function callConnector(
       // Blogging providers schema-check settings.title — derive one from the
       // first line/sentence so a bare {text} dispatch passes validation.
       const title = (text.split(/\r?\n|\.\s+/)[0] || text).slice(0, 120) || text.slice(0, 80);
-      const titleful = new Set(["wordpress", "devto", "hashnode", "medium", "ghost", "blogger"]);
+      const titleful = new Set(["wordpress", "devto", "hashnode", "medium", "ghost", "blogger", "dribbble"]);
+      // Providers whose DTO demands >=1 image (dribbble shots, instagram,
+      // pinterest pins) — a bare-text fan-out would 400 the whole batch, so
+      // they get a Lazynext brand OG uploaded to Postiz media once
+      // (postiz.lazynext.com/api/public/v1/upload). Dribbble additionally
+      // enforces 400x300 or 800x600 px — this is the 800x600 render.
+      const mediaful = new Set(["dribbble", "instagram", "pinterest"]);
+      const brandMedia = [{ id: "83e5ad01-23be-4fa7-8d44-7f97f57a7df4", path: "https://pub-85d2f516d25842e99608c7f8b194ba38.r2.dev/f4dHvL66ZV.png" }];
       return connPost(`${base}/public/v1/posts`, {
         method: "POST",
         headers: { authorization: key, "content-type": "application/json" },
@@ -1572,7 +1579,7 @@ async function callConnector(
             const provider = byId.get(id) ?? "";
             return {
               integration: { id },
-              value: [{ content: text, image: [] }],
+              value: [{ content: text, image: mediaful.has(provider) ? brandMedia : [] }],
               settings: (b.settings as object) ?? {
                 ...(provider ? { __type: provider } : {}),
                 ...(titleful.has(provider) ? { title } : {}),
@@ -1580,6 +1587,9 @@ async function callConnector(
                 // Whop rejects posts without company+experience — the Lazynext
                 // community's public forum (ops/postiz/CHANNELS.md).
                 ...(provider === "whop" ? { company: "biz_8CFM24RGaG1WsO", experience: "exp_rQ6uPLpXZJICPE" } : {}),
+                // SlackDto requires settings.channel (IsDefined) — default to
+                // the Lazynext workspace's #social channel (T0C64BGAT26).
+                ...(provider === "slack" ? { channel: "C0C64BGCVT4" } : {}),
               },
             };
           }),

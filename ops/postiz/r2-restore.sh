@@ -15,12 +15,12 @@ export RCLONE_CONFIG_R2_ACL=private
 rclone copyto "r2:${R2_BUCKET:-lazynext-media}/postiz-backup/latest.sql.gz" /tmp/restore.sql.gz 2>/dev/null || exit 0
 PGBIN=$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | head -1)
 export PATH="$PGBIN:$PATH"
-su postgres -c "initdb -D /data/pg -U postgres -A trust" >/dev/null
-su postgres -c "pg_ctl -D /data/pg -o '-c listen_addresses=127.0.0.1' -w start"
+su postgres -c "initdb -D /data2/pg -U postgres -A trust" >/dev/null
+su postgres -c "pg_ctl -D /data2/pg -o '-c listen_addresses=127.0.0.1' -w start"
 zcat /tmp/restore.sql.gz | PGPASSWORD="$PGPASS" psql -h 127.0.0.1 -U postgres || true
 psql -h 127.0.0.1 -U postgres -c "ALTER USER postgres PASSWORD '$PGPASS'"
 for db in postiz temporal temporal_visibility; do
   psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE $db" || true
 done
-su postgres -c "pg_ctl -D /data/pg -w stop" || true
+su postgres -c "pg_ctl -D /data2/pg -w stop" || true
 rm -f /tmp/restore.sql.gz

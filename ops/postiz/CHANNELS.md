@@ -461,3 +461,74 @@ GitHub `lazynext` is a hidden squatted account (404 but reserved) — fallback
   `https://postiz.lazynext.com/integrations/social/whop`.
 - NOTE: `wrangler deploy` alone does NOT respawn a warm container — env
   changes need app delete + redeploy (pg state survives via R2 dumps).
+
+## 2026-10-02 — SLACK CONNECTED ✅ + container wedge + fresh-volume recovery
+
+- **Slack integration live** — `slack | Lazynext Social` (team
+  `T0C64BGAT26`, workspace `lazynextworkspace.slack.com`, app
+  `A0C62HU5WDU` "Lazynext Social"). 9 channels total.
+- Slack app: bot scopes `channels:read,chat:write,users:read,channels:join,
+  chat:write.customize` — **`groups:read` is dead** (Slack removed it from
+  the UI). Two image patches: (a) provider's required-scope list drops
+  `groups:read` (else `checkScopes` hard-fails → generic "Authentication
+  failed"), (b) `channels()` `types=public_channel,private_channel` →
+  `types=public_channel` (`private_channel` requires `groups:read` →
+  `missing_scope` → `list.channels.map` TypeError → `false`). Image
+  `sha256:72ec6513…` carries both.
+- **Slack OAuth code harvest**: after Allow, Slack lands on its own
+  `lazynextworkspace.slack.com/oauth/...` interstitial whose Next.js chunks
+  404 — the redirect never fires. The fresh `code=` is embedded in the page
+  HTML; extract it there and POST `/api/integrations/social-connect/slack`
+  `{state,code,codeVerifier:"",timezone:"UTC"}` with the login cookie jar.
+- **Secret-rotation trap (the actual root cause)**: container env is baked
+  at container *start* — `wrangler secret put` + `wrangler deploy` do NOT
+  re-inject into a running container. Postiz then fails `oauth.v2.access`
+  with `bad_client_secret` → Postiz masks it as `{"msg":"Authentication
+  failed"}` (and `scope.split(',')` on the undefined field is the thrown
+  TypeError). Fix path: `POST /__admin/restart-container` (header
+  `x-admin-key` = `ADMIN_RESTART_KEY` worker secret, in `.env`) → SIGTERM →
+  next request re-starts the container with fresh envVars. `?hard=1` calls
+  `destroy()`. **Always hit this route after `secret put`.**
+- **Volume persistence**: `/data` survives `stop()`, `destroy()`, DO-name
+  change (`singleton`→`singleton2`), AND `wrangler containers delete` of the
+  whole app — a corrupt pg subtree (mid-boot SIGTERM → hung `pg_ctl`) wedged
+  every subsequent boot the same way. Escape: rename the DO class
+  (`PostizStack`→`PostizStack2`, `renamed_classes` migration in
+  wrangler.toml — `deleted_classes` fails while the container app still
+  binds the namespace, delete the app first) + moved state dir to `/data2`
+  (entrypoint/supervisord/backup/restore all sed'd) so even a carried-over
+  volume can't wedge the new subtree. Container stdout NEVER reaches
+  wrangler tail — diagnose via `postiz-boot/` R2 beacons + `logs-*.tgz`
+  (list objects needs `X-Auth-Email`/`X-Auth-Key` global key; the scoped
+  deploy token 401s on R2 REST).
+- Backup restore anchor: `postiz-backup/latest.sql.gz` @ 23:33:41Z includes
+  the Slack row (connected 23:29:53Z).
+- **RECOVERY COMPLETE (01:45–01:58Z)** — root cause of the 50-min `starting`
+  wedge on `postiz-stack-postizstack2` was NOT provisioning: the patch-commit
+  image `72ec6513` had `/opt/*.sh` at mode **644** (docker cp layers don't
+  carry the Dockerfile `chmod +x`), so `entrypoint.sh` permission-denied
+  instantly on every boot — zero beacons, instance cycling
+  `starting`→`inactive`. Fixed image: `docker run` + `chmod 755` + `docker
+  commit --change 'ENTRYPOINT ["/opt/entrypoint.sh"]'` (commit inherits the
+  `--entrypoint` override from the run — always re-pin it, and CMD too) →
+  **`sha256:9de787c9…`** pinned in wrangler.toml. Boot after fix: `start` →
+  `restore-attempt` → `pg-ready` in 7s on a fresh `/data2`, supervisord
+  + heartbeats up, all 9 integrations intact after R2 restore.
+- **Fan-out verified via `conn:postiz` `*`** (201, all 9 postIds): slack
+  PUBLISHED → `lazynextworkspace.slack.com/archives/C0C64BGCVT4`, plus
+  mastodon/devto/tumblr/whop/bluesky/nostr PUBLISHED. wordpress ERROR
+  ("Unknown Error" — blog is up, app-password suspected, pre-existing) and
+  dribbble "sent but couldn't confirm" (provider-side quirk).
+- **Connector defaults added** (`worker/src/services.ts`): `slack` →
+  `settings.channel = C0C64BGCVT4` (#social; SlackDto `channel` is
+  IsDefined — bare `*` posts 400 without it); `dribbble` added to titleful
+  set; media-required providers (`dribbble`/`instagram`/`pinterest`) get a
+  brand OG image — must be **800×600 or 400×300** for dribbble (uploaded as
+  media `83e5ad01-…`, `…/f4dHvL66ZV.png`). Passing `b.settings` in the
+  dispatch REPLACES all per-provider defaults — use bare `text` for `*`
+  fan-out.
+- Slack `channels()` works post-patch: `POST /api/integrations/function`
+  `{id, name:"channels"}` → `[C0C62H8KWDC all-lazynext, C0C64BGCVT4 social]`.
+- Dashboard auth: `/api/auth/login` returns `{"login":true}` + JWT in the
+  `auth` Set-Cookie — send it back as `Cookie: auth=<jwt>`, NOT Bearer
+  (Bearer 401s on the JWT-guarded routes).

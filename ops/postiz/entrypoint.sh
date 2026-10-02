@@ -3,9 +3,9 @@ set -e
 # CF's port check kills the container if nothing listens on the declared port
 # fast enough — bind nginx :5000 FIRST, before the minutes-long boot work.
 nginx 2>/dev/null || true
-mkdir -p /data/pg /data/redis /data/es /data/es-logs /data/logs /run/supervisord /var/lib/postgresql /var/run/postgresql
-chown -R postgres:postgres /data/pg /var/run/postgresql
-chown -R elasticsearch:elasticsearch /data/es /data/es-logs
+mkdir -p /data2/pg /data2/redis /data2/es /data2/es-logs /data2/logs /run/supervisord /var/lib/postgresql /var/run/postgresql
+chown -R postgres:postgres /data2/pg /var/run/postgresql
+chown -R elasticsearch:elasticsearch /data2/es /data2/es-logs
 
 # Boot beacon: proves how far the container got on the CF runtime — drop
 # timestamped markers into R2 at each phase (observability shows nothing until
@@ -31,14 +31,14 @@ export PATH="$PGBIN:$PATH"
 # --- Postgres bootstrap: restore the R2 snapshot if PGDATA is empty ---
 # runuser (not su) — no PAM session, which micro-VM runtimes can lack.
 # dynamic_shared_memory_type=mmap — /dev/shm may be absent or tiny.
-if [ ! -s /data/pg/PG_VERSION ]; then
+if [ ! -s /data2/pg/PG_VERSION ]; then
   beacon restore-attempt
   /opt/r2-restore.sh || true
 fi
 PGOPTS='-c listen_addresses=127.0.0.1 -c dynamic_shared_memory_type=mmap'
-if [ ! -s /data/pg/PG_VERSION ]; then
+if [ ! -s /data2/pg/PG_VERSION ]; then
   beacon initdb-start
-  if ! runuser -u postgres -- initdb -D /data/pg -U postgres -A trust > /tmp/initdb.log 2>&1; then
+  if ! runuser -u postgres -- initdb -D /data2/pg -U postgres -A trust > /tmp/initdb.log 2>&1; then
     tail -5 /tmp/initdb.log > /tmp/beacon.txt
     RCLONE_CONFIG_R2_TYPE=s3 RCLONE_CONFIG_R2_PROVIDER=Cloudflare \
     RCLONE_CONFIG_R2_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
@@ -50,10 +50,38 @@ if [ ! -s /data/pg/PG_VERSION ]; then
   fi
 fi
 beacon pgctl-start
-runuser -u postgres -- pg_ctl -D /data/pg -o "$PGOPTS" -l /data/pg/pg.log -w -t 120 start > /tmp/pgctl.log 2>&1 || {
-  tail -8 /tmp/pgctl.log /data/pg/pg.log > /tmp/beacon.txt 2>/dev/null
+# Unclean container kills leave postmaster.pid behind; pg_ctl refuses or
+# hangs on it. Clear it before start.
+rm -f /data2/pg/postmaster.pid /data2/pg/postmaster.opts
+# Ship pg.log + pgctl.log to R2 every 5s during the start attempt — when
+# pg_ctl wedges (corrupt cluster), this is the only way to see why.
+( for _i in $(seq 1 30); do sleep 5; tail -40 /data2/pg/pg.log /tmp/pgctl.log > /tmp/pglog-snap.txt 2>/dev/null && \
+    RCLONE_CONFIG_R2_TYPE=s3 RCLONE_CONFIG_R2_PROVIDER=Cloudflare \
+    RCLONE_CONFIG_R2_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
+    RCLONE_CONFIG_R2_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
+    RCLONE_CONFIG_R2_ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" \
+    RCLONE_CONFIG_R2_REGION=auto RCLONE_CONFIG_R2_ACL=private \
+    rclone --contimeout 5s --timeout 10s copyto /tmp/pglog-snap.txt "r2:${R2_BUCKET:-lazynext-media}/postiz-boot/$(hostname)-pglog.txt" 2>/dev/null; done ) &
+PGLOG_SHIPPER=$!
+runuser -u postgres -- timeout 150 pg_ctl -D /data2/pg -o "$PGOPTS" -l /data2/pg/pg.log -w -t 120 start > /tmp/pgctl.log 2>&1 || {
+  tail -8 /tmp/pgctl.log /data2/pg/pg.log > /tmp/beacon.txt 2>/dev/null
   beacon pg-fail
+  # pg data is wedged beyond plain restart — wipe the cluster and rebuild
+  # from the latest R2 pg_dumpall snapshot (postiz-backup/latest.sql.gz).
+  beacon pg-wipe-restore
+  rm -rf /data2/pg && mkdir -p /data2/pg && chown postgres /data2/pg
+  /opt/r2-restore.sh || true
+  if [ ! -s /data2/pg/PG_VERSION ]; then
+    beacon pg-initdb-fallback
+    runuser -u postgres -- initdb -D /data2/pg -U postgres -A trust >/dev/null 2>&1 || true
+  fi
+  rm -f /data2/pg/postmaster.pid /data2/pg/postmaster.opts
+  runuser -u postgres -- timeout 150 pg_ctl -D /data2/pg -o "$PGOPTS" -l /data2/pg/pg.log -w -t 120 start >> /tmp/pgctl.log 2>&1 || {
+    tail -8 /tmp/pgctl.log /data2/pg/pg.log > /tmp/beacon.txt 2>/dev/null
+    beacon pg-fail-final
+  }
 }
+kill $PGLOG_SHIPPER 2>/dev/null || true
 beacon pgctl-done
 if psql -h 127.0.0.1 -U postgres -c "SELECT 1" >/dev/null 2>&1; then
   psql -h 127.0.0.1 -U postgres -c "ALTER USER postgres PASSWORD '$PGPASS'" || true
