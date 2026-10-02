@@ -313,7 +313,12 @@ Canonical identity: email `support@lazynext.com`, handle `lazynext` (or
   chooser→onboarding finished: name `Lazynext AI`, interests
   Technology+Business, premium skipped). Real Playwright clicks beat the
   synthetic-event rejection that stalled it before.
-- **youtube** → `@lazynext` already ours via the Google Workspace login.
+- **youtube** → `@lazynext` CONFIRMED ours via the Google Workspace login —
+  channel `UCf76xZStSHc1EJHv0VfalaQ` (`Lazynext`, 0 subs). 2026-10-02: the
+  handle was never actually set (Studio "Set your handle" was empty, earlier
+  `/@lazynext` 200 was a soft shell); now published — `youtube.com/@lazynext`
+  resolves to our channel ID, description + `lazynext.com` link +
+  `support@lazynext.com` contact email all set.
 - **rumble** → `rumble.com/user/Lazynext` already ours.
 
 ### User-gated (verified, cannot bypass)
@@ -685,3 +690,16 @@ need the same browser session on a residential IP or the user's own clicks.
 | mcp.so | — | — | **paywalled** — submit flow exists but publishing requires a **$39** fee. Skipped pending founder spend decision. |
 | opentools.com | — | — | **sales-gated** — adding a server requires booking a call; no self-serve submission. |
 | uneed.best | **lazynext** | support@ direct (password in `.env` `UNEED_PASSWORD`) | **live 2026-10-02** — email+password signup, `lazynext` username, email confirmed via Gmail link → signed-in avatar `lazynext`. Product submission itself is a launch-slot/queue decision (free waiting line vs paid fast-track) — account ready when a launch is scheduled. |
+
+## 2026-10-02 — directories, package registries + marketplaces
+
+| Platform | Handle | Email | Status |
+|---|---|---|---|
+| youtube.com | **@lazynext** (`Lazynext`, `UCf76xZStSHc1EJHv0VfalaQ`) | support@ Google Workspace | **live 2026-10-02** — handle published (was never actually set — the earlier `/@lazynext` 200 was a soft shell; "Handle available" confirmed in Studio). Description + `lazynext.com` link + `support@` contact email set. |
+| betalist.com | **lazynext** (`Lazynext`) | support@ direct (pw `BETALIST_PASSWORD`) | **live 2026-10-02** — email+password signup (email field first expands to full form — first Create click just reveals username/password fields), email verified via Gmail link, dashboard + Submit Startup live. Public `/users/lazynext` 404s — profile pages only exist for submitted startups. |
+| sourceforge.net | **lazynext** (`Lazynext`) | support@ direct (pw `SOURCEFORGE_PASSWORD`) | **live 2026-10-02** — classic form, **native-setter required** (Playwright fill on `name`/`email`/`username` silently dropped; `input[name=…]` + native setter + input/change/blur works; password via clipboard). Email verified via Gmail "Activate Your Account" → `/user/verified`. |
+| itch.io | **lazynext** → `lazynext.itch.io` | support@ direct (pw `ITCH_PASSWORD`) | **live 2026-10-02** — CF "Just a moment" auto-cleared (~10s), instant registration (no email gate), `lazynext.itch.io` → 200. Distribution checkbox + ToS required. |
+| packagist.org | **lazynext** | support@ direct (pw `PACKAGIST_PASSWORD`) | **live 2026-10-02** — Composer registry; email verified → `packagist.org/users/lazynext/` → 200. Vendor namespace `lazynext/*` available for PHP packages. |
+| rapidapi.com | Personal Account (`Lazynext`) | support@ via Google OAuth | **live 2026-10-02** — Google OAuth → consent → `/hub` signed in, Console + "Personal Account" context live. Public `/user/` profile pages don't render for accounts with no published API. Provider registration (to list our scan API) is a separate flow at `/provider`. |
+| saashub.com | `lazynext` (fields filled) | support@ | **captcha-gated** — register submits → 422 + hCaptcha "I am human" image challenge appears (not auto-passable). Fields retained (username+email), password cleared on 422. Retry needs a human captcha solve or accessibility-cookie path. |
+| dribbble.com | `lazynext` (slug free) | — | **edge-blocked** — `dribbble.com` returns 202 perimeter challenge to this browser (signup route redirected to a landing page). Same class as npm/linktree IP-flag. |
