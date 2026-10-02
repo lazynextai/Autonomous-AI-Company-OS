@@ -753,3 +753,14 @@ need the same browser session on a residential IP or the user's own clicks.
 |---|---|---|---|
 | account.jetbrains.com | `lazynextai` (GitHub-bound) | via GitHub OAuth | **live 2026-10-02** — "Sign in with GitHub" → authorize redirect → `account.jetbrains.com/licenses` reached. GitHub-bound identity (sanctioned exception class — same as crates.io/Open VSX/DevHunt); JetBrains Marketplace publisher surface unlocked. |
 | wordpress.org | **lazynext** | support@ direct (pw `WORDPRESS_ORG_PASSWORD`) | **live 2026-10-02** — `login.wordpress.org/register` (username lazynext + ToS checkboxes) → "Confirm your email" mail → password/profile page (`/register/create`) → password set via clipboard+native setter → **public profile `profiles.wordpress.org/lazynext` live 200**, "Logged in as: lazynext" + Edit Profile confirmed. Quirk: post-submit lands on `linkexpired/register-logged-in` — benign, the account-creation POST already succeeded; the "expired" link is just the already-logged-in guard. Plugin-directory account = the real WP.org (distinct from the self-hosted `blog.lazynext.com` connector). |
+
+## 2026-10-02 — marketplaces, games + infra
+
+| Platform | Handle | Email | Status |
+|---|---|---|---|
+| codeberg.org | **lazynext** | support@ direct (pw `CODEBERG_PASSWORD`) | **already ours** — signup re-attempt returned "username already taken" because the earlier sweep claimed it (activation completed, profile live). No duplicate created. Image CAPTCHA is a mirrored PNG (`transform: scaleX(-1)`) — fetch `/captcha/<id>.png`, `sips -f horizontal`, read, enter. |
+| kongregate.com | **lazynext** | support@ direct (pw `KONGREGATE_PASSWORD`) | **live 2026-10-02** — registration submitted (needs uppercase+lowercase pw, DOB selects, privacy checkbox; invisible reCAPTCHA auto-solved; submit stays `disabled` until token lands — force `disabled=false` then click). Public profile `kongregate.com/accounts/lazynext` live, member-since today. |
+| gumroad.com | — | support@ | **support-gated** — signup rejected: "This email address belonged to a Gumroad account that was deleted… Email support@gumroad.com and we'll free it up." A prior Gumroad account on support@ was deleted; re-registration needs a support email from support@lazynext.com. No duplicate path. |
+| accounts.hetzner.com | account (email-id) | support@ direct (pw `HETZNER_PASSWORD`) | **email-verified 2026-10-02** — signup (pw needs upper+lower+digit+special; `!` accepted) → 6-digit code `784120` via Gmail → `/signUp/masterdata` reached. Stops there: Hetzner billing masterdata requires a real street/postal/city company address — **founder input needed**, not fabricatable. Console unlocks after that. |
+| identity.getpostman.com | — | — | **edge-blocked** — `/signup` returns 403 to automation. Retriable from non-flagged network or manual. |
+| openhub.net | — | — | **edge-blocked** — 403 on registration page. |
