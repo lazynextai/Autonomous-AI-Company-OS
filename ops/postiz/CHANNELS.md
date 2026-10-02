@@ -723,3 +723,12 @@ need the same browser session on a residential IP or the user's own clicks.
 | launchigniter.com | pending | support@ email-code | **pending verification** — "Continue with Email" sent a verification code; Gmail had not received it across multiple checks (site says auto-signup on code entry). Google OAuth popup was undriveable (GIS partition issue). Retriable. |
 | open-launch.com | `@lazynextai` | via GitHub OAuth (`lazynextai`) | **live 2026-10-02** — GitHub authorize redirect → `/dashboard`. GitHub-bound identity. Submission surface `/projects/submit` available. |
 | microlaunch.net | `@lazynext-lazynext` | support@ via Google OAuth (Supabase) | **live 2026-10-02** — account created, `/hq/profile` reachable. Username field **disabled** ("cannot change it for now") — handle derived from doubled Google name; fixable only if/when ML enables renames or via support. Same class as fal/Replicate. |
+
+## 2026-10-02 — dev community, fundraising + startup directories
+
+| Platform | Handle | Email | Status |
+|---|---|---|---|
+| devpost.com | `/users/support233` (`Lazynext`) | support@ via Google OAuth | **live 2026-10-02** — Google OAuth → hackathon-recommendations onboarding → Settings → Profile saved (website `lazynext.com`, GitHub `Lazynext-AI`, bio). Public slug is email-derived `/users/support233` — Devpost has no custom-username field. |
+| f6s.com | — | — | **platform-paused** — email signup reached "Welcome to F6S" name/password step, Join → registration paused by F6S ("there might be an issue"; instructs emailing `support@f6s.com` from the registered address). No duplicate retry — needs a human support email or a later attempt. |
+| wellfound.com | — | — | **edge-blocked** — email signup AND Google-OAuth completion POSTs both die on Cloudflare mitigation (`cf-mitigated` on the signup XHR, form re-renders empty, no session). Google OAuth itself completed; whether an account row exists server-side is unconfirmed. Same class as npm/Dribbble IP-flag. Retriable on a non-flagged network. |
+| startupfa.me | **lazynext** | support@ magic link (Supabase PKCE) | **live 2026-10-02** — "Continue with Email" → login link via Gmail → `/dashboard`. Username `support375` → `lazynext` via Account → Change username. Public `startupfa.me/lazynext` live with Display name `Lazynext`, About, website `lazynext.com`, `support@` public email, GitHub `Lazynext-AI`. "Add startup" submission surface ready. |
