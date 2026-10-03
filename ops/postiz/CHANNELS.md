@@ -130,6 +130,12 @@ Field names per provider are exposed live at `GET /api/integrations` under
   latest `pg_dump` from R2 — channel connects made <15min before an
   instance replacement can be lost; re-run the connect recipe if
   `GET /api/integrations/list` is empty after a cold start.
+- **2026-10-03 recovery**: instance was dead ~3d (all paths 502 nginx).
+  `POST /__admin/restart-container` (soft, no `?hard=1`) stopped it; next
+  request cold-booted (~90s: 502→500→200). All 9 channels, the founder
+  account, and `organization.apiKey` survived the R2 restore — `.env`
+  `POSTIZ_API_KEY` unchanged and still valid. Reminder: public API wants
+  the raw key in `Authorization:` — `Bearer` prefix 401s "Invalid API key".
 - Postiz admin: `founder@lazynext.com` (password in `.env` → `POSTIZ_ADMIN_PASSWORD`)
 - After connecting channels no `conn:postiz` edit is needed — `*` already
   covers them; set a comma-list only to restrict fan-out.
