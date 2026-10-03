@@ -20,7 +20,7 @@ then `npx wrangler deploy` (config-only — same image, no rebuild).
 | Threads | developers.facebook.com (Threads API product) | `THREADS_APP_ID`, `THREADS_APP_SECRET` | Separate Meta app; Threads API product |
 | YouTube | console.cloud.google.com → OAuth client | `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET` | Enable YouTube Data API v3; OAuth consent screen |
 | TikTok | developers.tiktok.com → Create app | `TIKTOK_CLIENT_ID`, `TIKTOK_CLIENT_SECRET` (+ `TIKTOK_BUSINESS_*` for Business API) | Video publish scopes need approval |
-| Pinterest | developers.pinterest.com → Create app | `PINTEREST_CLIENT_ID`, `PINTEREST_CLIENT_SECRET` | Trial access gives pins/boards scope |
+| Pinterest | developers.pinterest.com → Create app | `PINTEREST_CLIENT_ID`, `PINTEREST_CLIENT_SECRET` | **CONNECTED 2026-10-03** — app `Lazynext Social` id `1619102`, **Trial access active** (pins+boards read/write on own account), channel `lazynext` |
 | Reddit | reddit.com/prefs/apps → create "web app" | `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` | Script-type apps don't OAuth; pick "web app" |
 | Tumblr | tumblr.com/oauth/apps → register | `TUMBLR_CLIENT_ID`, `TUMBLR_CLIENT_SECRET` | callback = the blog's tumblr root? copy UI URL |
 | Dribbble | dribbble.com/account/applications | `DRIBBBLE_CLIENT_ID`, `DRIBBBLE_CLIENT_SECRET` | Posting is scope-limited — check current API caps |
@@ -91,6 +91,14 @@ Field names per provider are exposed live at `GET /api/integrations` under
   passes Postiz validation everywhere.
   More integrations append with zero config: a newly connected channel
   joins `*` fan-out automatically.
+- **Pinterest CONNECTED (2026-10-03)** — trial approval came through;
+  app secret revealed in dev console → `PINTEREST_CLIENT_ID`/`_SECRET`
+  `wrangler secret put` on `postiz-stack`, redirect URI
+  `…/integrations/social/pinterest` added to the app, container
+  hard-restarted, OAuth authorized (boards+pins r/w, logged in as
+  `Lazynext`). Verified in `/api/public/v1/integrations` →
+  `pinterest / lazynext / disabled=false`. Trial = full API on the
+  owner's own account; upgrade request only needed for other users' data.
 - **Twitch CONNECTED (2026-10-03)** — account recovery + normalize path:
   existing company account `lazynextvideo` (support@lazynext.com,
   deactivated, SMS 2FA on the +91 …66 phone) was reactivated via Google
