@@ -833,6 +833,8 @@ unanswered as of 10-03. Replicate row corrected 10-02 (self-serve rename to
 | Postiz connect recipe | — | — | UI login fragile (autofill) — full flow works headless: `POST /api/auth/login` → `auth` cookie jar → `GET /api/integrations/social/{provider}` → open returned authorize URL in logged-in browser → click Authorise → `POST /api/integrations/social-connect/{provider}` `{code,state,timezone}` → row commits even if a later step 500s (verified). `DELETE /api/integrations` `{id}` removes a channel. |
 | GitHub | lazynextai | support@ | profile canonical (social links updated incl. `mstdn.social/@lazynext`). OAuth app `Lazynext Social` (id 3901772) + `GITHUB_CLIENT_ID/SECRET` secrets exist — **BUT Postiz has no github provider** (not in upstream `integrations/social/`); secrets are inert. GitHub OAuth still usable for platform login/connectors. `lazynext` rename stays blocked (hidden-reserved). |
 
+| hashnode.com | **@lazynext** | support@ via Google OAuth | **CONNECTED** (channel `cmusillfn000409rp8ce8cgi1`) — PAT minted (Settings → Developer, `.env` `HASHNODE_TOKEN`), publication `Lazynext` created at `lazynext.hashnode.dev`. **Publishing gated**: `publishPost` mutation → `Publication does not have an active Pro plan` — Hashnode Pro is a PAID upgrade; channel connected but posts ERROR until founder buys Pro or Postiz publishes via a different path. Connect body: `code` = base64 `{"apiKey": pat}` (customFields encode into code, not top-level). |
+
 Support-mail status: F6S registration-pause + dev.to quarantine appeals still
 unanswered as of 10-03. Replicate row corrected 10-02 (self-serve rename to
 `lazynextai` already done — ticket unnecessary).
