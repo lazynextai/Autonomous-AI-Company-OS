@@ -835,6 +835,8 @@ unanswered as of 10-03. Replicate row corrected 10-02 (self-serve rename to
 
 | hashnode.com | **@lazynext** | support@ via Google OAuth | **CONNECTED** (channel `cmusillfn000409rp8ce8cgi1`) — PAT minted (Settings → Developer, `.env` `HASHNODE_TOKEN`), publication `Lazynext` created at `lazynext.hashnode.dev`. **Publishing gated**: `publishPost` mutation → `Publication does not have an active Pro plan` — Hashnode Pro is a PAID upgrade; channel connected but posts ERROR until founder buys Pro or Postiz publishes via a different path. Connect body: `code` = base64 `{"apiKey": pat}` (customFields encode into code, not top-level). |
 
+| medium.com | **@lazynext** | support@ via Google OAuth | **Postiz channel BLOCKED** — Medium removed self-serve Integration tokens (Settings → Security has no token section; publishing API closed to new devs), so the `medium` provider can't connect. **Medium→Mastodon syndication CONNECTED** instead (Settings → Security → Connect Mastodon → `lazynext@mstdn.social`, read:accounts OAuth) — Medium stories will federate to the canonical account. |
+
 Support-mail status: F6S registration-pause + dev.to quarantine appeals still
 unanswered as of 10-03. Replicate row corrected 10-02 (self-serve rename to
 `lazynextai` already done — ticket unnecessary).
