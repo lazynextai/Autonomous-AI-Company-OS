@@ -32,8 +32,8 @@ then `npx wrangler deploy` (config-only — same image, no rebuild).
 | Listmonk | your listmonk instance → admin → API users | `LISTMONK_API_KEY` | Self-hosted newsletter |
 | Instagram (standalone) | developers.facebook.com → Instagram product | `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET` | Old Basic-Display-style flow; still needs a Meta app |
 | Google Business (gmb) | console.cloud.google.com → Business Profile API | `GOOGLE_GMB_CLIENT_ID`, `GOOGLE_GMB_CLIENT_SECRET` | Local-business posts to Google Maps/Search |
-| Twitch | dev.twitch.tv/console/apps | `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET` | Channel-panel / stream-info posts |
-| Kick | kick.com/settings/developer | `KICK_CLIENT_ID`, `KICK_SECRET` | Streaming-community posts |
+| Twitch | dev.twitch.tv/console/apps | `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET` | **CONNECTED 2026-10-03** — app `Lazynext Social`, client id `d5buee1l1upra6gxz8ay3bpm1i3tcq`, channel `lazynextai` (`?added=twitch&msg=Channel Updated`). Scopes granted: `user:write:chat user:read:chat moderator:manage:announcements` |
+| Kick | kick.com/settings/developer | `KICK_CLIENT_ID`, `KICK_SECRET` | Streaming-community posts. `lazynext` squatted → `lazynextai`; signup Kasada-gated (429 on `send-verification-code`) |
 | VK | vk.com/apps → create app | `VK_ID` | Russian-network wall posts |
 | Whop | whop.com → developer dashboard | `WHOP_CLIENT_ID`, `WHOP_CLIENT_SECRET` | Confidential OAuth app; `client_secret` must be an **app API key with the `oauth:token_exchange` grant** — the app's *default* key can't gain grants, so create a second key (name "Postiz OAuth") with it and use THAT secret. Provider is patched to send `client_secret` + `code_challenge_method=S256` |
 | MeWe | developers.mewe.com → app | `MEWE_APP_ID`, `MEWE_API_KEY` (+`MEWE_HOST`) | OAuth app approval |
@@ -91,6 +91,19 @@ Field names per provider are exposed live at `GET /api/integrations` under
   passes Postiz validation everywhere.
   More integrations append with zero config: a newly connected channel
   joins `*` fan-out automatically.
+- **Twitch CONNECTED (2026-10-03)** — account recovery + normalize path:
+  existing company account `lazynextvideo` (support@lazynext.com,
+  deactivated, SMS 2FA on the +91 …66 phone) was reactivated via Google
+  OAuth → SMS code, renamed `lazynextvideo`→`lazynextai` (`lazynext` is
+  squatted by a stranger — unclaimable), display `Lazynext`, bio set,
+  email+phone verified. Dev app `Lazynext Social`
+  (`d5buee1l1upra6gxz8ay3bpm1i3tcq`, Confidential) created with callback
+  `https://postiz.lazynext.com/integrations/social/twitch`; client id+secret
+  `wrangler secret put` on `postiz-stack`, hard restart injected them,
+  OAuth connected from the UI. Verified live in
+  `/api/public/v1/integrations` → `twitch / lazynextai / disabled=false`.
+  Note: channel-visible scopes are chat/announcements only — Postiz Twitch
+  posts go to channel chat, not VODs.
 - **Connected channels (2026-10-01, verified in `/api/integrations/list`)**:
   nostr `cmuo7hopx000109r8jxuk5l8n` · wordpress `cmuools6w000109pcwvimwl3d`
   (E2E-published to blog.lazynext.com) · tumblr `cmuodagu2000109q3ip0htgpq`
