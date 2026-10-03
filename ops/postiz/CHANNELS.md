@@ -822,3 +822,17 @@ Notes:
 Support-mail status: F6S registration-pause + dev.to quarantine appeals still
 unanswered as of 10-03. Replicate row corrected 10-02 (self-serve rename to
 `lazynextai` already done — ticket unnecessary).
+
+## 2026-10-03 (night) — mstdn.social approved; mastodon channel migrated + E2E
+
+| Platform | Handle | Email | Status |
+|---|---|---|---|
+| mstdn.social | **@lazynext** | support@ | **APPROVED + CONNECTED + E2E PUBLISHED**. Moderator review cleared. Password restored via reset (`MASTODON_SIGNUP_PW`). Profile set via API: display `Lazynext`, bio, website field, avatar (512 PNG). Postiz channel `cmusi1rxv000109rpp625ulm8` — first publish live at `https://mstdn.social/@lazynext/117377522979532770`. |
+| mastodon.social | @lazynextco | support@ | **MIGRATED (redirect)** — alias created on `@lazynext@mstdn.social`, then Move-followers on the old account → profile now redirects to `lazynext@mstdn.social` and is excluded from search. Postiz channel row `cmupefohe000109ph49w66h3t` deleted. Old handle tombstoned, not deleted (reversible within 30d). ONE canonical fediverse identity achieved. |
+| Postiz mastodon secrets | — | — | `MASTODON_URL=https://mstdn.social` + `MASTODON_CLIENT_ID/SECRET` uploaded → **soft `stop()` did NOT refresh container env** (kept old mastodon.social creds → "unknown client"); `?hard=1` destroy required. Also: OAuth app scopes must exactly match Postiz's request `write:statuses profile write:media` — an app registered `read write profile` 400s "scope is invalid" (mstdn doorkeeper does not treat `write` as covering `write:statuses`). Final app registered with exact scopes. API-created OAuth apps are ownerless — they don't show under Settings→Development, can't be web-deleted (2 dormant strays, harmless). |
+| Postiz connect recipe | — | — | UI login fragile (autofill) — full flow works headless: `POST /api/auth/login` → `auth` cookie jar → `GET /api/integrations/social/{provider}` → open returned authorize URL in logged-in browser → click Authorise → `POST /api/integrations/social-connect/{provider}` `{code,state,timezone}` → row commits even if a later step 500s (verified). `DELETE /api/integrations` `{id}` removes a channel. |
+| GitHub | lazynextai | support@ | profile canonical (social links updated incl. `mstdn.social/@lazynext`). OAuth app `Lazynext Social` (id 3901772) + `GITHUB_CLIENT_ID/SECRET` secrets exist — **BUT Postiz has no github provider** (not in upstream `integrations/social/`); secrets are inert. GitHub OAuth still usable for platform login/connectors. `lazynext` rename stays blocked (hidden-reserved). |
+
+Support-mail status: F6S registration-pause + dev.to quarantine appeals still
+unanswered as of 10-03. Replicate row corrected 10-02 (self-serve rename to
+`lazynextai` already done — ticket unnecessary).
