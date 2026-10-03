@@ -136,9 +136,53 @@ Field names per provider are exposed live at `GET /api/integrations` under
   account, and `organization.apiKey` survived the R2 restore — `.env`
   `POSTIZ_API_KEY` unchanged and still valid. Reminder: public API wants
   the raw key in `Authorization:` — `Bearer` prefix 401s "Invalid API key".
-- Postiz admin: `founder@lazynext.com` (password in `.env` → `POSTIZ_ADMIN_PASSWORD`)
+- Postiz admin: `founder@lazynext.com` (password in `.env` → `POSTIZ_ADMIN_PASSWORD`).
+  Display name set to `Lazynext` via `POST /api/user/personal` (2026-10-03).
+  **No email-change endpoint exists** in upstream Postiz — the login stays
+  `founder@` (internal-only; not a public identity surface).
 - After connecting channels no `conn:postiz` edit is needed — `*` already
   covers them; set a comma-list only to restrict fan-out.
+
+## 2026-10-03 evening — identity normalization sweep results
+
+- **nostr channel replaced**: the original (`cmuo7hopx000109r8jxuk5l8n`,
+  `No Name`/`nousername`) was deleted and reconnected with a freshly minted
+  canonical keypair — npub
+  `npub1vljsafxuwnlv0swj9xplw85xnh0nz6uewg4f5gj87k84kuyqn7ksxhvgv7`
+  (pubkey `67e50ea4dc74fec7…70809fad`; hex privkey in `.env` `NOSTR_PRIVATE_KEY`).
+  kind-0 metadata (`name:"Lazynext"`, about, `website:lazynext.com`) was
+  published to relay.damus.io/nos.lol/relay.nostr.band **before** the
+  social-connect call — Postiz pulls kind-0 at connect, so the new channel
+  `cmusjhrlk000709rp0l5mcdeg` synced `name="Lazynext"`, `profile="Lazynext"`.
+  Order matters: connect BEFORE publishing kind-0 and Postiz stores
+  "No Name" forever.
+- **dribbble source account normalized**: display name `Lazynext Lazynext`
+  → `Lazynext` (account/profile saved; `user[login]` `lazynext`,
+  `user[email]` `support@lazynext.com`, location Bangalore verified).
+  Password reset via `/password_resets` → Gmail link; new password in
+  `.env` `DRIBBBLE_PASSWORD`. Account is a **community member** — public
+  `dribbble.com/lazynext` 404s "isn't public yet" until Designer-tier;
+  OAuth/Postiz unaffected. Login form quirk: unified auth widget needs real
+  `fill()` (synthetic `.value=` doesn't advance), then "Use password" link.
+- **devto source account verified canonical**: logged in via Google OAuth
+  (account is Google-created — `POST /users/password` 404s for ANY email
+  on OAuth-only accounts, that's the Forem signal). Settings: name
+  `Lazynext`, email `support@lazynext.com`, username `lazynext`, website
+  `lazynext.com`, bio added. `POST /users/api_secrets` 404s — the
+  quarantine extends to API-key minting, so no fresh key can be minted to
+  reconnect the Postiz channel.
+- **Postiz labels stay stale for devto+dribbble** (`Lazynext Lazynext`):
+  cosmetic-only in our own dashboard. Postiz `Integration.name` is set at
+  connect and only rewritable via `POST /:id/nickname` for providers
+  implementing `changeNickname` (telegram-class) — devto/dribbble don't.
+  `DELETE` is a soft-delete (`deletedAt`); reconnecting the same account
+  resurrects the SAME row id by `internalId` upsert with the old name —
+  verified live. DB-level rename would need postgres access inside the
+  container (not exposed); harmless until then.
+- **Health-check repairs (non-Postiz)**: `penpot.lazynext.com` had a dead
+  `cfargotunnel` CNAME (502) — record deleted, `workers/domains` bound to
+  `launchdeck-redirect` → 301 apex. `maint-gate` false-alarmed;
+  `maint:last_run` was fresh.
 
 ## 2026-09-30 session — automation findings
 

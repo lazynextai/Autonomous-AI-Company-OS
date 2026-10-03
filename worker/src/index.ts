@@ -1007,7 +1007,10 @@ const DEAD_CORPUS_WHERE =
 // paraphrases; completed/failed count because the outcome exists already.
 const TASK_STOP = new Set(["task", "the", "and", "for", "with", "that", "this", "into", "from", "conduct", "implement", "setup", "set", "add", "create", "build", "review"]);
 function contentWords(d: string): Set<string> {
-  return new Set(d.toLowerCase().split(/\s+/).map((w) => w.replace(/[.,:;()]/g, "")).filter((w) => w.length > 3 && !TASK_STOP.has(w)));
+  // Split on path separators too — a path like test/foo.test must reduce to
+  // {foo} or every test/*.test description becomes one token sharing the
+  // "test/" stem, and single-word sets can never dedup (inter ≤ 1 < min 2).
+  return new Set(d.toLowerCase().split(/[\s/]+/).map((w) => w.replace(/[.,:;()]/g, "")).filter((w) => w.length > 3 && !TASK_STOP.has(w)));
 }
 // Exact set-intersection misses inflected paraphrases — "track" vs "tracking",
 // "analyze" vs "analyzing" were the same task under new wording. Words count
@@ -1059,7 +1062,10 @@ async function taskAlreadyTried(env: Env, desc: string): Promise<boolean> {
     const b = contentWords(t);
     if (!a.size || !b.size) continue;
     const [sm, lg] = a.size <= b.size ? [a, b] : [b, a];
-    if (relatedOverlap(sm, lg) >= Math.max(2, Math.floor((sm.size + 1) / 2))) return true;
+    // Cap the threshold at sm.size — max(2, …) is unreachable for a
+    // single-content-word description, so numbered-variant classes like
+    // "create test/expanded_NNN.test" escaped dedup forever (inter=1 < 2).
+    if (relatedOverlap(sm, lg) >= Math.min(sm.size, Math.max(2, Math.floor((sm.size + 1) / 2)))) return true;
   }
   return false;
 }
@@ -1567,7 +1573,9 @@ async function verifyArtifact(
   // A test file that never actually ran is how broken tests shipped to main —
   // when no runtime check produced a verdict, reject rather than guess.
   if (isTest) {
-    return { ok: false, how: "exec", issue: "verification container unavailable for test file" };
+    // Distinguish "container never called" (ext has no check commands — a
+    // dead task class like foo.test) from a real container outage.
+    return { ok: false, how: "exec", issue: command ? "verification container unavailable for test file" : `no runtime check for .${ext} test artifact` };
   }
 
   // Phantom-import gate — bare specifiers must resolve to package.json deps

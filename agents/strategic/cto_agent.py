@@ -317,7 +317,11 @@ class CTOAgent(BaseAgent):
                 "from", "conduct", "implement", "setup", "set", "add",
                 "create", "build", "review"}
         def content_words(desc: str) -> set:
-            return {w.strip(".,:;()") for w in desc.split()
+            # Split on "/" as well as whitespace — test/foo.test must reduce
+            # to {foo.test} or the shared "test/" prefix makes every *.test
+            # description one related token, and single-word sets can never
+            # reach the overlap threshold (inter <= 1 < min 2).
+            return {w.strip(".,:;()") for w in desc.replace("/", " ").split()
                     if len(w) > 3 and w not in stop}
 
         def words_related(a: str, b: str) -> bool:
@@ -348,7 +352,10 @@ class CTOAgent(BaseAgent):
                         1 for w in smaller
                         if any(words_related(w, x) for x in larger)
                     )
-                    similar = inter >= max(2, (len(smaller) + 1) // 2)
+                    # Cap at len(smaller): max(2, …) is unreachable for a
+                    # single-content-word description, so numbered-variant
+                    # classes escaped dedup forever (mirror of index.ts).
+                    similar = inter >= min(len(smaller), max(2, (len(smaller) + 1) // 2))
             if not similar:
                 continue
 
