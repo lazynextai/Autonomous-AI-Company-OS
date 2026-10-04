@@ -110,4 +110,12 @@ WORKDIR /app
 RUN sed -i 's|}, password);|}, Uint8Array.from(password.match(/.{1,2}/g).map((byte) => parseInt(byte, 16))));|g' \
     apps/orchestrator/dist/libraries/nestjs-libraries/src/integrations/social/nostr.provider.js \
     apps/backend/dist/libraries/nestjs-libraries/src/integrations/social/nostr.provider.js
+# Upstream bug: KickDto is an EMPTY class — class-validator's default
+# forbidUnknownValues rejects any class with zero validation metadata, so
+# every kick post 400s "an unknown value was passed to the validate
+# function". Registering one optional property gives the class metadata.
+RUN for f in \
+    apps/orchestrator/dist/libraries/nestjs-libraries/src/dtos/posts/providers-settings/kick.dto.js \
+    apps/backend/dist/libraries/nestjs-libraries/src/dtos/posts/providers-settings/kick.dto.js \
+  ; do printf '\n;require("class-validator").IsOptional()(exports.KickDto.prototype, "_lzfix");\n' >> "$f"; done
 ENTRYPOINT ["/opt/entrypoint.sh"]

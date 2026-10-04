@@ -1556,13 +1556,13 @@ async function callConnector(
           if (!i.disabled) all.push(String(i.id));
         }
       }
-      // Upstream Postiz bug: KickDto is an EMPTY class — validatePosts() runs
-      // validate() on every provider dto and class-validator's default
-      // forbidUnknownValues rejects any class with zero decorators, so kick
-      // 400s every batch it appears in (via API AND dashboard). Exclude it
-      // from fan-out until upstream gives the DTO a field; it stays connected
-      // in Postiz and can be re-added by removing this filter.
-      const BROKEN_DTO = new Set(["kick"]);
+      // Upstream Postiz bug FIXED in-image (ops/postiz/Dockerfile + live
+      // POSTIZ_CMD boot patch): KickDto was an EMPTY class and validatePosts()
+      // 400s on zero-metadata classes under forbidUnknownValues. The image now
+      // appends `IsOptional()(KickDto.prototype, "_lzfix")` to the compiled
+      // kick.dto.js at boot — verified PUBLISHED 2026-10-04. Providers that
+      // re-break on an unpatched image go back in this set.
+      const BROKEN_DTO = new Set<string>();
       const targets = (integ === "*"
         ? all
         : integ.split(",").map((s) => s.trim()).filter(Boolean)
