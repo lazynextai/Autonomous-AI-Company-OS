@@ -19,6 +19,7 @@ interface Env {
   CLOUDFLARE_BUCKETNAME?: string;
   CLOUDFLARE_BUCKET_URL?: string;
   CLOUDFLARE_REGION?: string;
+  POSTIZ_CMD?: string;
 }
 
 export class PostizStack2 extends Container {
@@ -38,6 +39,11 @@ export class PostizStack2 extends Container {
       DISABLE_REGISTRATION: "true", // single-tenant: founder only
       RUN_CRON: "true",
       STORAGE_PROVIDER: "cloudflare",
+      // Escape hatch: POSTIZ_CMD overrides the app launch command baked into
+      // /opt/postiz-run.sh (entrypoint line `exec sh -c "${POSTIZ_CMD:-pnpm
+      // run pm2}"`). Used for one-shot boot SQL — the cmd must end with
+      // `; exec pnpm run pm2` or the app never starts.
+      ...(env.POSTIZ_CMD ? { POSTIZ_CMD: env.POSTIZ_CMD } : {}),
       TEMPORAL_NAMESPACE: "default",
       R2_BUCKET: env.R2_BUCKET ?? "lazynext-media",
       ...(env.JWT_SECRET ? { JWT_SECRET: env.JWT_SECRET } : {}),

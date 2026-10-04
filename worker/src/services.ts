@@ -1556,9 +1556,17 @@ async function callConnector(
           if (!i.disabled) all.push(String(i.id));
         }
       }
-      const targets = integ === "*"
+      // Upstream Postiz bug: KickDto is an EMPTY class — validatePosts() runs
+      // validate() on every provider dto and class-validator's default
+      // forbidUnknownValues rejects any class with zero decorators, so kick
+      // 400s every batch it appears in (via API AND dashboard). Exclude it
+      // from fan-out until upstream gives the DTO a field; it stays connected
+      // in Postiz and can be re-added by removing this filter.
+      const BROKEN_DTO = new Set(["kick"]);
+      const targets = (integ === "*"
         ? all
-        : integ.split(",").map((s) => s.trim()).filter(Boolean);
+        : integ.split(",").map((s) => s.trim()).filter(Boolean)
+      ).filter((id) => !BROKEN_DTO.has(byId.get(id) ?? ""));
       if (!targets.length)
         return { ok: false, status: 503, error: "conn:postiz resolved zero target integrations" };
       // Self-hosted wordpress channel targets a CF Container that sleeps after
@@ -1572,10 +1580,17 @@ async function callConnector(
           await fetch(origin, { signal: AbortSignal.timeout(75000) });
         } catch { /* wake attempt is best-effort */ }
       }
+      // Same cold-start failure for the self-hosted Listmonk container —
+      // pre-warm it too when listmonk is in the target set.
+      if (targets.some((id) => byId.get(id) === "listmonk")) {
+        try {
+          await fetch("https://listmonk-stack.dry-hall-6a50.workers.dev/", { signal: AbortSignal.timeout(75000) });
+        } catch { /* wake attempt is best-effort */ }
+      }
       // Blogging providers schema-check settings.title — derive one from the
       // first line/sentence so a bare {text} dispatch passes validation.
       const title = (text.split(/\r?\n|\.\s+/)[0] || text).slice(0, 120) || text.slice(0, 80);
-      const titleful = new Set(["wordpress", "devto", "hashnode", "medium", "ghost", "blogger", "dribbble"]);
+      const titleful = new Set(["wordpress", "devto", "hashnode", "medium", "ghost", "blogger", "dribbble", "skool"]);
       // Providers whose DTO demands >=1 image (dribbble shots, instagram,
       // pinterest pins) — a bare-text fan-out would 400 the whole batch, so
       // they get a Lazynext brand OG uploaded to Postiz media once
@@ -1605,6 +1620,21 @@ async function callConnector(
                 // SlackDto requires settings.channel (IsDefined) — default to
                 // the Lazynext workspace's #social channel (T0C64BGAT26).
                 ...(provider === "slack" ? { channel: "C0C64BGCVT4" } : {}),
+                // SkoolDto requires settings.group + settings.label — default
+                // to the joined Creator Empire community's General discussion
+                // (ops/postiz/CHANNELS.md).
+                ...(provider === "skool" ? { group: "387e45b29ebe4c54a80b5154bb82779e", label: "3ae008241ddb49acbf6c15276aa9876e" } : {}),
+                // HashnodeSettingsDto requires publication (id) + ≥1 tag
+                // ({value:id,label}) — the Lazynext publication + the
+                // "Artificial Intelligence" tag id from the provider's
+                // publications/tags tools.
+                ...(provider === "hashnode" ? { publication: "6ac1180493383ddaacaa87b6", tags: [{ value: "56744721958ef13879b94927", label: "Artificial Intelligence" }] } : {}),
+                // PinterestSettingsDto requires the NUMERIC board id — the
+                // "Lazynext" board created on the connected account.
+                ...(provider === "pinterest" ? { board: "1152288323350959323" } : {}),
+                // ListmonkDto requires subject/preview/list — default to the
+                // Default list (id 1); subject doubles as campaign title.
+                ...(provider === "listmonk" ? { subject: title, preview: title, list: "1" } : {}),
               },
             };
           }),

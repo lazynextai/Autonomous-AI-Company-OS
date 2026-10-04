@@ -1,0 +1,25 @@
+name = "listmonk-stack"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[containers]]
+# wrangler builds the Dockerfile and pushes to the CF registry on deploy.
+# To skip the local build, pin a pushed digest instead:
+#   image = "registry.cloudflare.com/85953070bae00da372951a8833bd3459/listmonk-stack-listmonkstack@sha256:<digest>"
+image = "./Dockerfile"
+# Deployed digest (pg-socket-dir fix): re-pin once pushed — see comment above
+class_name = "ListmonkStack"
+max_instances = 1
+# postgres + listmonk + nginx — light stack; lite OOMed nothing in local tests.
+instance_type = "lite"
+constraints = { tiers = [1, 2, 3, 4] }
+observability = { enabled = true }
+
+[[durable_objects.bindings]]
+name = "LISTMONK"
+class_name = "ListmonkStack"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ListmonkStack"]

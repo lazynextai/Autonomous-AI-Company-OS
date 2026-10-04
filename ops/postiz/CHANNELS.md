@@ -29,7 +29,7 @@ then `npx wrangler deploy` (config-only — same image, no rebuild).
 | ~~GitHub~~ | — | — | **Not in this build** — no github.provider.ts in the deployed image |
 | Mastodon (generic) | your-instance.tld/settings/applications | `MASTODON_URL`, `MASTODON_CLIENT_ID`, `MASTODON_CLIENT_SECRET` | Set `MASTODON_URL` to your instance; per-instance creds |
 | Beehiiv | app.beehiiv.com → API integrations | `BEEHIIVE_API_KEY` | Newsletter publish API (paid tier) |
-| Listmonk | your listmonk instance → admin → API users | `LISTMONK_API_KEY` | Self-hosted newsletter |
+| Listmonk | self-hosted `listmonk-stack` CF container → admin → API users | basic-auth `username:password` (API user, not admin UI login) | **CONNECTED 2026-10-04** — instance `https://listmonk-stack.dry-hall-6a50.workers.dev`, integration `cmuts6snz000109qwrnae3kgx` ("Mailing list") |
 | Instagram (standalone) | developers.facebook.com → Instagram product | `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET` | Old Basic-Display-style flow; still needs a Meta app |
 | Google Business (gmb) | console.cloud.google.com → Business Profile API | `GOOGLE_GMB_CLIENT_ID`, `GOOGLE_GMB_CLIENT_SECRET` | Local-business posts to Google Maps/Search |
 | Twitch | dev.twitch.tv/console/apps | `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET` | **CONNECTED 2026-10-03** — app `Lazynext Social`, client id `d5buee1l1upra6gxz8ay3bpm1i3tcq`, channel `lazynextai` (`?added=twitch&msg=Channel Updated`). Scopes granted: `user:write:chat user:read:chat moderator:manage:announcements` |
@@ -52,7 +52,7 @@ then `npx wrangler deploy` (config-only — same image, no rebuild).
 | Lemmy | instance URL + username + password |
 | Nostr | private key (nsec/hex) |
 | Moltbook | `api_key` — minted free via `POST /api/v1/agents/register` (no account); needs a human `claim_url` + verification tweet before it can post |
-| Skool | session **cookies** from your logged-in skool.com browser session |
+| Skool | session **cookies** `client_id`+`auth_token` from your logged-in skool.com browser session — **CONNECTED 2026-10-04**, account `lazynext-ai-7304`, integration `cmutuvlmq000109rsee0ro21z` |
 
 ## Programmatic channel connect (no UI needed)
 
@@ -73,7 +73,9 @@ curl -b jar -X POST "$BASE/api/integrations/social-connect/nostr" \
 
 Field names per provider are exposed live at `GET /api/integrations` under
 `customFields` (e.g. bluesky: `service`/`identifier`/`password`; medium:
-`apiKey`; wordpress: `domain`/`username`/`password`).
+`apiKey`; wordpress: `domain`/`username`/`password`; listmonk:
+`url`/`username`/`password` — username+password are the listmonk **API
+user** creds, verified live against `/api/settings`).
 
 ## Current state
 
@@ -97,8 +99,17 @@ Field names per provider are exposed live at `GET /api/integrations` under
   `…/integrations/social/pinterest` added to the app, container
   hard-restarted, OAuth authorized (boards+pins r/w, logged in as
   `Lazynext`). Verified in `/api/public/v1/integrations` →
-  `pinterest / lazynext / disabled=false`. Trial = full API on the
-  owner's own account; upgrade request only needed for other users' data.
+  `pinterest / lazynext / disabled=false`. **Trial ≠ full API**: trial
+  apps can read/write boards but `POST /v5/pins` 403s
+  `"Apps with Trial access may not create Pins in production"` (code 29).
+  **Board `Lazynext` created 2026-10-04** (id `1152288323350959323`,
+  used as the platform default in `worker/src/services.ts`).
+  **Standard-access upgrade SUBMITTED 2026-10-04** via
+  developers.pinterest.com → app `Lazynext Social` (id 1619102) →
+  Upgrade: branded demo video uploaded, use-case `Pin creation and
+  scheduling`, audience `Businesses` — status shows "Upgrade to Standard
+  access pending". reCAPTCHA v2 on the form passed interactively.
+  Pins will publish once Pinterest approves.
 - **Twitch CONNECTED (2026-10-03)** — account recovery + normalize path:
   existing company account `lazynextvideo` (support@lazynext.com,
   deactivated, SMS 2FA on the +91 …66 phone) was reactivated via Google
@@ -131,6 +142,61 @@ Field names per provider are exposed live at `GET /api/integrations` under
   Recurring UI traps: OneTrust cookie dialog + "Tell us a bit about you"
   onboarding overlay respawn on navigation — dismiss via their in-dialog
   Close controls before settings clicks.
+  **UNPOSTABLE (upstream bug, 2026-10-04)**: `KickDto` is an empty class —
+  NestJS `validatePosts` runs provider-DTO validation unconditionally and
+  class-validator's default `forbidUnknownValues` rejects it
+  ("an unknown value was passed to the validate function") on EVERY post
+  path (draft, schedule, now — per-post `type:"draft"` does NOT bypass it;
+  `ValidateIf` only gates per-setting fields, the DTO-level run still
+  happens). Kick is excluded from the `*` fan-out in
+  `worker/src/services.ts` until upstream ships a decorated KickDto.
+  A targeted `type` is still accepted but will always error — don't
+  report Kick as a published channel.
+- **Skool CONNECTED (2026-10-04)** — account CREATED this session:
+  Skool has no standalone signup or OAuth — accounts are minted by the
+  `/signup` "Create your community" modal (account step is free; the
+  paid community step comes after and was skipped). Name `Lazynext Ai`,
+  email `support@lazynext.com`, password in `.env` `SKOOL_PASSWORD`,
+  auto-handle `skool.com/@lazynext-ai-7304` — **custom URL is
+  engagement-gated** (needs 90 contributions + 30 followers + 90 days).
+  Email verify code arrived (5749); session was already active without
+  entering it. `client_id` is JS-readable; **`auth_token` is HttpOnly** —
+  extracted via playwright `page.context().cookies()` (run_code_unsafe),
+  piped to a localhost file server to keep it out of the transcript.
+  Connected via the same customFields flow: `code` =
+  base64(`{"client_id","auth_token"}`) → `social-connect/skool` →
+  integration `cmutuvlmq000109rsee0ro21z` (`lazynext-ai-7304`).
+  **Posting RESOLVED (2026-10-04)**: skool posts need a `group` setting.
+  Profile completion (photo + bio) was required before joining groups —
+  done via the modal (logo upload + 102-char bio). Joined the free
+  **Creator Empire** community (`/creator-empire-7660`, $0 Standard tier):
+  `groups()` → `387e45b29ebe4c54a80b5154bb82779e`, `label()` →
+  `3ae008241ddb49acbf6c15276aa9876e` (General discussion). E2E verified:
+  `POST /public/v1/posts` → PUBLISHED → live at
+  `skool.com/creator-empire-7660/intro-from-lazynext-autonomous-ai-company-os`.
+  Platform defaults for group+label live in `worker/src/services.ts`.
+  Creating an owned Lazynext community remains a $99/mo business
+  decision; the custom profile URL is still engagement-gated.
+- **Listmonk CONNECTED (2026-10-04)** — self-hosted on a dedicated CF
+  Container (`ops/listmonk/`, worker `listmonk-stack`, app
+  `listmonk-stack-listmonkstack`, public host
+  `https://listmonk-stack.dry-hall-6a50.workers.dev`). All-in-one image:
+  postgres:16-alpine base + listmonk v6.2.0 binary + nginx :9000→9001 +
+  supervisord; pg data on `/data/pg`, `pg_dumpall`→R2 every 15min +
+  boot-restore, R2 boot beacons under `listmonk-boot/`. API user seeded at
+  entrypoint before listmonk starts — **listmonk caches API creds in
+  memory at boot**, so the seeded `users` row (sha256hex token,
+  `password_login=false`, `type='api'`, `<user>@api` email) is picked up
+  first try. Hard-won traps: `mkdir /run/nginx` MUST precede the early
+  `nginx` start (fresh container `/run` tmpfs → pid-file open fails →
+  worker 500 "not listening on 9000" while listmonk itself is healthy);
+  Go bcrypt rejects `$2y$` admin hashes (`$2a$`/`$2b$` only);
+  `POST /__admin/restart-container?hard=1` (`x-admin-key` =
+  `ADMIN_RESTART_KEY`) forces a rebuild from the new image. Postiz
+  connected via customFields `{url, username, password}` → integration
+  `cmuts6snz000109qwrnae3kgx` (name "Mailing list" = app.site_name).
+  Lists 1 (Default, private) + 2 (Opt-in, public) ship by default; SMTP
+  unconfigured (API/campaign path works, delivery needs a relay later).
 - **Connected channels (2026-10-01, verified in `/api/integrations/list`)**:
   nostr `cmuo7hopx000109r8jxuk5l8n` · wordpress `cmuools6w000109pcwvimwl3d`
   (E2E-published to blog.lazynext.com) · tumblr `cmuodagu2000109q3ip0htgpq`
@@ -176,14 +242,54 @@ Field names per provider are exposed live at `GET /api/integrations` under
   account, and `organization.apiKey` survived the R2 restore — `.env`
   `POSTIZ_API_KEY` unchanged and still valid. Reminder: public API wants
   the raw key in `Authorization:` — `Bearer` prefix 401s "Invalid API key".
-- Postiz admin: `founder@lazynext.com` (password in `.env` → `POSTIZ_ADMIN_PASSWORD`).
-  Display name set to `Lazynext` via `POST /api/user/personal` (2026-10-03).
-  **No email-change endpoint exists** in upstream Postiz — the login stays
-  `founder@` (internal-only; not a public identity surface).
+- Postiz admin: **`support@lazynext.com`** (password in `.env` → `POSTIZ_ADMIN_PASSWORD`).
+  **Email migrated founder→support 2026-10-04** — Postiz has no
+  email-change endpoint, so the rename ran as one-shot boot SQL through
+  the `POSTIZ_CMD` env escape hatch (`ops/postiz/src/index.ts` forwards
+  it into the container; `entrypoint.sh` interpolates it into
+  `/opt/postiz-run.sh` as `exec sh -c "${POSTIZ_CMD:-pnpm run pm2}"`).
+  Pattern for future boot commands: base64 the payload, then
+  `POSTIZ_CMD='echo <b64> | base64 -d | sh ; exec pnpm run pm2'` —
+  avoids every quoting layer and is idempotent-safe. Verified:
+  support@ logs in 200, founder@ 400, org/apiKey/16 integrations intact.
 - After connecting channels no `conn:postiz` edit is needed — `*` already
   covers them; set a comma-list only to restrict fan-out.
 
-## 2026-10-03 evening — identity normalization sweep results
+## 2026-10-04 — full platform-path fan-out E2E (14 posts, 10 published)
+
+Fan-out through `POST /api/v1/services/postiz` on the platform worker
+(admin `lzk_` key → `conn:postiz` KV → `callConnector` → Postiz
+`/public/v1/posts`, `type:"now"`). One call created one post per enabled
+target — 14 after kick exclusion:
+
+- **PUBLISHED (10)**: wordpress (blog.lazynext.com), bluesky, slack,
+  whop, tumblr, mastodon, nostr, dribbble, twitch, skool.
+- **ERROR (4, all account/provider-side, not routing)**: devto (stored
+  key dead + re-mint instance-disabled, see 10-04 section below),
+  hashnode (`Publication does not have an active Pro plan` — paid
+  upgrade required), pinterest (Trial-access pin restriction — Standard
+  upgrade pending review), listmonk (container cold — FIXED, see below).
+- **Provider defaults added in `worker/src/services.ts`**: skool
+  `{group: 387e45b2…, label: 3ae00824…}` (Creator Empire → General
+  discussion), hashnode `{publication: 6ac1180493383ddaacaa87b6, tags:
+  [{value: 56744721958ef13879b94927, label: "Artificial Intelligence"}]}`,
+  pinterest `{board: "1152288323350959323"}` (board `Lazynext`,
+  created via Pinterest internal `Resource/Create` — Postiz's
+  `boards()` only lists, can't create).
+- **Listmonk cold-start**: containers sleep after ~30m idle; Postiz's
+  campaign call wedged on the ~90s boot → opaque `Unknown Error`. Same
+  class as the wordpress pre-warm — `worker/src/services.ts` now GETs
+  `listmonk-stack.dry-hall-6a50.workers.dev/` before dispatch for
+  listmonk+wordpress targets. Retried E2E: PUBLISHED, campaign 3.
+- **Listmonk delivery gap**: campaigns land on listmonk's hardcoded
+  `messenger:"email"` = SMTP — which is **unconfigured** (Brevo SMTP
+  keys are dashboard+device-OTP only, can't be minted via API; the
+  `BREVO_API_KEY` is NOT an SMTP password — relay 535s). Campaigns
+  "publish" (queued state) but no mail moves until the founder mints an
+  SMTP key at app.brevo.com → SMTP & API → SMTP, or a messenger-
+  override is patched into the postiz listmonk provider (postback
+  messengers exist in listmonk but Postiz sends no `messenger` field
+  and `"email"` is hardcoded upstream).
 
 - **nostr channel replaced**: the original (`cmuo7hopx000109r8jxuk5l8n`,
   `No Name`/`nousername`) was deleted and reconnected with a freshly minted
