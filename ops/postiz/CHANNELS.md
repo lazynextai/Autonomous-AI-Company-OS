@@ -1105,3 +1105,24 @@ unanswered as of 10-03. Replicate row corrected 10-02 (self-serve rename to
 | **Lemmy** | tchncs.de re-verified: `registration_application_is_pending` with the real `LEMMY_PASSWORD` (the earlier `incorrect_login` was a missing-env fallback password — account exists, still in mod queue). |
 | **GCP console** | `console.cloud.google.com/apis/credentials` demands its own Workspace password challenge (`service=cloudconsole` — the myaccount `rapt` does not transfer). Challenge page staged in the open tab for the founder. |
 | **Telegram** | Code went to the **Telegram app** (existing account on +91 9199366166 — `support@` is its 2SV recovery email → almost certainly a forgotten company account, not a stranger's). Founder must read the in-app service-chat code; web shows no SMS fallback. |
+
+## 2026-10-04 (final sweep) — Telegram at 2FA gate, Pinterest code-29 decoded, IMAP inbox sweep
+
+| Item | Result |
+|---|---|
+| **Telegram** | Phone-code flow **succeeded past OTP** (code auto-verified from the active phone session) → login now sits at the **2FA cloud-password** gate for account **`Lazynext`** on +91 9199366166 — confirms the existing account IS the canonical company account (support@ is its recovery email). Founder must type the Telegram cloud password in the tab (or "Forgot Password?" → recovery-email code). Then: verify `@lazynext` username → BotFather bot → Postiz `telegram` channel. |
+| **Pinterest** | **Publish blocked, root cause decoded** — direct API pin → ERROR; Temporal `bad_body` payload decodes to Pinterest **`code 29`: "Apps with Trial access may not create Pins in production api.pinterest.com — use API Sandbox api-sandbox.pinterest.com instead."** Trial = read + sandbox-write only; the Oct-3 "approved" mail was the trial grant (already connected), the Oct-4 "request submitted" mail is the **Standard** application — still in Pinterest review. No code change can fix it (patching the provider to api-sandbox would pin to a fake env, not the profile). |
+| **Lemmy** | lemmy.ml **denial confirmed** (mail + API); discuss.tchncs.de application = `registration_application_is_pending` (email verify POST already consumed — the Oct-4 17:02 mail's GET link is only a render page). Awaiting tchncs mods. |
+| **Moltbook** | Oct-4 verify link already consumed → `invalid_or_expired_link` (10min TTL). Claim still needs the X-account tweet → stays X-gated. |
+| **dev.to** | `dev.to/api/users/me` with `DEVTO_API_KEY` → **401**; `dev.to/lazynext` → **404**. Account still suspended/quarantined; `yo@dev.to` appeal unanswered. |
+| **IP re-probe** | npm 403, linktr.ee conn-reset, codepen 403, openhub 403, alternativeto 403, stackshare 429, slashdot 403 — unchanged, different-egress only. dev.to edge is open (200) — the block there is account-level, not IP. |
+| **Microsoft** | Fresh signup **fully auto-staged** again: `lazynextai@outlook.com` + MICROSOFT_PASSWORD + DOB India/Jun-7-1990 + name `Lazynext AI` → **PerimeterX press-and-hold** is the only remaining step (open tab 4). |
+| **Discord** | Extra `Verify Email` mail consumed (token link → discord.com/verify — account already verified, idempotent). Dev-app `Create` still captcha-gated — founder in normal browser. |
+| **Inbox (IMAP, 312 mails/7d)** | Actionable consumed: tchncs verify (already POST-verified), Pinterest email-confirm (200 OK). Confirmations: **Trustpilot page claimed**; Tumblr active (5 posts); Neynar welcome (dev account live); Postman account exists; Kaggle/SoundCloud/Vimeo/Devpost/Skool/Dribbble welcomes. **Cloudflare $4.57 Visa-confirm reminder** — Stripe invoice link in mail → founder payment action. Microsoft security-code mails = this signup run. |
+| **Channel count** | 15 integrations live in Postiz (`/public/v1/integrations`): wordpress, bluesky, slack, mastodon, hashnode, nostr, dribbble, pinterest, tumblr, listmonk, skool, devto, twitch, kick, whop. |
+
+### Remaining queue (all external/human-gated, nothing automation-actionable left)
+
+- **Founder gestures armed**: Telegram 2FA cloud password (tab open at gate) · Microsoft press-and-hold (tab 4) · Google Workspace password for GCP console (tab 3) · Discord dev-app `Create` in a normal browser · Cloudflare $4.57 Stripe-confirm · Hashnode Pro upgrade · X signup/face-liveness · Warpcast mobile app.
+- **External reviews pending**: Pinterest Standard · tchncs Lemmy mods · dev.to appeal · Slashdot feedback@.
+- **Different egress needed**: npm, Linktree, CodePen, OpenHub, AlternativeTo, StackShare.
