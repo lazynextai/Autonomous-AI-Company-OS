@@ -44,7 +44,7 @@ then `npx wrangler deploy` (config-only — same image, no rebuild).
 | Channel | What you paste in the Postiz dialog |
 |---|---|
 | Bluesky | handle + **App Password** (bsky.app → Settings → App passwords) |
-| Telegram | bot token from @BotFather (+ channel/group id) |
+| Telegram | bot token from @BotFather (+ channel/group id) — **CONNECTED 2026-10-04**, channel `@lazynext_ai` (t.me/lazynext_ai, chat id `-1003956959469`), bot `@LazynextBot` admin **post-only**, integration `cmuu7eq7s000109r4e8yg9zit`, first post `t.me/lazynext_ai/2` |
 | dev.to | API key: dev.to/settings/extensions → "DEV Community API Keys" |
 | Hashnode | Personal access token: hashnode.com/settings/developer |
 | Medium | Integration token: medium.com/me/settings/security |
@@ -205,6 +205,26 @@ user** creds, verified live against `/api/settings`).
   `cmuts6snz000109qwrnae3kgx` (name "Mailing list" = app.site_name).
   Lists 1 (Default, private) + 2 (Opt-in, public) ship by default; SMTP
   unconfigured (API/campaign path works, delivery needs a relay later).
+- **Telegram CONNECTED (2026-10-04)** — public channel `Lazynext`
+  `t.me/lazynext_ai`, chat id `-1003956959469`, integration
+  `cmuu7eq7s000109r4e8yg9zit`, first post E2E PUBLISHED
+  `t.me/lazynext_ai/2`. `@lazynext` and `@lazynextai` were both taken,
+  so the channel carries `@lazynext_ai` (canonical fallback); the
+  founder's own account is already `@lazynextai`. Bot `@LazynextBot`
+  (id `8855512113`, token in `.env` `TELEGRAM_BOT_TOKEN`) is channel
+  admin with **Post Messages only**. Gotchas: (a) `TELEGRAM_TOKEN`
+  worker secret → container env via the existing passthrough list in
+  `ops/postiz/src/index.ts`; `authenticate(code)` calls
+  `getChat(code)` so `code` = numeric chat id `-1003956959469`, NOT
+  the `/connect <word>` handshake the UI runs for chat discovery —
+  direct `social-connect` works once the bot is an admin; (b) **Web K
+  can't add a bot as channel admin** (member-picker only searches
+  channel subscribers, and "Add to Group" rejects channels) — use
+  **web.telegram.org/a** (same-origin session): channel → Edit →
+  Administrators → Add Admin → global-search `@LazynextBot` →
+  promote with only "Post Messages" checked; (c) Postiz
+  `sendMessage` targets `accessToken` = numeric chat id — bot admin
+  membership is required at publish time, not just connect.
 - **Connected channels (2026-10-01, verified in `/api/integrations/list`)**:
   nostr `cmuo7hopx000109r8jxuk5l8n` · wordpress `cmuools6w000109pcwvimwl3d`
   (E2E-published to blog.lazynext.com) · tumblr `cmuodagu2000109q3ip0htgpq`
@@ -229,6 +249,16 @@ user** creds, verified live against `/api/settings`).
   Needs a human retry in the logged-in browser or Reddit dev registration
   (form prefilled: web app `Lazynext Social`, callback
   `…/integrations/social/reddit`).
+- **Session-auth note**: the dashboard-auth'd routes
+  (`/api/integrations/social/*`, `/api/integrations/social-connect/*`)
+  401 under the apiKey — they need the `auth` JWT cookie. Founder
+  account is `support@lazynext.com` (canonical — migrated from
+  founder@, verified via `/api/user/self` 2026-10-04); the
+  `POSTIZ_ADMIN_PASSWORD` in `.env` is stale (login 400s) — the
+  persistent browser session cookie is the working auth path; rotate
+  the stored password when convenient. `RESEND_API_KEY` is NOT set on
+  `postiz-stack`, so `POST /api/auth/forgot` accepted but no reset
+  email can leave — SMTP wiring needed before password resets work.
 - **Public API note**: current postiz-app uses org-level `apiKey` +
   `PublicAuthMiddleware` on `@Controller('/public/v1')` — reached from
   outside as `{domain}/api/public/v1/*` (nginx strips `/api/`). The raw
