@@ -1,3 +1,4 @@
+// envVars-refresh deploy: 2026-10-05b (X_API_KEY/X_API_SECRET/X_URL=postiz)
 // Postiz stack worker — a single Cloudflare Container running the fat
 // all-in-one image: postgres + redis + temporal + postiz-app, all on
 // 127.0.0.1 inside the container. ZERO external services: state lives in

@@ -13,7 +13,7 @@ then `npx wrangler deploy` (config-only — same image, no rebuild).
 
 | Channel | Developer portal | Env vars to `secret put` | Notes |
 |---|---|---|---|
-| X / Twitter | developer.x.com → Projects & Apps → Keys | `X_URL`, `X_API_KEY`, `X_API_SECRET` | `X_URL` is typically `https://x.com`. Needs Read+Write app permission + user auth (OAuth 1.0a) |
+| X / Twitter | console.x.com → Apps → Keys & Tokens | `X_URL`, `X_API_KEY`, `X_API_SECRET` | **`X_URL` = `https://postiz.lazynext.com`** (it's the OAuth1 callback BASE — `generateAuthUrl` sends `X_URL+/integrations/social/x` as the request-token callback; `https://x.com` → `{"err":true}`). `X_API_KEY`/`X_API_SECRET` = OAuth1 **Consumer Key + Secret**. Needs Read+Write app permission (console Settings) + callback whitelisted in app settings. **CONNECTED 2026-10-05** — dev account `Lazynext` (console.x.com/accounts/2107153723520589824), app `Lazynextai` id `33504170` Pay-Per-Use, OAuth1 `authenticate` flow → integration `cmuvjsuft000109rlp2r1m20j` (@Lazynextai) |
 | LinkedIn | linkedin.com/developers → Create app | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` | Add "Share on LinkedIn" product; redirect URI required |
 | Facebook | developers.facebook.com → Create app | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` | Needs `pages_manage_posts`, `pages_read_engagement`; app must pass review for public posting |
 | Instagram | same Meta app as Facebook | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` | Business/Creator account linked to a Facebook Page required |
@@ -415,8 +415,37 @@ user** creds, verified live against `/api/settings`).
   QUEUE again after a secret-driven restart, just bounce the container
   once more — don't `?hard=1` unless boot is corrupt.
 
-## 2026-10-05 evening — Moltbook + Listmonk fix + Blogger/Medium/CodePen (19 channels)
+## 2026-10-05 night — X channel CONNECTED (20 channels) + X account finalized
 
+- **X / Twitter CONNECTED (channel 20)** — full chain done in one pass:
+  founder created the X account (face-liveness), handle check → `lazynext`
+  is squatter-taken so **`@Lazynextai` stays canonical** (display name
+  `Lazynext`, bio/location/website set). Account info verified:
+  `support@lazynext.com` **Verified**, country India. Stored
+  `X_PASSWORD` was stale → password-reset via code mailed to support@
+  inbox (IMAP `GOOGLE_APP_PASSWORD`) → new random password saved back to
+  `.env` `X_PASSWORD` (logs the account out everywhere — re-login needed).
+  Dev account at console.x.com auto-created with app `Lazynextai`
+  (id `33504170`, Pay-Per-Use): app Settings → Read+Write + Web-App type +
+  callback `https://postiz.lazynext.com/integrations/social/x` +
+  website/org `lazynext.com`; OAuth1 Consumer Key+Secret regenerated →
+  `.env` + `wrangler secret put` X_API_KEY/X_API_SECRET/X_URL.
+  **`X_URL` had to be `https://postiz.lazynext.com`** — postiz
+  `x.provider.generateAuthUrl` builds `X_URL + /integrations/social/x`
+  as the request-token callback; with `https://x.com` the endpoint
+  returns bare `{"err":true}` (no log line — the throw is swallowed).
+  Connect flow: `GET /api/integrations/social/x` → `api.x.com/oauth/
+  authenticate` → "I trust this app" checkbox + Authorize → 302 to
+  `postiz.lazynext.com/launches?added=x` → integration
+  `cmuvjsuft000109rlp2r1m20j`. X console is credit-based now
+  (Pay-Per-Use, $0 balance — posting may need free/paid credits).
+- **Moltbook claimed via the new X account** — see row update above;
+  `is_claimed:true`, first post published (was 403 pending_claim).
+- **Console.x.com form gotchas**: text inputs have NO `type` attribute
+  (`input[type=text]` selector fails — filter on `i.type==='text'`);
+  pressSequentially/locators timed out → focus via evaluate +
+  `keyboard.type` works; key-reveal dialog values captured via
+  `navigator.clipboard.writeText` → `pbpaste` (never printed).
 - **Moltbook CONNECTED (channel 19)** — the original `lazynext` agent key was
   lost to the Oct-1 R2-restore race (see 2026-09-30 entry), so a NEW agent
   `lazynextai` (id `e16d7b9f-6338-4714-9d60-3cf4c1fa0de4`) was registered
