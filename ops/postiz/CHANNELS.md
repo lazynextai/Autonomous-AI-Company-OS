@@ -18,13 +18,13 @@ then `npx wrangler deploy` (config-only — same image, no rebuild).
 | Facebook | developers.facebook.com → Create app | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` | Needs `pages_manage_posts`, `pages_read_engagement`; app must pass review for public posting |
 | Instagram | same Meta app as Facebook | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` | Business/Creator account linked to a Facebook Page required |
 | Threads | developers.facebook.com (Threads API product) | `THREADS_APP_ID`, `THREADS_APP_SECRET` | Separate Meta app; Threads API product |
-| YouTube | console.cloud.google.com → OAuth client | `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET` | Enable YouTube Data API v3; OAuth consent screen |
+| YouTube | console.cloud.google.com → OAuth client | `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET` | **CONNECTED 2026-10-05** — channel `@lazynext` (id `UCf76xZStSHc1EJHv0VfalaQ`), integration `cmuv4574e000109sjbvc18jos`. GCP project `sapient-metrics-509413-f4`, YouTube Data API v3 enabled, consent screen External/Testing with `support@lazynext.com` as test user, web OAuth client `Lazynext Postiz` (`604725211190-672no22k65itsmrs01jinkld6domsvj6`), redirect `…/integrations/social/youtube` |
 | TikTok | developers.tiktok.com → Create app | `TIKTOK_CLIENT_ID`, `TIKTOK_CLIENT_SECRET` (+ `TIKTOK_BUSINESS_*` for Business API) | Video publish scopes need approval |
 | Pinterest | developers.pinterest.com → Create app | `PINTEREST_CLIENT_ID`, `PINTEREST_CLIENT_SECRET` | **CONNECTED 2026-10-03** — app `Lazynext Social` id `1619102`, **Trial access active** (pins+boards read/write on own account), channel `lazynext` |
 | Reddit | reddit.com/prefs/apps → create "web app" | `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` | Script-type apps don't OAuth; pick "web app" |
 | Tumblr | tumblr.com/oauth/apps → register | `TUMBLR_CLIENT_ID`, `TUMBLR_CLIENT_SECRET` | callback = the blog's tumblr root? copy UI URL |
 | Dribbble | dribbble.com/account/applications | `DRIBBBLE_CLIENT_ID`, `DRIBBBLE_CLIENT_SECRET` | Posting is scope-limited — check current API caps |
-| Discord | discord.com/developers → Application | `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_BOT_TOKEN_ID` | Bot added to your server; posts to channels |
+| Discord | discord.com/developers → Application | `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_BOT_TOKEN_ID` | **APP EXISTS 2026-10-05** — `Lazynext` id `1556577314501034064`, bot `Lazynext#8300`, redirect `…/integrations/social/discord` saved, fresh client secret in `.env`. **BLOCKED on bot token**: `Reset Token` demands the Discord account's own password (sudo check — `.env` `DISCORD_SIGNUP_PW` rejected "Password does not match"; no SMS/backup-code fallback). Founder must type the current Discord password → capture token → `DISCORD_BOT_TOKEN_ID` secret → restart → connect |
 | Slack | api.slack.com/apps → Create | `SLACK_ID`, `SLACK_SECRET`, `SLACK_SIGNING_SECRET` | chat:write + channels:read scopes; install to workspace |
 | ~~GitHub~~ | — | — | **Not in this build** — no github.provider.ts in the deployed image |
 | Mastodon (generic) | your-instance.tld/settings/applications | `MASTODON_URL`, `MASTODON_CLIENT_ID`, `MASTODON_CLIENT_SECRET` | Set `MASTODON_URL` to your instance; per-instance creds |
@@ -206,6 +206,14 @@ user** creds, verified live against `/api/settings`).
   Lists 1 (Default, private) + 2 (Opt-in, public) ship by default; SMTP
   unconfigured (API/campaign path works, delivery needs a relay later).
 - **Telegram CONNECTED (2026-10-04)** — public channel `Lazynext`
+  …**2SV VERIFIED 2026-10-05**: Settings → Privacy and Security shows
+  `Two-Step Verification: On` and `Login Email: su…t@lazynext.com`
+  (support@). Password in `.env` `TELEGRAM_2SV_PASSWORD` authenticated
+  live. Web A (`/a/`) never persists the recovery email (no OTP step in
+  its wizard — the code path silently "Password Set!"s) — use **Web K**
+  (`/k/`), which shows the real `Login Email` row. Keep ONE web instance
+  active or the other shows "App is inactive".
+  Original notes follow —
   `t.me/lazynext_ai`, chat id `-1003956959469`, integration
   `cmuu7eq7s000109r4e8yg9zit`, first post E2E PUBLISHED
   `t.me/lazynext_ai/2`. `@lazynext` and `@lazynextai` were both taken,
@@ -331,6 +339,49 @@ user** creds, verified live against `/api/settings`).
   support@ logs in 200, founder@ 400, org/apiKey/16 integrations intact.
 - After connecting channels no `conn:postiz` edit is needed — `*` already
   covers them; set a comma-list only to restrict fan-out.
+
+## 2026-10-05 — YouTube connected, Discord staged
+
+- **YouTube CONNECTED** — GCP project `sapient-metrics-509413-f4`
+  (console as `support@lazynext.com`): YouTube Data API v3 enabled;
+  OAuth consent screen created (External, Testing audience,
+  `support@lazynext.com` added as test user); web OAuth client
+  `Lazynext Postiz` id `604725211190-672no22k65itsmrs01jinkld6domsvj6`
+  with redirect `…/integrations/social/youtube` (JSON backup in
+  `.playwright-mcp/`). `YOUTUBE_CLIENT_ID`/`_SECRET` → wrangler secrets on
+  `postiz-stack` + `.env`, container restarted. OAuth authorized as the
+  canonical `support@lazynext.com` → channel picker → **`@lazynext`**
+  (channel id `UCf76xZStSHc1EJHv0VfalaQ`, `?added=youtube`).
+  Integration `cmuv4574e000109sjbvc18jos`, verified in
+  `/api/public/v1/integrations`. **17 channels now connected** — the
+  `*` fan-out in `conn:postiz` picks YouTube up automatically; note
+  YouTube is a video provider so text fan-outs will ERROR on it
+  (expected — same class as pinterest/dribbble).
+- **Discord app already existed** (`Lazynext`, `1556577314501034064`,
+  bot `Lazynext#8300`) — no duplicate created. Redirect URI saved,
+  client secret regenerated → `DISCORD_CLIENT_ID`/`_SECRET` in `.env`.
+  Remaining blocker is ONLY the bot token: Discord's sudo prompt needs
+  the account password (not the stored signup pw). After founder enters
+  it: token → `DISCORD_BOT_TOKEN_ID` wrangler secret →
+  `POST /__admin/restart-container` → OAuth-connect in the Postiz UI →
+  invite bot to the canonical guild.
+- **Telegram verified complete** — see the Telegram entry (2SV On,
+  recovery `su…t@lazynext.com`).
+- **`GET /api/public/v1/posts` takes `?startDate`/`endDate`** (ISO 8601
+  query params — the earlier `startDate must be a valid ISO 8601` 400
+  was a bare list call). State field: `QUEUE` → `PUBLISHED`; `type:"now"`
+  posts are placed on the next 15-min slot, not fired instantly.
+  E2E ping to telegram `cmuu7eq7s000109r4e8yg9zit`: post
+  `cmuv4qtnj000209sjbwxjh40z` (`creationMethod:"API"`) → **PUBLISHED**
+  → `t.me/lazynext_ai/3`.
+  **Boot-race wedge found**: after the YouTube-secret restart the post sat
+  QUEUE 26min past its slot — the orchestrator process started before
+  Temporal was ready (temporal.err logged `connection refused` at boot)
+  and the BullMQ drain never engaged. A soft
+  `POST /__admin/restart-container` (fs+pg intact, backup fresh) fixed it;
+  the post published ~2min after the services came up. If posts wedge
+  QUEUE again after a secret-driven restart, just bounce the container
+  once more — don't `?hard=1` unless boot is corrupt.
 
 ## 2026-10-04 — full platform-path fan-out E2E (14 posts, 10 published)
 
