@@ -1563,8 +1563,14 @@ async function callConnector(
       // kick.dto.js at boot — verified PUBLISHED 2026-10-04. Providers that
       // re-break on an unpatched image go back in this set.
       const BROKEN_DTO = new Set<string>();
+      // Video-only providers can't carry a text post — YouTube's DTO needs
+      // settings.title+type AND the provider needs a video upload, so a bare
+      // text fan-out 400s the whole batch on it (verified 2026-10-05:
+      // posts.16 youtube rejected the 18-channel '*' dispatch). Excluded
+      // from '*' only — an explicit integration id still targets it.
+      const NO_TEXT_FANOUT = new Set<string>(["youtube"]);
       const targets = (integ === "*"
-        ? all
+        ? all.filter((id) => !NO_TEXT_FANOUT.has(byId.get(id) ?? ""))
         : integ.split(",").map((s) => s.trim()).filter(Boolean)
       ).filter((id) => !BROKEN_DTO.has(byId.get(id) ?? ""));
       if (!targets.length)
@@ -1620,6 +1626,9 @@ async function callConnector(
                 // SlackDto requires settings.channel (IsDefined) — default to
                 // the Lazynext workspace's #social channel (T0C64BGAT26).
                 ...(provider === "slack" ? { channel: "C0C64BGCVT4" } : {}),
+                // DiscordDto requires settings.channel — default to the
+                // Lazynext guild's #general (1556364628571984014).
+                ...(provider === "discord" ? { channel: "1556364628571984014" } : {}),
                 // SkoolDto requires settings.group + settings.label — default
                 // to the joined Creator Empire community's General discussion
                 // (ops/postiz/CHANNELS.md).
