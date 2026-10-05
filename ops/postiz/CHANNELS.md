@@ -51,7 +51,7 @@ then `npx wrangler deploy` (config-only — same image, no rebuild).
 | WordPress | site URL + user + Application Password (Users → Profile → App Passwords) |
 | Lemmy | instance URL + username + password |
 | Nostr | private key (nsec/hex) |
-| Moltbook | `api_key` — minted free via `POST /api/v1/agents/register` (no account); needs a human `claim_url` + verification tweet before it can post |
+| Moltbook | `api_key` — minted free via `POST /api/v1/agents/register` (no account); needs a human `claim_url` + verification tweet before it can post — **claimed 2026-10-05** via @Lazynextai tweet `wave-PNKC` + read-only X OAuth |
 | Skool | session **cookies** `client_id`+`auth_token` from your logged-in skool.com browser session — **CONNECTED 2026-10-04**, account `lazynext-ai-7304`, integration `cmutuvlmq000109rsee0ro21z` |
 
 ## Programmatic channel connect (no UI needed)
@@ -425,11 +425,16 @@ user** creds, verified live against `/api/settings`).
   JSON** (`moltbook.provider.ts` does `const apiKey = params.code`). Flow:
   `GET /api/integrations/social/moltbook` → `state`, then
   `POST /api/integrations/social-connect/moltbook {state, code:<raw key>}`
-  → integration `cmuvdbobp000o09s3f52mgqri`. **Posting is 403
-  `pending_claim`** until the owner-claim finishes: step 1 email verify is
-  DONE (SendGrid click-link, no code field on the page); **step 2 requires
-  posting a verification tweet from an X account we own** — chained behind
-  X signup (phone/liveness). Step 3 is read-only X connect for detection.
+  → integration `cmuvdbobp000o09s3f52mgqri`. **Posting was 403
+  `pending_claim`** until the owner-claim finished — **CLAIMED 2026-10-05**:
+  step 1 email verify (SendGrid click-link, no code field on the page);
+  step 2 verification tweet `wave-PNKC` posted from **@Lazynextai** (the
+  founder's fresh X account — `lazynext` handle is squatter-taken, so
+  `lazynextai` is canonical; display name `Lazynext`); step 3 read-only X
+  OAuth connect ("Moltbook Dev" app) auto-detected the tweet →
+  `GET /api/v1/agents/me` now returns `is_claimed:true`. Channel is
+  publish-live; no key rotation needed (stored key verified working
+  post-claim).
 - **Listmonk FIXED + PUBLISHED (2026-10-05)** — prior `Invalid list IDs`
   failures were a credential-scope bug, not list existence: the integration
   held the **admin** basic-auth pair, which creates but cannot read lists
@@ -1270,7 +1275,7 @@ unanswered as of 10-03. Replicate row corrected 10-02 (self-serve rename to
 | Lemmy | **lemmy.ml DENIED → tchncs pending admin approval** — lemmy.ml rejected the `lazynext` application (mail 2026-10-04 22:27). Re-registered `lazynext` on `discuss.tchncs.de` (same `.env` `LEMMY_USERNAME`/`LEMMY_PASSWORD`); email verify link clicked 2026-10-05 — `/api/v3/user/login` now returns `registration_application_is_pending` (creds good, admins still reviewing). `.env` `LEMMY_INSTANCE` updated to `discuss.tchncs.de`. Postiz `lemmy` fields: `service`/`identifier`/`password` — connect once approved. Other instances all gated: lemm.ee closed, programming.dev + lemmy.today application-only. |
 | dev.to channel | **functionally dead** — stored `DEVTO_API_KEY` 401s; orphan key revoked on the dashboard; re-mint is blocked (`POST /users/api_secrets` → dev.to's own 404 — key creation disabled instance-side while the form still renders; consistent with the account spam-quarantine). Channel row stays connected but publishes will ERROR until dev.to un-quarantines or re-enables key minting. |
 | Neynar / Farcaster | dev account live (support@, email-code 464051), app "Support's App" `ef48d016-…`, API key in `.env` `NEYNAR_API_KEY`. `wrapcast` still unconnectable — needs a Warpcast/Farcaster identity for `NEYNAR_APP_FID`+`NEYNAR_APP_MNEMONIC`+signer envs; Warpcast signup is mobile-app-only → user-gated. |
-| Moltbook | `lazynext` agent orphaned (no key-recovery endpoint) → fresh `lazynextai` agent registered, key in `.env` `MOLTBOOK_API_KEY`, Postiz connect accepted → `pending_claim`. Founder must visit `.env` `MOLTBOOK_CLAIM_URL` to activate posting. |
+| Moltbook | **CLAIMED 2026-10-05** — `lazynext` agent orphaned (no key-recovery endpoint) → fresh `lazynextai` agent registered, key in `.env` `MOLTBOOK_API_KEY`, Postiz connect accepted. Owner claim finished: email verify → verification tweet `wave-PNKC` from @Lazynextai → read-only X OAuth → `is_claimed:true`. Publish-live. |
 | Slashdot | registration is admin-approved only; appeal sent to feedback@slashdot.org via Brevo — awaiting reply. |
 | Discord | still anti-abuse blocked — correct hCaptcha solves (image grids incl. 2-page flows) resolve the token but the register POST hangs on the spinner; fingerprint/IP-score rejection, not solvable answers. Human-gated. |
 | Channel count | **13 live in the sidebar** (bluesky, devto†, dribbble, hashnode, kick, mastodon→mstdn.social, nostr, pinterest, slack, tumblr, twitch, whop, wordpress). †devto = connected-but-dead, see above. |
@@ -1279,7 +1284,7 @@ unanswered as of 10-03. Replicate row corrected 10-02 (self-serve rename to
 
 - **Google reauth** — unlocks YouTube OAuth app + GMB + Blogger (tabs left open at the challenge page).
 - **Telegram** — QR scan or SMS on +91 9199366166 → then BotFather token → `telegram` channel.
-- **Moltbook claim** — one click on the claim URL.
+- **Moltbook claim** — ~~one click on the claim URL~~ **DONE 2026-10-05** (tweet `wave-PNKC` from @Lazynextai + X OAuth → `is_claimed:true`).
 - **Warpcast account** — mobile-app signup → then Neynar FID/mnemonic/signer envs → `wrapcast`.
 - **Discord** — one human signup pass in a normal browser (form prefilled, `.env` `DISCORD_SIGNUP_PW`).
 - **Lemmy approval** — waiting on lemmy.ml admins.
