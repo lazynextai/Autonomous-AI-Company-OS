@@ -439,6 +439,18 @@ user** creds, verified live against `/api/settings`).
   `postiz.lazynext.com/launches?added=x` → integration
   `cmuvjsuft000109rlp2r1m20j`. X console is credit-based now
   (Pay-Per-Use, $0 balance — posting may need free/paid credits).
+- **X publish BLOCKED — verified root cause (2026-10-05)**: a real
+  `POST /public/v1/posts` → X (post `cmuvk7nhs000209rlx92y6wz2`,
+  `settings.who_can_reply_post:"everyone"` + `image:[]` required —
+  both are IsDefined in `XDto` and 400 without them) reached X and
+  **errored**: orchestrator `x.provider.ts:1219` `ApplicationFailure:
+  Unknown Error`. Verified against X directly: the app's OAuth2
+  client-credentials flow mints a bearer fine, but any metered v2
+  call returns `402 {"status":402,"title":"Payment Required",
+  "detail":"credits depleted"}` (`/2/usage/tweets` reads work —
+  they're free). **Publish is dead until credits are added at
+  console.x.com → Pay-Per-Use.** The channel stays connected and
+  healthy; only tweet creation is credit-gated.
 - **Moltbook claimed via the new X account** — see row update above;
   `is_claimed:true`, first post published (was 403 pending_claim).
 - **Console.x.com form gotchas**: text inputs have NO `type` attribute
@@ -1404,3 +1416,14 @@ unanswered as of 10-03. Replicate row corrected 10-02 (self-serve rename to
 | **SaaSHub** | Register form still parked at hCaptcha (tab 3) — unchanged. |
 | **Moltbook** | Still blocked on the X verification tweet — chains behind the X liveness above. |
 | **Payments** | Stripe/Hashnode Pro tab (tab 2) left open, **not paid** per founder instruction; Cloudflare $4.57 likewise pending. |
+
+## 2026-10-05 (evening) — AlternativeTo LIVE end-to-end; remaining gates are all human
+
+| Item | Result |
+|---|---|
+| **AlternativeTo** | **COMPLETE** — founder cleared the staged hCaptcha → account created `support@lazynext.com`, handle **`lazynext`**, verify-email link consumed in-browser (curl 403s the verify endpoint — WAF needs the browser fingerprint). Profile saved: name `Lazynext`, bio, country India, socials (X `lazynextai`, GitHub `Lazynext-AI`, LinkedIn) → public `alternativeto.net/user/lazynext/`. **App submitted**: `Lazynext Accessibility Checker` → `checker.lazynext.com`, Freemium + Proprietary + English, tags accessibility/web-accessibility/accessibility-testing/accessibility-vpat-wcag/web-accessibility-checker, platforms Online+SaaS, company author `Lazynext`, icon `icon-512.png` + `og.png` screenshot, X+LinkedIn links — queued for review (`/software/lazynext-accessibility-checker/`). **3 alternatives suggested** (WAVE accessibility tool, Google Lighthouse, axe DevTools) so the listing isn't invisible — apps without alternatives get almost no search traffic per the site's own warning. |
+| **Stripe "LinearBytes Inc" checkout (tab 2)** | Identified = **Hashnode Pro** — ₹500.80/mo (~$5 USD, 4% conversion fee on INR→USD), billed by Hashnode's parent LinearBytes Inc. Parked at Link "Confirm it's you" 6-digit code sent to `•••••• •••66`; "Pay without Link" available. Live mode, real payment — founder decision, not auto-completing. This is the optional Hashnode Pro upgrade for API publishing. |
+| **SaaSHub** | Still parked at hCaptcha (tab 3) — fields retained (`support@`, `lazynext`), one human checkbox click finishes it. |
+| **Microsoft MSA** | **BLOCKED server-side** — re-ran the full flow: `support@` → "recovery method for an existing account" → **username-recovery revealed 3 pre-existing MSAs bound to this email**: `te*****@outlook.in`, `re*****@outlook.com`, `pe*****@outlook.in` (none Lazynext-branded — likely older personal accounts sharing the recovery address; the `lazynextai@outlook.com` alias is still confirmed non-existent). Then "Create a Microsoft account" → email verify (`140849`) → DOB India Jan-1-1995 → name `Lazynext AI` → **"Account creation has been blocked — unusual activity detected"**. No press-and-hold offered — hard abuse-engine stop (repeated attempts + email already recovery-bound ×3). Needs a waiting period / different network+device, or sign-in to one of the existing accounts instead. |
+| **X posting** | Root cause confirmed earlier today: metered v2 calls `402 credits depleted` — app balance $0. Channel stays connected/healthy; publish revives the moment credits exist at console.x.com (tab 6). |
+| **Lemmy (tchncs)** | Registration **DENIED** by mods (inbox) — `lazynext` on tchncs.de is dead. Options: another instance or drop Lemmy; lemmy.ml already denied earlier. |
