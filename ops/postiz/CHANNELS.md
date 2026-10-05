@@ -558,6 +558,43 @@ exclusion removed after the DTO boot-patch (above); repeat fan-out via
   class as the wordpress pre-warm — `worker/src/services.ts` now GETs
   `listmonk-stack.dry-hall-6a50.workers.dev/` before dispatch for
   listmonk+wordpress targets. Retried E2E: PUBLISHED, campaign 3.
+
+## 2026-10-05 late — verification sweep round 2 (external accounts)
+
+- **Moltbook claim CONFIRMED live** — `/login` (owner email → magic link)
+  works for expired-link reissue; `moltbook.com/humans/dashboard` shows
+  agent `lazynextai` **Active** under owner `lazynext` (X @Lazynextai,
+  `support@lazynext.com`). The earlier "couldn't confirm" Postiz mail was
+  a pre-claim fan-out attempt, not a wiring fault.
+- **SaaSHub** — account `lazynext` verified via email link (was pending);
+  product `Lazynext Accessibility Checker` submitted at
+  `saashub.com/manage/lazynext-accessibility-checker` — status
+  "Pending approval" (mod queue, up to ~32d). Verified-badge step optional.
+- **AlternativeTo** — confirm-email link followed → "Your e-mail is
+  verified"; listing live.
+- **Medium** — `medium.com/@lazynext` is OURS and logged in (bio "The
+  autonomous AI company operating system"). Ticket `#1743333` moot —
+  Medium killed email tickets; portal-only now. Integration token still
+  the only blocker for a Postiz channel (awaiting medium.com reply).
+- **CodePen** — `codepen.io/lazynext` confirmed live + logged in (the
+  earlier 403 signup had landed anyway).
+- **StackShare** — account created via Google OAuth (`support@`).
+  "+ List a Tool" flow fully scripted (URL → logo → features) but the
+  final POST rejected `Bot access denied` — platform anti-automation;
+  human retry in the same dialog should pass.
+- **Poe** — account created: Google signup → +91 phone verify → name
+  `Lazynext`. Email `support@lazynext.com` primary.
+- **VK** — +91 web signup reaches "Install VK app" QR wall — non-Russian
+  numbers are app-gated now (same class as Warpcast). Deferred.
+- **Still hard-blocked**: npm (403 DataDome), Slashdot `/my/newuser`
+  (403), Reddit `/prefs/apps` (403), Linktree (SSL protocol error).
+- **X**: Postiz error mail read — bare "Unknown Error", consistent with
+  the 402 `credits depleted` root cause. Awaiting card-add → $20 free
+  credits (console.x.com → Billing → Add Payment Method, staged in
+  browser tab) before the real Postiz→X E2E retry.
+- **Microsoft**: `lazynextai@outlook.com` signup parked at PerimeterX
+  press-and-hold — user gesture pending (accessible challenge also
+  present). All prior steps done (email verified 097568, name, DOB).
 - **Listmonk delivery gap**: campaigns land on listmonk's hardcoded
   `messenger:"email"` = SMTP — which is **unconfigured** (Brevo SMTP
   keys are dashboard+device-OTP only, can't be minted via API; the
