@@ -1509,3 +1509,24 @@ unanswered as of 10-03. Replicate row corrected 10-02 (self-serve rename to
 | **Postiz→X attempt** | `POST /public/v1/posts` to integration `cmuvjsuft000109rlp2r1m20j` accepted (`cmuvr7776000009r4w8bcjm8b`, content "Lazynext social automation online…", `who_can_reply_post:everyone` — required field, omitting it 400s). Sat `QUEUE` ≥6min (worker tick lag), expected to flip `ERROR` on $0 credits like the 18:04 attempt `cmuvk7nhs`. **Resubmit once credits land** — single curl, same payload. |
 | **X profile** | re-verified complete: `x.com/lazynextai` — display `Lazynext`, bio, `lazynext.com`, Bengaluru India, avatar, Joined Oct 2026, 1 post (moltbook `wave-PNKC`). |
 | **Microsoft MSA** | tab 12 still parked at the PerimeterX "Let's prove you're human — press and hold" page (`signup.live.com/signup?lic=1`). Founder hold gesture is the remaining step (or self-create after cooldown per the server-side block note). |
+
+## 2026-10-06 (early AM) — inbox verification sweep + container rescues
+
+| Item | Result |
+|---|---|
+| **Postiz public-API auth** | re-verified: raw key in `Authorization:` (NO `Bearer` prefix — that 401s "Invalid API key"). `.env` `POSTIZ_API_KEY` returns **200 with all 20 integrations** incl. X `cmuvjsuft`. |
+| **Postiz account** | single user — **`support@lazynext.com`** (canonical email, name "Lazynext", SUPERADMIN/ULTIMATE). `POSTIZ_ADMIN_PASSWORD` works with support@ (founder@ was renamed, no duplicate). |
+| **SaaSHub email** | verified via inbox link → manage dashboard live. Listing itself `Pending approval` (up-to-32-day queue). `/verify` page 404s until approved. |
+| **Wellfound email** | verified — "Thanks for verifying your email." |
+| **Tumblr email** | verified — 5-day-old link still worked ("Now you're a real user."). |
+| **Disqus email** | verified — `?email_verified=1`. |
+| **Moltbook** | magic-link round-trip (request → Gmail → click inside 10min) → owner dashboard live: agent `lazynextai` **Active**, `@Lazynextai` bound, support@ email. Old claim emails were 10-min-expired re-requests, not new claims. |
+| **itch.io** | verify token consumed → "Invalid token / already verified" page. Login wall (CF challenge) — state presumed verified or needs resend in a real session. |
+| **BetaList** | login bounces (Devise confirmable) → password-reset sent BUT `identity/password_reset/edit` **500s server-side**. Account exists, unverified, their bug blocks recovery. |
+| **LinkedIn** | personal profile LIVE: `linkedin.com/in/lazynext-ai-141570441` ("Lazynext AI", Founder at Lazynext, Bengaluru). **Company Page blocked** — "not enough connections" (0-connection new account). `linkedin-page` channel stays parked. |
+| **Lemmy** | `discuss.tchncs.de` app **DENIED** (inbox 21:45) — 2nd denial after lemmy.ml. Probed 9 more instances: ALL `RequireApplication`+captcha. Ecosystem is application-gated; dropped. |
+| **Microsoft/MSA** | `support@` is a **recovery method** on an existing MSA, but NO login-visible account under support@/lazynext@/lazynextai@ — account is incomplete/unactivated. Username recovery **rate-limited until tomorrow**; fresh signup still needs founder press-and-hold. |
+| **listmonk container** | was **DOWN (502)** — `/__admin/restart-container` → API live again (`/api/lists` → Lazynext / Opt-in list / Default list). The 18:32 listmonk post error was this outage. |
+| **Postiz publish pipeline** | posts stalled QUEUE past schedule (X ~50min, test 4min) — Temporal wedged. `restart-container` → moltbook post **PUBLISHED** `moltbook.com/post/c5dab739-a42b-4d45-a203-b7e509e6dcd1` (first claimed-agent post E2E). X post `cmuvr7776` still QUEUE — will ERROR on $0 credits; resubmit after founder adds card ($20 grant live on /billing/credits). |
+| **Medium→Postiz** | dead end — Medium dropped self-serve integration tokens (no token UI on /me/settings/security). Channel can't connect. |
+| **13:02 ERROR batch** | devto (account quarantined), pinterest (Standard pending), hashnode + dribbble + listmonk (transient/limits) — none were pipeline bugs. |
