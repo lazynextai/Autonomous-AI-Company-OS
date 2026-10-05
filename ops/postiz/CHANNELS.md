@@ -253,12 +253,51 @@ user** creds, verified live against `/api/settings`).
   (`/api/integrations/social/*`, `/api/integrations/social-connect/*`)
   401 under the apiKey — they need the `auth` JWT cookie. Founder
   account is `support@lazynext.com` (canonical — migrated from
-  founder@, verified via `/api/user/self` 2026-10-04); the
-  `POSTIZ_ADMIN_PASSWORD` in `.env` is stale (login 400s) — the
-  persistent browser session cookie is the working auth path; rotate
-  the stored password when convenient. `RESEND_API_KEY` is NOT set on
-  `postiz-stack`, so `POST /api/auth/forgot` accepted but no reset
-  email can leave — SMTP wiring needed before password resets work.
+  founder@, verified via `/api/user/self` 2026-10-04).
+  **PASSWORD ROTATED 2026-10-05** — `POSTIZ_ADMIN_PASSWORD` in `.env`
+  now matches the live DB (`POST /api/auth/login` → `{"login":true}`,
+  verified across two full restore cycles). Rotation recipe: the
+  `POSTIZ_CMD` boot hook runs a SQL `UPDATE "User" SET password=…` —
+  **double shell-parse trap**: `POSTIZ_CMD` is embedded verbatim into
+  `/opt/postiz-run.sh`'s `sh -c "…"`, so `$`/quotes get expanded by
+  bash AND inside `psql -c "…"` `$2b`/`$10`/`$xy` are expanded again —
+  an unescaped bcrypt hash stores truncated garbage (`UPDATE 1` still
+  prints!). Bulletproof form: `POSTIZ_CMD` =
+  `echo <b64>|base64 -d>/tmp/fix.sh;bash /tmp/fix.sh;pnpm run pm2`
+  with fix.sh using a **quoted heredoc** (`<<'SQL'`) so `$` stays
+  literal; verify via a second heredoc SELECT piped to
+  `/data2/logs/dbhash.txt` → logship → `postiz-boot/logs-*.tgz`.
+  **Persistence trap**: `/data2` does NOT survive `restart-container`
+  — every boot restores `postiz-backup/latest.sql.gz`, so a password
+  UPDATE is lost unless a backup cycle (15 min) runs before the next
+  restart; the graceful-shutdown `trap backup TERM` does not fire on
+  hard destroy. **Current `POSTIZ_CMD` = KickDto `_lzfix` patch**
+  (idempotent `grep -q _lzfix` guard + `pnpm run pm2`) — keep it set
+  until a new image ships `ops/postiz/Dockerfile`'s RUN line; the
+  pinned `9de787c9` image predates it.
+  **RESEND EMAIL LIVE 2026-10-05** — `POST /api/auth/forgot` → real
+  "Reset your password" mail → delivered to support@lazynext.com.
+  Wiring: Resend account `Lazynext AI` (Google OAuth on support@),
+  API key `postiz-stack` (Sending access) → `RESEND_API_KEY` secret;
+  sender domain `updates.lazynext.com` verified (DKIM TXT
+  `resend._domainkey.updates`, CNAMEs `rsend.`/`send.` →
+  `*.forge.rmta.net` DNS-only, MX `updates` → inbound-smtp
+  ap-northeast-1 pri 10 — subdomain REQUIRED because the apex MX is
+  Google Workspace). **Selector trap**: `RESEND_API_KEY` alone does
+  nothing — Postiz's EmailService reads `process.env.EMAIL_PROVIDER`
+  (`'resend'`/`'nodemailer'`/default empty); without it the logs show
+  `Email service provider: no provider` and `/auth/forgot` still
+  returns `{"forgot":true}` while the orchestrator logs `No email
+  provider found` — always check Resend's /emails log for an actual
+  send. Secrets: `EMAIL_PROVIDER=resend`, `EMAIL_FROM_ADDRESS=
+  postiz@updates.lazynext.com`, `EMAIL_FROM_NAME=Postiz`; boot export
+  fallback also lives in the `POSTIZ_CMD` fix.sh (`export
+  EMAIL_PROVIDER=${EMAIL_PROVIDER:-resend}` — **sourced** with
+  `. /tmp/fix.sh`, not `bash`, or the export dies with the subshell).
+  API-key perms: Sending-only keys can't `GET /domains` (401
+  `restricted_api_key`) — scrape record values from the dashboard HTML
+  instead (full values live in `document.documentElement.innerHTML`,
+  `[…]` is DOM text, not CSS ellipsis).
 - **Public API note**: current postiz-app uses org-level `apiKey` +
   `PublicAuthMiddleware` on `@Controller('/public/v1')` — reached from
   outside as `{domain}/api/public/v1/*` (nginx strips `/api/`). The raw
@@ -1080,7 +1119,7 @@ unanswered as of 10-03. Replicate row corrected 10-02 (self-serve rename to
 | Item | Status |
 |---|---|
 | Postman | **canonical account + API key live** — recovered via password reset earlier (`.env` `POSTMAN_PASSWORD`); workspace `lazynextsupport`, username `lazynext`, name `Lazynext`, email support@. API key `Lazynext-Platform` generated at `settings/me/api-keys` and verified against `api.getpostman.com/me` → `lazynext` / `support@lazynext.com`; saved `.env` `POSTMAN_API_KEY`. Gotcha: the full key only appears in the post-generate reveal dialog (and once more in the settings modal's read-only input) — clicking Copy-to-Clipboard then `pbpaste` is the reliable capture path; the table row masks it (`…-XXXX`). |
-| Lemmy (lemmy.ml) | **application submitted, pending admin review** — signup at `lemmy.ml/signup` with `lazynext` / support@ / `.env` `LEMMY_PASSWORD`. lemmy.ml asks 4 screening questions (why join, how found + link, why username, copy a sentence from a linked Engels page + author) — all answered honestly; hidden honeypot `input[name="a_password"]` left empty (it is display:none — filling it flags bots). No captcha, no email verification sent yet (review queue). Other instances all gated: lemm.ee closed, programming.dev + lemmy.today application-only. Postiz `lemmy` fields: `service`/`identifier`/`password` — connect once approved. |
+| Lemmy | **lemmy.ml DENIED → tchncs pending admin approval** — lemmy.ml rejected the `lazynext` application (mail 2026-10-04 22:27). Re-registered `lazynext` on `discuss.tchncs.de` (same `.env` `LEMMY_USERNAME`/`LEMMY_PASSWORD`); email verify link clicked 2026-10-05 — `/api/v3/user/login` now returns `registration_application_is_pending` (creds good, admins still reviewing). `.env` `LEMMY_INSTANCE` updated to `discuss.tchncs.de`. Postiz `lemmy` fields: `service`/`identifier`/`password` — connect once approved. Other instances all gated: lemm.ee closed, programming.dev + lemmy.today application-only. |
 | dev.to channel | **functionally dead** — stored `DEVTO_API_KEY` 401s; orphan key revoked on the dashboard; re-mint is blocked (`POST /users/api_secrets` → dev.to's own 404 — key creation disabled instance-side while the form still renders; consistent with the account spam-quarantine). Channel row stays connected but publishes will ERROR until dev.to un-quarantines or re-enables key minting. |
 | Neynar / Farcaster | dev account live (support@, email-code 464051), app "Support's App" `ef48d016-…`, API key in `.env` `NEYNAR_API_KEY`. `wrapcast` still unconnectable — needs a Warpcast/Farcaster identity for `NEYNAR_APP_FID`+`NEYNAR_APP_MNEMONIC`+signer envs; Warpcast signup is mobile-app-only → user-gated. |
 | Moltbook | `lazynext` agent orphaned (no key-recovery endpoint) → fresh `lazynextai` agent registered, key in `.env` `MOLTBOOK_API_KEY`, Postiz connect accepted → `pending_claim`. Founder must visit `.env` `MOLTBOOK_CLAIM_URL` to activate posting. |

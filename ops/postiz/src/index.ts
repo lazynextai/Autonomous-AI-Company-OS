@@ -93,6 +93,7 @@ export class PostizStack2 extends Container {
           "NEYNAR_SECRET_KEY", "NEYNAR_SPONSOR_SIGNERS",
           "TELEGRAM_TOKEN",
           "RESEND_API_KEY", "EMAIL_FROM_ADDRESS", "EMAIL_FROM_NAME",
+          "EMAIL_PROVIDER",
           "OPENAI_API_KEY", "DEEPGRAM_API_KEY",
         ]
           .filter((k) => (env as unknown as Record<string, string | undefined>)[k])
