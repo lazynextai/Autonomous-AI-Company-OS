@@ -415,6 +415,71 @@ user** creds, verified live against `/api/settings`).
   QUEUE again after a secret-driven restart, just bounce the container
   once more — don't `?hard=1` unless boot is corrupt.
 
+## 2026-10-05 evening — Moltbook + Listmonk fix + Blogger/Medium/CodePen (19 channels)
+
+- **Moltbook CONNECTED (channel 19)** — the original `lazynext` agent key was
+  lost to the Oct-1 R2-restore race (see 2026-09-30 entry), so a NEW agent
+  `lazynextai` (id `e16d7b9f-6338-4714-9d60-3cf4c1fa0de4`) was registered
+  2026-10-04; key lives in `.env` `MOLTBOOK_API_KEY`. Connect differs from
+  every other customFields provider: **`code` = the raw apiKey, NOT base64
+  JSON** (`moltbook.provider.ts` does `const apiKey = params.code`). Flow:
+  `GET /api/integrations/social/moltbook` → `state`, then
+  `POST /api/integrations/social-connect/moltbook {state, code:<raw key>}`
+  → integration `cmuvdbobp000o09s3f52mgqri`. **Posting is 403
+  `pending_claim`** until the owner-claim finishes: step 1 email verify is
+  DONE (SendGrid click-link, no code field on the page); **step 2 requires
+  posting a verification tweet from an X account we own** — chained behind
+  X signup (phone/liveness). Step 3 is read-only X connect for detection.
+- **Listmonk FIXED + PUBLISHED (2026-10-05)** — prior `Invalid list IDs`
+  failures were a credential-scope bug, not list existence: the integration
+  held the **admin** basic-auth pair, which creates but cannot read lists
+  (permission-filtered `/lists` → every id rejected). Reconnected the SAME
+  integration in place (`cmuts6snz000109qwrnae3kgx`, no duplicate — upsert
+  on `internalId` = base64(url)) with the seeded **API user**
+  (`LISTMONK_API_USER`/`LISTMONK_API_TOKEN` in `.env`) which can read all
+  lists and create campaigns. E2E verified: `POST /public/v1/posts` →
+  PUBLISHED → listmonk campaign id 5. New list `3` "Lazynext product
+  updates" created; **platform default list flipped 1→3** in
+  `worker/src/services.ts` (`list: "3"`).
+- **Blogger created, standalone** — `lazynext.blogspot.com` (title/display
+  `Lazynext`, verified HTTP 200). **No Postiz blogger provider exists in
+  this build** — it stays a manual/standalone publishing surface.
+- **Medium account exists, NOT connectable yet** — `@lazynext` via Google
+  OAuth, canonical (`support@lazynext.com`, name `Lazynext`). Postiz's
+  medium provider needs an **integration token** (`apiKey` customField →
+  `Bearer` on `api.medium.com/v1/me`) — Medium removed self-serve token
+  issuance from settings (verified: no "Integration tokens" section for
+  this account). Token request emailed to `yourfriends@medium.com`
+  2026-10-05 via Workspace SMTP — awaiting response.
+- **CodePen account created** — Google OAuth on `support@lazynext.com`,
+  auto-username `Lazynext-AI` normalized to **`lazynext`**
+  (`codepen.io/lazynext` → 200). Standalone dev-presence site, no Postiz
+  provider.
+- **Browser-fingerprint vs curl**: CodePen / AlternativeTo / StackShare /
+  OpenHub return 403 to curl but load fine in the managed browser —
+  egress-blocked verdicts were UA/fingerprint blocks, not IP bans. True
+  hard blocks remaining: **npm** (DataDome interstitial detects CDP),
+  **Slashdot** `/my/newuser` (403 even in browser), **Linktree**
+  (`ERR_SSL_PROTOCOL_ERROR` — ISP/TLS level).
+- **OpenHub deliberately skipped** — signup ToS: "accounts created to
+  represent a company will be disabled … advertising/link-generation/SEO"
+  — company account would violate it.
+- **Human-gated items staged in the managed browser** (fill done, gesture
+  pending): Microsoft signup PerimeterX press-and-hold; SaaSHub register
+  (hCaptcha); AlternativeTo register (hCaptcha); LinkedIn signup
+  (email+password submitted, **Security verification** checkpoint);
+  Hashnode Pro Stripe Checkout ($5/mo — API publishing is Pro-gated;
+  publication `6ac1180493383ddaacaa87b6` confirmed owned by this account,
+  Free plan today).
+- **SECURITY NOTE — Moltbook key in logs**: the orchestrator logs axios
+  request headers on failure → `MOLTBOOK_API_KEY` (and any Bearer secrets)
+  land in plaintext in `/data2/logs/postiz.log` → shipped to R2
+  `postiz-boot/logs-*.tgz`. Rotate the key after claiming, and/or patch
+  axios-error redaction upstream.
+- **X handle recon**: `x.com/lazynext` is a squatter's account (200);
+  `lazynextai` + `lazynext_ai` return 404 (available when the founder does
+  the phone/liveness signup).
+
 ## 2026-10-04 — full platform-path fan-out E2E (14 posts, 10 published)
 
 Fan-out through `POST /api/v1/services/postiz` on the platform worker

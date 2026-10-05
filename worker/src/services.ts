@@ -1643,7 +1643,7 @@ async function callConnector(
                 ...(provider === "pinterest" ? { board: "1152288323350959323" } : {}),
                 // ListmonkDto requires subject/preview/list — default to the
                 // Default list (id 1); subject doubles as campaign title.
-                ...(provider === "listmonk" ? { subject: title, preview: title, list: "1" } : {}),
+                ...(provider === "listmonk" ? { subject: title, preview: title, list: "3" } : {}),
               },
             };
           }),
