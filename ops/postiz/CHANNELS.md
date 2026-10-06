@@ -1635,7 +1635,7 @@ was updated (values never printed; variable names only).
 | Minds | `MINDS_PASSWORD` | **ROTATED** — email-2FA code flow, logout/login with new password verified. |
 | Dribbble | `DRIBBBLE_PASSWORD` | **ROTATED** — change → forced re-auth + email code (`831352`), new-password login verified. |
 | Dailymotion | `DAILYMOTION_PASSWORD` | **ROTATED** — partner-studio `Edit password`; first write pasted a `\n`-embedded value (stored with a space → `.env` line split), re-rotated to clean value, fresh login verified, `.env` repaired. |
-| Moltbook | `MOLTBOOK_API_KEY` | **ROTATED + Postiz token refreshed** — owner dashboard (`/humans/dashboard`, magic-link login via `support@` + verified X `@Lazynextai`) → "Refresh API Key". Old key dead immediately; new `moltbook_sk_…` verified `GET /agents/me` → `lazynextai`. Postiz token updated via `GET /api/integrations/social/moltbook` → `POST /api/integrations/social-connect/moltbook {state, code:<key>, timezone:"UTC"}` → upserted the SAME integration `cmuvdbobp000o09s3f52mgqri` (no duplicate). Verification post `cmuwlxb0z000209s2m3xaffte` QUEUEd to `submolt:general`. |
+| Moltbook | `MOLTBOOK_API_KEY` | **OWNER-ROTATED + installed** (final state 2026-10-06 14:15 UTC) — founder refreshed the key in the owner dashboard again after my rotation; the new value is installed in `.env` + Postiz token refreshed in place: `GET /api/integrations/social/moltbook` (session cookie, returns `{"url": <state>}` — customFields providers return the state under `url`, not `state`) → `POST /api/integrations/social-connect/moltbook {state, code:<raw key>, timezone:"UTC"}` → upserted the SAME integration `cmuvdbobp000o09s3f52mgqri`, `updatedAt` bumped, `refreshNeeded:false`, no duplicate. New key verified `GET /agents/me` → `lazynextai`, `is_claimed:true`. Verification post `cmuwlxb0z000209s2m3xaffte` → **PUBLISHED** `moltbook.com/post/a6672c95-efca-4f34-b3ab-ab424ef11127` (fires next slot after queue). |
 
 Rotation hygiene notes:
 - Postiz 502 window ~11:33–17:09 UTC this session — soft
@@ -1647,3 +1647,30 @@ Rotation hygiene notes:
   generation now strips `\n` before append.
 - Moltbook owner account: `lazynext` / `support@lazynext.com` / X `@Lazynextai`
   — self-serve key refresh lives there (no public API rotate endpoint).
+
+## 2026-10-06 (late PM) — X handle verdict + Microsoft account truth
+
+- **X: `lazynext` NOT available** — fxtwitter probe: `x.com/lazynext` resolves
+  to a stranger's account ("Simplyguys", 17 followers); no rename performed.
+  Canonical handle stays **`@Lazynextai`** (display name Lazynext, bio + site
+  set, X dev app OAuth1 `Read+Write` with Postiz callback, Postiz `x` channel
+  connected integration `cmuvjsuft000109rlp2r1m20j`). Posting through the API
+  remains credit-gated (app is Pay-Per-Use, $0 balance — X removed the free
+  tier; per founder policy no card is added, so X posts stay queued).
+- **Microsoft: account was never fully created (founder is correct), BUT**
+  `support@lazynext.com` is registered as a *recovery method* on an existing
+  MSA (Microsoft's own words on the signup form) — one of the aborted signup
+  windows registered far enough to bind the recovery email before closing.
+  Username unknown. `lazynextai@outlook.com` does not exist (signup flow
+  showed it as available while inventing it Oct-5).
+  - Username-recovery codes are being **silently rate-limited**: last delivery
+    Oct-5 13:23 PDT (`097568`, now stale/rejected); two fresh recovery clicks
+    on Oct-6 produced no mail in inbox/spam. Rule: stop hammering, retry in
+    ~24h; then recover username → either adopt that account (if it is
+    effectively ours) or leave it orphaned and create `lazynextai@outlook.com`
+    fresh (the fallback alias — `lazynext@outlook.com` is squatted).
+  - When signup resumes, the Arkose **press-and-hold** is the last block —
+    four automated holds already failed; founder holds the button in the staged
+    tab. No payment is involved anywhere in the Microsoft/Azure flow.
+- **Health**: Postiz 20/20 integrations enabled; blog/checker/api all 200; all
+  secrets staged in `.env` only; `ops/postiz/CHANNELS.md` is the single ledger.
