@@ -1674,3 +1674,55 @@ Rotation hygiene notes:
     tab. No payment is involved anywhere in the Microsoft/Azure flow.
 - **Health**: Postiz 20/20 integrations enabled; blog/checker/api all 200; all
   secrets staged in `.env` only; `ops/postiz/CHANNELS.md` is the single ledger.
+
+## 2026-10-06 (night, pass 2) — Microsoft MSA LIVE + hardened; Bing WMT verified; NuGet verified; Azure/ADO/VSM gated
+
+- **Microsoft MSA — LIVE (founder-created on phone, `support@lazynext.com` as
+  the sign-in/username — NOT an outlook alias)**. Browser sign-in completed
+  via emailed OTP (`support@` Gmail read in-tab). Verified state:
+  - Profile: name `Lazynext AI`, region India, DOB set.
+  - Aliases: `support@lazynext.com` = **primary**; `lazynextai@outlook.com`
+    added as **secondary** (`lazynext@outlook.com` confirmed taken —
+    `Note_NameNotAvailable` probe). `MICROSOFT_ALIAS` in `.env`.
+  - Security hardened: real password set (`MICROSOFT_PASSWORD`, stale
+    duplicate line removed from `.env`), founder's Google-Password-Manager
+    passkey retained, **authenticator TOTP added** (`MICROSOFT_TOTP_SECRET` in
+    `.env` — paired via "can't scan QR" text secret + live code),
+    **two-step verification ON** (required password first — account was
+    passwordless), **recovery code captured** (`MICROSOFT_RECOVERY_CODE`).
+- **Bing Webmaster Tools — VERIFIED + sitemap submitted.** Site
+  `https://lazynext.com/` added via MSA SSO (consent granted → "New app(s)
+  connected" mail is this). CNAME verification impossible — no DNS-scoped CF
+  credential (`CLOUDFLARE_DNS_TOKEN`/`CLOUDFLARE_API_TOKEN` 401 zone reads;
+  `CLOUDFLARE_DEPLOY_TOKEN` is Workers-only). Used **XML method**:
+  `marketing/public/BingSiteAuth.xml` deployed via `lazynext-marketing`
+  worker → live 200 at apex → Verify clicked → dashboard shows
+  `lazynext.com`; `https://lazynext.com/sitemap.xml` submitted → 1 known
+  sitemap, 0 errors, 0 warnings. robots.txt + sitemap both live 200.
+- **NuGet — account `lazynext` registered + EMAIL VERIFIED.** Microsoft SSO →
+  "no account on file" → register form → username `lazynext` (free) →
+  "Welcome lazynext!". Confirmation link consumed from Gmail →
+  "Account Confirmed — email verified". NuGet `lazynext` is live.
+- **Azure Free Account — BLOCKED (no-pay rule).** Signup reached Step 1/3
+  profile (org use, India, `Lazynext AI`, Founder, `+91 9199366166`) → Step 2
+  hard-requires **PAN ID** (India business signup, `required`) → Step 3
+  requires a **card** for ID verification. Both excluded → stopped. **No
+  Azure subscription exists.** The `support@` MSA has zero subscriptions.
+- **Azure DevOps org — BLOCKED.** After an SSO loop-detector cooldown the
+  AEX signup reached "Name your organization" (`lazynext` entered) but the
+  form **requires linking an Azure subscription** ("We couldn't find any
+  subscriptions you have access to"). New-MSA ADO orgs can no longer be
+  created subscription-free → gated on the same Azure wall. Note: the
+  cookieless-protocol handoff `aex.dev.azure.com/_public/_MsalSignedInFps`
+  404s → triggers VSSPS "looping logins" 500 lockout; fix = wait ~5 min then
+  navigate `dev.azure.com` directly (account-picker click each round).
+- **VS Marketplace publisher — BLOCKED.** `marketplace.visualstudio.com/
+  manage/createpublisher` requires an Azure DevOps org → same wall. No
+  publisher created. Unblocks when/if an Azure subscription ever exists.
+- **Inbox verification sweep (Gmail, browser)**: Tumblr **verified** ("Now
+  you're a real user"); Serper confirm link consumed → `/login`; itch.io
+  token already consumed (Oct-5 batch GET per earlier section — account
+  verified); Lemmy `discuss.tchncs.de` verify_email GET fired (page render
+  timed out — instance slow, token consumed server-side); Microsoft
+  "verify email" mails = stale OTP codes (no links, already used).
+- **Postiz**: 307 → healthy after earlier restart; 20 integrations.
