@@ -1978,3 +1978,19 @@ Rotation hygiene notes:
   probed against the live account (fresh-account lockout risk; every
   downstream MS surface is either payment-gated (Azure PAN/card/OTP)
   or has no product to publish (NuGet/VS Marketplace/Edge Add-ons).
+- **Postiz→listmonk→Brevo E2E VERIFIED (19:50 UTC).** Scheduled post
+  `cmux39w7v` → campaign 8 `lazynext-ops-listmonk-chain-live`
+  (to_send 1 / sent 1 / finished) → Brevo `delivered` → Gmail inbox.
+  Gotchas proven: (a) campaigns to a list with **no subscribers finish
+  with sent=0 silently** — sub id 3 (support@) was created with
+  `lists:[]`; `PUT /api/subscribers/lists` `{action:add,
+  target_list_ids:[2], status:confirmed}` fixed membership; (b)
+  Postiz scheduler DOES catch up on missed fire times after a
+  container restart (19:35 post fired at 19:41 post-restart); (c)
+  the 19:4x app wedge 502'd public traffic while the R2 heartbeat
+  still fired — heartbeat proves container OS, not app health.
+- **Residual mail IDs resolved**: LiveJournal `lazynext.livejournal.com`
+  → 200 live (password-change mails = earlier session's own reset);
+  Minds `minds.com/lazynext` → channel API returns guid
+  1954151644492996608 (signup + codes consumed earlier); Unsplash
+  confirm-token reconsume → 401 (already confirmed, expected).
