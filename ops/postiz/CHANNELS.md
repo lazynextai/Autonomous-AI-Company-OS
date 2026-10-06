@@ -1897,6 +1897,18 @@ Rotation hygiene notes:
   (curl transient); verbose retry serves real WordPress HTML. Bound to
   worker `wordpress-blog` (exists; workers.dev 404s `/` by design — it
   serves the custom hostname only). Not a stale-522 case.
-- **Azure — payment-gated, staged only.** Signup still requires a
-  card/PAN at the review step; no free path. Tab left open for the
-  founder's decision; skipped under the no-pay rule.
+- **Azure — payment-gated, fully staged (2026-10-06).** Reopened the
+  signup under `support@lazynext.com` and completed Step 1: org-use,
+  India, Lazynext/AI, org `Lazynext`, job `Founder`, notification
+  email `support@lazynext.com`, phone `9199366166`, state `Karnataka`.
+  Remaining fields are founder-only data (PAN ID — personal tax
+  number — and optional GST ID), then Step 2 phone SMS OTP (founder's
+  device) and Step 3 card verification. No free path past PAN/card.
+- **GMB — video confirmed as the only method (2026-10-06).** Drove the
+  live verify flow via the email link under the `support@` Google
+  session: "Is this your business?" → "None of these" (correct — the
+  Aspire Coworks/Bizzhub suggestions are neighbouring tenants, not our
+  listing) → method picker offers **only** "Submit a business video";
+  "More options" reveals just "Verify Later". The email's phone/text/
+  email list was generic boilerplate — Google decides eligibility per
+  listing. Still needs the founder's office video.
