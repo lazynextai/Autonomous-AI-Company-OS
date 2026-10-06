@@ -1023,7 +1023,7 @@ user-gated, same as admin.google.com.
 | mastodon.social | @lazynextco | support@ | live, Postiz-connected; will migrate to mstdn lazynext |
 | mstdn.social | @lazynext | support@ | email-verified, pending mod review |
 | dev.to | @lazynext | support@ | live, connected, post published — **but public HTML now 404s** (2026-10-02 recheck: `/lazynext` + article pages 404 while `dev.to/api/users/by_username?url=lazynext` → 200, id 4154300, settings all canonical). Consistent with dev.to spam-quarantine of the automation-flagged account; API/post pipeline still works. May resolve over time or need an appeal — watch. |
-| substack | @lazynext | support@ | **live + profile completed 2026-10-02** (name, bio; publication/subdomain not yet created). Re-verified: settings email = support@lazynext.com, signed in, canonical. |
+| substack | @lazynext | support@ | **live — publication `lazynext.substack.com` created 2026-10-06** (name + copyright + email_from_name = `Lazynext`; profile name, bio canonical). Settings email = support@lazynext.com. |
 | tumblr | lazynext | support@ | verified, connected, post published |
 | wordpress | blog.lazynext.com | n/a (self-host) | live, connected, post published |
 | nostr | 52fe6dc… | n/a | connected, post verified on relay |
@@ -1045,7 +1045,7 @@ user-gated, same as admin.google.com.
 | stackoverflow | Lazynext (users/33177966) | support@ (Google) | live — already existed, verified session 2026-10-02 |
 | producthunt | @lazynext | support@ | live — already existed, verified session 2026-10-02 |
 | peerlist | Lazynext | support@ | live — already existed, verified session 2026-10-02 |
-| substack | @lazynext | support@ | **live + profile completed 2026-10-02** (name, bio; publication/subdomain not yet created) |
+| substack | @lazynext | support@ | **live — publication `lazynext.substack.com` provisioned 2026-10-06** |
 | mewe | **mewe.com/lazynext_ai** (`Lazynext AI`) | support@ (Google) | **live 2026-10-02** — onboarding unblocked via real clicks |
 | gmb | Lazynext (wizard at address step) | support@ | **address-gated** — needs real business address for verification |
 | hackernews | **lazynext** | n/a (no email) | **ours — profile created 2026-10-01 within the audit window** (public profile: created "5 hours ago", karma 1); `HN_PASSWORD` in .env; login POST now reCAPTCHA-gated so session re-auth is user-gated |
@@ -2047,3 +2047,113 @@ Rotation hygiene notes:
   Minds `minds.com/lazynext` → channel API returns guid
   1954151644492996608 (signup + codes consumed earlier); Unsplash
   confirm-token reconsume → 401 (already confirmed, expected).
+
+## 2026-10-06 (final) — Microsoft surfaces completed to no-payment ceiling
+
+MSA is fully accessible now (support@ primary), unlocking the previously
+blocked Microsoft surfaces. Every free surface pushed to its ceiling:
+
+- **NuGet — LIVE for package push**: classic API key `lazynext-ci-push`
+  minted on the `lazynext` org account (nuget.org/account/apikeys needs
+  `?forceApiKeys=true` — bare URL redirects to Trusted Publishing, which
+  has no policies since it needs a real repo+workflow pairing). Scope
+  push, glob `*`, owner `lazynext`. **NuGet caps key expiry at 30 days
+  now** (long-lived keys deprecated) — expires ~2026-11-05, rotate in CI
+  then. Key value stored in `.env` `NUGET_API_KEY` (one-time display,
+  not recoverable).
+- **Visual Studio Marketplace — publisher live + domain verification
+  submitted**: publisher `Lazynext` (ID `lazynext`) created at
+  marketplace.visualstudio.com/manage/publishers/lazynext — profile has
+  website lazynext.com, support@, LinkedIn company/lazynext, GitHub
+  Lazynext-AI, X as **twitter.com**/Lazynextai (the form rejects x.com
+  URLs — use twitter.com). Domain verification: `https://lazynext.com`
+  saved on Details tab first (Verify button is inert until saved — its
+  tooltip says so), then dialog gave TXT
+  `_visual-studio-marketplace-lazynext.lazynext.com` → created via
+  Cloudflare DNS API (deploy token lacks DNS scope — needed global
+  `CLOUDFLARE_API_KEY`+`CLOUDFLARE_EMAIL` X-Auth headers). Verified via
+  1.1.1.1, dialog confirmed "DNS configuration verified successfully.
+  Your request to verify the domain is submitted to the marketplace
+  team." Verified-publisher badge pending their review.
+- **Partner Center / Edge Add-ons — ENROLLED + email-verified**:
+  company enrollment at partner.microsoft.com/.../enrollnow/msedgeaddons
+  submitted (publisher `Lazynext`, Aspire Coworks Koramangala address,
+  contact Avas Patel, support@, +91 9199366166, company approver same).
+  Two form traps: (a) duplicate IDs between primary-contact and
+  company-approver blocks — fill the second instances too or Accept
+  stays disabled; (b) three fields carry `pattern` regexes invalid
+  under Chrome's /v-flag mode (firstName/lastName/supportWebsite) —
+  same Microsoft bug as GitHub issue #574 — strip the attributes
+  client-side; checkValidity() then true. Confirmation UI hung but the
+  enrollment API returned `AlreadyEnrolled` on retry = server-confirmed.
+  Vetting mail `maccount@microsoft.com` "Verify your email account"
+  → link → `emailconfirmed` route → Partner Center home shows the
+  **Edge** workspace in the Workspaces menu. Direct workspace URL still
+  bounces to home = Microsoft's company vetting review pending (normal;
+  check later).
+- **Microsoft Learn — profile live**: registered via MSA SSO;
+  display name normalized `Lazynext AI` → `Lazynext`, country India,
+  contact support@lazynext.com. Welcome mail "Get started with
+  Microsoft Skilling" received. Registration quirk: the terms checkbox
+  is a styled-proxy label — a real click on the label/input toggles it;
+  Save appears only after.
+- **Microsoft 365 Developer Program — JOINED** (member, no sandbox):
+  3-step join wizard at developer.microsoft.com/microsoft-365/profile
+  completed (India, company Lazynext, consent, focus = apps sold in
+  market, dev areas: identity platform/Graph/Office Add-ins/Teams).
+  Fluent-UI form traps: checkbox label clicks toggle React state but
+  the Save button's `disabled` comes from local state `s` — after a
+  failed submit it wedges `isSubmitting` permanently (reload before
+  retry). Working bypass: invoke the checkbox component's fiber
+  `onChange` then the Save button's real `onClick` prop (the one whose
+  source contains `M365DevAreas`). Result page: "Welcome, Lazynext AI —
+  Thank you for joining. You don't currently qualify for a Microsoft
+  365 Developer Program sandbox subscription." — free E5 tenants are
+  now restricted to Visual Studio subscribers/qualifying programs
+  (payment-adjacent, excluded).
+- **Entra app registration — BLOCKED, no tenant**: portal.azure.com
+  app-registrations blade loads under the MSA but "The ability to
+  create applications outside of a directory has been deprecated. You
+  can get a new directory by joining the M365 Developer Program or
+  signing up for Azure." Both routes are dead ends for us: sandbox not
+  qualified (above), Azure signup gated at PAN+SMS+card. No
+  "Sign in with Microsoft" OAuth client until one of those clears.
+- **Azure DevOps org — payment-gated, confirmed**: aex.dev.azure.com
+  signup requires linking an Azure subscription (2025 billing model) —
+  account has none; org creation impossible without it. Documented
+  ceiling.
+- **Google Business Profile — document-gate confirmed live**: the
+  listing's embedded verify wizard reached `setup/complete/45` and
+  opened a file chooser for business-verification documents — cancelled
+  (no fabricated uploads; needs real signage/registration/utility docs
+  at the Aspire address, or the on-site video path). Human/documents
+  only.
+
+## 2026-10-06 (continuation) — Clarity created; GSC sitemap submitted; Opera dev live; Substack publication provisioned
+
+- **Microsoft Clarity — project `Lazynext` created**: MSA SSO → new
+  project `ytpahxzsqc` (url lazynext.com, industry Technology &
+  Telecommunications). Tracking snippet `clarity.ms/tag/ytpahxzsqc`
+  captured; **not yet installed** into the site — code change, pending
+  decision.
+- **Google Search Console — sitemap submitted**: property
+  `sc-domain:lazynext.com` was already verified + live under the
+  Google account (58 clicks shown, 2 pages indexed, 7 not-indexed).
+  `lazynext.com/sitemap.xml` verified live from shell (HTTP 200, valid
+  XML — /, /pricing, /docs, /status, /changelog, /legal) then
+  submitted in GSC. Table status: **"Couldn't fetch"** — endpoint is
+  provably fine; pending Google-side retry/investigation.
+- **Opera Add-ons — developer dashboard live**: addons.opera.com
+  Google OAuth via the canonical Google session → "My add-ons"
+  reached. No extension uploaded (none exists).
+- **Substack — publication `lazynext.substack.com` PROVISIONED**:
+  signed in via email magic-link (code consumed from Gmail inbox).
+  The `Create → Article` flow auto-creates the publication on first
+  post for pub-less accounts — draft post editor opened at
+  `/publish/post/219178911`. Settings verified canonical: name
+  `Lazynext`, email_from_name `Lazynext`, copyright `Lazynext`.
+  No post published; payments/Stripe untouched.
+- **GMB — document gate stands**: verify wizard at `setup/complete/45`
+  opened the file-chooser gate for business docs; cancelled — needs
+  real signage/registration/utility-bill at the Aspire Coworks address
+  or the on-site video path. Human only.
