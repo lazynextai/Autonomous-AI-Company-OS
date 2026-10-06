@@ -1912,3 +1912,69 @@ Rotation hygiene notes:
   "More options" reveals just "Verify Later". The email's phone/text/
   email list was generic boilerplate — Google decides eligibility per
   listing. Still needs the founder's office video.
+
+## 2026-10-06 (pass 4) — Brevo SMTP live → listmonk delivers E2E; GMB duplicate flag discovered; provider states re-verified
+
+- **listmonk SMTP — FIXED + E2E VERIFIED.** Brevo dashboard access
+  recovered via support@ password reset (`BREVO_PASSWORD` in `.env`).
+  Generated a scoped SMTP key (`BREVO_SMTP_*` in `.env`; login
+  `bac008001@smtp-brevo.com`, relay `smtp-relay.brevo.com:587`, key
+  name `listmonk`, 1y expiry). Pushed into listmonk via
+  `PUT /api/settings` (`smtp` array; `auth_protocol:'login'`,
+  `tls_type:'starttls'` — lowercase values, correct shape is the flat
+  smtp object + `email` field on `POST /api/settings/smtp/test`, which
+  returns the app's own recent log buffer). First attempt 535'd —
+  **an older `email-brevo` entry carried a stale password**; rewriting
+  the entry with the fresh key fixed it. Diagnostic chain:
+  `/api/tx` → `data:true` is enqueue-only; real outcome is in
+  `manager.go` log lines via the test endpoint, and in Brevo's
+  `GET /v3/smtp/statistics/events`. `app.from_email` set to
+  `Lazynext <support@lazynext.com>` — the only verified Brevo sender
+  (`GET /v3/senders`); any other @lazynext.com from-address will be
+  rejected until added as a sender. Verified: test-connection mail +
+  real tx mail both `delivered` in Brevo events AND present in the
+  Gmail inbox. Postiz→listmonk campaign path queued via
+  `POST /public/v1/posts` (settings need `subject`+`preview`, `list`
+  id 2 = public opt-in list).
+- **GMB — duplicate flag + support dead end (both founder-blocking).**
+  Business Profile Manager shows our listing
+  (`17257582153246721852` / n-id `1367714245259080808`) as **Duplicate**
+  of `Aspire Coworks - Koramangala` (the coworking space's own listing
+  at the same address — Google collapsed ours into theirs). The
+  verification flow still offers video-only. The free support form
+  (`support.google.com/business/gethelp`) accepts the description but
+  the backend returns "Something went wrong" + "our support
+  specialists won't be able to help" — Google does not offer free
+  ticket support for duplicate/verification disputes. **Founder fix**:
+  record the office video showing *Lazynext-distinct* evidence (own
+  signage/branding, work area, equipment — NOT generic coworking
+  branding) so the review differentiates us from Aspire Coworks. If
+  review still merges us, alternative = switch listing to a
+  service-area business (hide address) which removes the
+  address-collision dedupe.
+- **dev.to — mint route still dead.** `/settings/extensions` renders
+  the API-key form again (it previously didn't), but `POST
+  /users/api_secrets` still 404s — UI is vestigial, backend route
+  remains removed. Our appeal mail to `yo@dev.to`
+  ("API key creation disabled on @lazynext — request to restore")
+  was **opened 2026-10-06 18:46** (Brevo event log) — awaiting reply.
+  Postiz `devto` integration stays `refreshNeeded=true`.
+- **Pinterest — Standard upgrade still pending** (verified live on
+  developers.pinterest.com: "Upgrade to Standard access pending").
+  Provider-side review; nothing to submit.
+- **npm — still fingerprint-403** on `/signup` from the automation
+  browser (unchanged DataDome edge verdict). Manual signup remains the
+  founder path (~2 min); GitHub Releases covers SDK distribution.
+- **Lemmy dbzer0 — still `registration_application_is_pending`**
+  (login probe 400). Admin review queue; nothing to do.
+- **Health sweep 19:0x UTC**: postiz 307 ✓ · listmonk 200 ✓ ·
+  checker 200 ✓ · api/health 200 ✓ · ai-company/health 401 (by
+  design) ✓ · blog 000→200 (cold-start blip, self-heals).
+- **Moltbook — confirmed publishing** ("Your post has been published
+  on Moltbook" 15:13 UTC) — the claimed channel posts end-to-end.
+- **MSA — founder-provisioned on phone** (account-protection mails
+  08:06–08:37 confirm creation + "New app(s) connected"). Stored
+  `.env` MICROSOFT_* creds are from the earlier staged signup — not
+  probed against the live account (fresh-account lockout risk; every
+  downstream MS surface is either payment-gated (Azure PAN/card/OTP)
+  or has no product to publish (NuGet/VS Marketplace/Edge Add-ons).
