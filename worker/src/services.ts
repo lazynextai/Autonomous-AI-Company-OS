@@ -1644,6 +1644,10 @@ async function callConnector(
                 // ListmonkDto requires subject/preview/list — default to the
                 // Default list (id 1); subject doubles as campaign title.
                 ...(provider === "listmonk" ? { subject: title, preview: title, list: "3" } : {}),
+                // LemmyDto reuses the reddit shape — subreddit[].value needs
+                // id (community id string) + subreddit (name) + title.
+                // Default: !lazynext@lemmy.cafe (community id 1163261).
+                ...(provider === "lemmy" ? { subreddit: [{ value: { id: "1163261", subreddit: "lazynext", title }, label: "lazynext" }] } : {}),
               },
             };
           }),
