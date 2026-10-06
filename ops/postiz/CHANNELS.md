@@ -873,6 +873,78 @@ Canonical identity: email `support@lazynext.com`, handle `lazynext` (or
   Account → Move or migrate), delete `@lazynextco`, reconnect Postiz with a
   fresh mstdn OAuth app. Result: ONE account, canonical `lazynext`.
 
+## 2026-10-06 — Postiz usability verification + browser-tab audit
+
+**Postiz chain re-verified end-to-end (minus a real publish):**
+
+- **Cold-start 502 → self-recovered**: `postiz.lazynext.com` 502'd for ~1min
+  while the CF container booted (R2 heartbeat `postiz-boot/heartbeat-*`
+  confirmed the boot); then `/` → 307 → `/auth` 200. Expect a one-shot 502
+  window on any request that follows a long idle — retry, don't restart.
+- **API key VALID** — `GET /api/public/v1/integrations` with
+  `Authorization: $POSTIZ_API_KEY` → 200, 20 connected channels. The
+  `{"msg":"Invalid API key"}` scare was the documented `Bearer`-prefix trap
+  again — raw key only.
+- **`conn:postiz` KV verified** = `<key>|*|https://postiz.lazynext.com/api`
+  — sha-matches `.env` `POSTIZ_API_KEY`, `*` fan-out, correct base path
+  (nginx strips `/api/` → `public/v1/*`).
+- **Admin session live** — `support@lazynext.com` (UI org "Lazynext";
+  `/auth` auto-redirects to `/launches` when a session cookie exists).
+- **Catalog snapshot: 35 providers, 20 connected, 15 unconnected** —
+  unconnected are all externally gated: `facebook`/`instagram`/
+  `instagram-standalone`/`threads` (Meta app review), `linkedin`/
+  `linkedin-page` (signup security-checkpoint pending), `reddit` (dev-app
+  registration silent-drop/bot-gate), `tiktok`/`tiktok-business` (publish
+  scopes need approval), `gmb` (Business Profile API OAuth quota +
+  listing video-verification pending), `medium` (self-serve tokens killed;
+  request emailed, awaiting reply), `lemmy` (application pending review at
+  lemmy.dbzer0.com), `mewe` (OAuth app approval), `vk` (app-gated non-RU
+  numbers), `wrapcast` (Neynar app + Warpcast phone gate).
+- **Connected (20)**: wordpress, bluesky, slack, mastodon, hashnode, nostr,
+  dribbble, pinterest, tumblr, skool, devto, telegram, youtube, discord,
+  whop, kick, twitch, listmonk, x, moltbook.
+- **Known publish-gated among connected**: `x` (Pay-Per-Use credits
+  depleted — 402), `pinterest` (Trial→Standard upgrade pending),
+  `hashnode` (Pro plan required), `devto` (stored key dead, re-mint
+  quarantined), `listmonk` (campaigns queue but SMTP unconfigured — needs
+  a Brevo SMTP key minted by the founder).
+
+**Browser-tab audit + account-state findings (direct evidence, not inference):**
+
+- **Microsoft — RESOLVED, no duplicate exists**: signed into
+  account.microsoft.com as `support@lazynext.com`, display `Lazynext AI`.
+  `lazynextai@outlook.com` is an **auto-generated alias on the SAME
+  account** (profile page lists both) — one account, canonical primary
+  already correct. **Azure free-account signup staged at Step 2/3**
+  (address form, Karnataka prefilled); Step 3 is card+PAN identity
+  verification → payment-gated, skipped per no-pay policy.
+- **Alibaba Cloud — account ALREADY EXISTS under `support@lazynext.com`**:
+  re-registration returned "An account already exists with this email"
+  (a prior session completed it — no duplicate allowed per policy).
+  `.env` `ALIBABA_PASSWORD` fails login ("account name or password is
+  incorrect") → password reset page left staged with email pre-filled;
+  image captcha + reset mail click are the founder's step.
+  **Field-fill traps**: form lives in nested
+  `passport.alibabacloud.com/register/enter_fill_email.htm` iframe; the
+  password-rules tooltip intercepts pointer clicks → use `focus()` +
+  `Meta+V` clipboard paste, not `click()`. Password policy is **8–20
+  chars** — a naive `grep|cut` of `.env` pasted the whole
+  `ALIBABA_PASSWORD=` line (37c) → "Invalid password". OS-level keystrokes
+  (osascript) never land in the iframe — Playwright DOM only.
+- **Serper — account exists, credits exhausted**: `SERPER_API_KEY`
+  authenticates (400 `Not enough credits`, not 401). Refill is
+  payment-gated → skipped; `worker/src/websearch.ts` cascade
+  (searxng→bing→brave→ddg→ddg-instant) already absorbs it — agent web
+  search unaffected.
+- **Stale verify tabs consumed + closed**: NuGet "Your email address has
+  already been confirmed" (account `lazynext`); itch.io token consumed
+  (already verified, logged in as `lazynext`); Tumblr "Congratulations!
+  Now you're a real user" (verified). Serper login tab closed; Microsoft
+  profile tab closed after evidence capture.
+- **Remaining open tabs (intentional, founder-facing)**: Alibaba
+  reset-password (email staged, captcha pending) + Azure signup (step 2/3,
+  card-gated at step 3).
+
 **hCaptcha accessibility unlock (major):** registered an hCaptcha
 accessibility account under support@ + clicked "Set Cookie" on
 `dashboard.hcaptcha.com/welcome_accessibility` → `hc_accessibility` cookie
