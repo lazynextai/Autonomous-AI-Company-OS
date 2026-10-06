@@ -349,7 +349,13 @@ user** creds, verified live against `/api/settings`).
   `email_already_exists` and the staged `LEMMY_CAFE_PASSWORD` logged straight
   in (`email_verified:true`, `accepted_application:true`). Connected via
   customFields `{service:'https://lemmy.cafe', identifier:'lazynext',
-  password}` → `social-connect/lemmy` → 201.
+  password}` → `social-connect/lemmy` → 201. **E2E PUBLISHED** —
+  `POST /public/v1/posts` → `lemmy.cafe/post/41045792` (live, 200).
+  Community `!lazynext@lemmy.cafe` created via API first (id `1163261`,
+  `lemmy.cafe/c/lazynext` 200). **Post-settings schema**: `settings.subreddit
+  = [{value:{id:'<community-id-string>', subreddit:'<name>', title:'<post
+  title>'}, label:'<name>'}]` — lemmy reuses the reddit-shaped DTO; content
+  field is the post body/link.
 - **Lemmy captcha-solving recipe (now machine-doable)**: the image is
   OCR-hostile (dark speckle on dark field; median wipes the thin glyphs) —
   but `GET /api/v3/user/get_captcha` also returns a `wav` that speaks each
