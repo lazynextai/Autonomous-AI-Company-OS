@@ -60,6 +60,19 @@ export class WordpressBlog extends Container {
   }
 }
 
+// Returned when a browser GET catches the container mid-boot (~45-75s cold
+// start). The DO-side boot keeps running after we answer, so the client's
+// refresh lands on a warm container. 503 + Retry-After keeps crawlers from
+// indexing the placeholder while meta refresh recovers real visitors.
+const WARMING_PAGE = `<!doctype html><html><head><meta charset="utf-8">
+<meta name="robots" content="noindex"><meta http-equiv="refresh" content="15">
+<title>Lazynext Blog</title><style>
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+background:#0a0a0f;color:#f5f5f7;font-family:system-ui,sans-serif;text-align:center}
+h1{font-weight:600;font-size:1.4rem}p{color:#9696a0;font-size:.95rem}
+</style></head><body><div><h1>Lazynext</h1>
+<p>The blog is warming up — this page reloads automatically.</p></div></body></html>`;
+
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
@@ -79,6 +92,29 @@ export default {
     }
     const id = env.WP.idFromName("singleton");
     const stub = env.WP.get(id);
-    return stub.fetch(req);
+    const browserGet =
+      (req.method === "GET" || req.method === "HEAD") &&
+      (req.headers.get("accept") ?? "").includes("text/html");
+    if (!browserGet) return stub.fetch(req);
+    const upstream = stub
+      .fetch(req)
+      .catch(() => new Response("upstream unavailable", { status: 502 }));
+    const slow = new Promise<Response>((resolve) =>
+      setTimeout(
+        () =>
+          resolve(
+            new Response(WARMING_PAGE, {
+              status: 503,
+              headers: {
+                "content-type": "text/html; charset=utf-8",
+                "retry-after": "60",
+                "cache-control": "no-store",
+              },
+            }),
+          ),
+        20000,
+      ),
+    );
+    return Promise.race([upstream, slow]);
   },
 };

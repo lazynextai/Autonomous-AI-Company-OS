@@ -490,13 +490,12 @@ user** creds, verified live against `/api/settings`).
 - **Blogger created, standalone** — `lazynext.blogspot.com` (title/display
   `Lazynext`, verified HTTP 200). **No Postiz blogger provider exists in
   this build** — it stays a manual/standalone publishing surface.
-- **Medium account exists, NOT connectable yet** — `@lazynext` via Google
-  OAuth, canonical (`support@lazynext.com`, name `Lazynext`). Postiz's
-  medium provider needs an **integration token** (`apiKey` customField →
-  `Bearer` on `api.medium.com/v1/me`) — Medium removed self-serve token
-  issuance from settings (verified: no "Integration tokens" section for
-  this account). Token request emailed to `yourfriends@medium.com`
-  2026-10-05 via Workspace SMTP — awaiting response.
+- **Medium PERMANENTLY DEAD for API publishing** — support answered the
+  token request (ticket #1743333, Jonas/User Services, 2026-10-06):
+  **"Our API has been deprecated."** No integration token will ever be
+  issued; the Postiz `medium` provider cannot be connected for this or
+  any account. Account `@lazynext` itself stays live/canonical
+  (`support@lazynext.com`, Google OAuth) for manual publishing.
 - **CodePen account created** — Google OAuth on `support@lazynext.com`,
   auto-username `Lazynext-AI` normalized to **`lazynext`**
   (`codepen.io/lazynext` → 200). Standalone dev-presence site, no Postiz
@@ -1367,7 +1366,7 @@ need the same browser session on a residential IP or the user's own clicks.
 | gumroad.com | **lazynext** | support@ | **RESOLVED same evening** — see main gumroad row: support freed the email, account created + confirmed, `lazynext.gumroad.com` live. |
 | f6s.com | — | support@ | **RESOLVED 2026-10-05** — F6S approved the address; account created + email-verified (`f6s.com/lazynext-lazynext`). See 2026-10-05 section. |
 | replicate.com | **lazynextai** | via GitHub `lazynextai` | **RESOLVED same evening** — `support@replicate.com` auto-replied "no longer monitored" → but the in-product rename banner self-served `lazynext-platform` → `lazynextai`. No ticket needed. |
-| dev.to | `lazynext` (api id 4154300) | support@ | **appeal sent** — emailed `yo@dev.to` re spam-quarantine (API account active, public profile/articles 404 after rename). Awaiting response. |
+| dev.to | `lazynext` (api id 4154300) | support@ | **appeal + follow-up sent** — `yo@dev.to` re spam-quarantine (API account active, public profile/articles 404 after rename); appeal opened, no reply → polite follow-up sent 2026-10-06 via Brevo. Awaiting response. |
 | npmjs.com | — | — | **still IP-blocked** — signup probe re-403s on this network. Unchanged: needs non-flagged network → claim `@lazynext` → publish `sdk/js`. |
 | kick.com | `lazynextai` (attempted; `lazynext` squatted) | support@ (pw `KICK_PASSWORD` staged) | **Kasada-gated** — modal signup completes client-side (email/DOB/username/policy-compliant pw all valid, `verify/username` → 204 on `lazynextai`) but the register POST never fires: the `x-kpsdk` Kasada fingerprint POST returns **429**, so the submit silently aborts. Second attempt reached `web.kick.com/api/v1/user/identity/send-verification-code` → also **429** (retry-rate-limited). Human browser session required — same class as Alibaba slider / Microsoft press-and-hold. No duplicate created. Retried after ~40min cooldown (evening): `x-kpsdk` fp still 429 — persistent bot-score block, not a transient rate limit. `kick.com/api/v1/channels/lazynext` → 200 (real squatter, id 121325648); `lazynextai` confirmed free via channels API 404. |
 
@@ -1822,12 +1821,18 @@ Rotation hygiene notes:
   pinterest×4 + devto×3 + listmonk×3 + transient x/dribbble/moltbook — the
   wordpress/listmonk entries are old cold-start artifacts already mitigated.
   Live test posts + R2-shipped container logs gave the real provider verdicts:
-  - **tumblr** — text path PUBLISHES fine; image-attach path logs
-    "Please re-authenticate your Tumblr account" (integration not flagged
-    `refreshNeeded`; a future re-auth through the *existing* integration may
-    be needed for media posts — do NOT create a duplicate integration).
-  - **youtube** — "Item must be a video" is correct provider validation, not a
-    bug; only test/publish with actual video media.
+  - **tumblr** — text path PUBLISHES fine; media path now VERIFIED too:
+    image post `cmux4t8x2000209qs5wxnsikg` PUBLISHED 2026-10-06 →
+    `lazynext/post/829757646808743936` (the earlier "Please
+    re-authenticate" log line self-healed; no OAuth re-auth needed).
+  - **youtube** — VIDEO E2E VERIFIED 2026-10-06: branded 18s h264/AAC intro
+    (ffmpeg, `marketing/public/og.png` brand slides) → Postiz media upload
+    → `posts` with `settings{title,type:"public",selfDeclaredMadeForKids:"no",
+    tags}` → `cmux4rxfo000109qs9xv9t5zc` PUBLISHED →
+    `youtube.com/watch?v=BRvH4TnOlSU`, visible on `@lazynext` channel.
+    Required settings: `title` (2-100 chars) + `type` (public|private|
+    unlisted); optional `selfDeclaredMadeForKids` yes|no, `tags` [{value,
+    label}] combined ≤500 chars.
   - **pinterest** — hard-blocked by Pinterest's **Trial access** tier: board
     lookup works (board `Lazynext` / `1152288323350959323`, token healthy,
     scopes `pins:write` present, R2 image URL publicly 200) but
