@@ -1726,3 +1726,75 @@ Rotation hygiene notes:
   timed out — instance slow, token consumed server-side); Microsoft
   "verify email" mails = stale OTP codes (no links, already used).
 - **Postiz**: 307 → healthy after earlier restart; 20 integrations.
+
+## 2026-10-06 (night, pass 3) — Unsplash/itch/Ko-fi confirmed; Postiz provider verdicts final; GMB created (founder video pending); Lemmy pending at dbzer0
+
+- **Unsplash — CONFIRMED.** Persistent browser session already authed; consumed
+  the pending confirm link in-session → Settings shows email
+  `support@lazynext.com`, username **`Lazynext`**, no unconfirmed banner.
+- **itch.io — CONFIRMED.** Stored verify token was already consumed (the Oct-5
+  batch GET). Logged in as `lazynext` → Email addresses shows
+  `support@lazynext.com` **Verified**; public page `lazynext.itch.io`.
+- **Ko-fi — LIVE at `ko-fi.com/lazynext`.** Session was already authed
+  ("glad you joined" mail corresponded to a real account). Profile basics set
+  (name/bio/website). Payment rails intentionally unconnected (no-pay rule) —
+  page works as a presence/tip-jar shell either way.
+- **Medium — `@lazynext` is ours + verified**, but Medium support confirmed the
+  publishing API is deprecated → posting stays manual/site-side. Not a Postiz
+  candidate.
+- **Postiz full audit — 20 integrations, all `disabled=false`** (field is
+  `identifier`, not `providerIdentifier`): wordpress, bluesky, slack,
+  mastodon, hashnode, nostr, dribbble, pinterest, tumblr, skool, devto,
+  telegram, youtube, discord, whop, kick, twitch, listmonk, x, moltbook.
+  85-post history: 23 errors cluster on wordpress×5 + hashnode×4 +
+  pinterest×4 + devto×3 + listmonk×3 + transient x/dribbble/moltbook — the
+  wordpress/listmonk entries are old cold-start artifacts already mitigated.
+  Live test posts + R2-shipped container logs gave the real provider verdicts:
+  - **tumblr** — text path PUBLISHES fine; image-attach path logs
+    "Please re-authenticate your Tumblr account" (integration not flagged
+    `refreshNeeded`; a future re-auth through the *existing* integration may
+    be needed for media posts — do NOT create a duplicate integration).
+  - **youtube** — "Item must be a video" is correct provider validation, not a
+    bug; only test/publish with actual video media.
+  - **pinterest** — hard-blocked by Pinterest's **Trial access** tier: board
+    lookup works (board `Lazynext` / `1152288323350959323`, token healthy,
+    scopes `pins:write` present, R2 image URL publicly 200) but
+    `POST /v5/pins` fails inside `finalizePost` → "Unknown Error" = the trial
+    tier's documented "may not create Pins" restriction. Fix = Pinterest's
+    Standard-access review (their side, no code change possible).
+  - **devto** — stored `DEVTO_API_KEY` returns 401 (revoked) AND dev.to has
+    removed the key-generation route (`/users/api_secrets` POST 404s from a
+    logged-in session). Channel marked `refreshNeeded=true`. Blocked on the
+    platform until key minting returns or a valid key is supplied.
+  - **hashnode** — "Publication does not have an active Pro plan. Upgrade in
+    your dashboard to access this via the API." API publishing is paywalled;
+    blocked under the no-pay rule.
+  - `conn:postiz` connector (`core/tools/connectors.py`) already supports
+    `*` fan-out + per-provider `settings` — no code change needed.
+- **Lemmy — tchncs `registration_denied` (not pending); applied at
+  `lemmy.dbzer0.com`** — registration succeeded, verify-email link consumed
+  (200), API login probe shows **application pending review** — healthy
+  awaiting-admin state, not a denial. `LEMMY_INSTANCE/USERNAME/PASSWORD` in
+  `.env` reflect dbzer0.
+- **npm — signup edge-blocked to automation.** `/signup` returns bare 403 even
+  via client-side nav, while the homepage loads fine in the same session —
+  npm fingerprints the automation browser, not the IP (Playwright runs on the
+  founder's residential connection). Auto-retry stays queued per founder
+  decision; a manual signup in a normal browser bypasses in ~2 min. GitHub
+  Releases already distributes the SDKs, so npm is optional distribution.
+- **Google Business Profile — CREATED, unverified.** Under the `support@`
+  Google session: business `Lazynext`, location ID `17257582153246721852`,
+  address `Aspire Coworks, No. 472/7 Balaji Arcade, 2nd & 3rd Floor,
+  A.V.S. Compound, 20th L Cross Road, AVS Layout, Ejipura, Koramangala 4th
+  Block, Bengaluru, Karnataka 560095` (declined Google's Aspire Coworks match
+  — created as a distinct listing), phone `9199366166`, website
+  `https://lazynext.com`, URL-free description saved (descriptions reject
+  URLs — "Invalid value"). Verification offered **video-only** → "Verify
+  Later"; hours + storefront photo skipped rather than invented. Businesses
+  manager confirms `1 business / 0% verified / Lazynext — Verification
+  required`. **Founder gate**: record the business video at the office
+  (interior, equipment, signage, location proof) — listing is not public
+  until then.
+- **Human gates remaining for founder** (all staged, none bypassable):
+  Telegram SMS code, Discord CAPTCHA, Alibaba Cloud slide gesture,
+  Warpcast/Farcaster mobile-app install, GMB business video (above).
