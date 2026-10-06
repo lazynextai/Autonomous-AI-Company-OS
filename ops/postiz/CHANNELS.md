@@ -594,15 +594,63 @@ exclusion removed after the DTO boot-patch (above); repeat fan-out via
 - **Microsoft**: `lazynextai@outlook.com` signup parked at PerimeterX
   press-and-hold — user gesture pending (accessible challenge also
   present). All prior steps done (email verified 097568, name, DOB).
-- **Listmonk delivery gap**: campaigns land on listmonk's hardcoded
-  `messenger:"email"` = SMTP — which is **unconfigured** (Brevo SMTP
-  keys are dashboard+device-OTP only, can't be minted via API; the
-  `BREVO_API_KEY` is NOT an SMTP password — relay 535s). Campaigns
-  "publish" (queued state) but no mail moves until the founder mints an
-  SMTP key at app.brevo.com → SMTP & API → SMTP, or a messenger-
-  override is patched into the postiz listmonk provider (postback
-  messengers exist in listmonk but Postiz sends no `messenger` field
-  and `"email"` is hardcoded upstream).
+- **Listmonk delivery gap — RESOLVED 2026-10-06**: Brevo SMTP key
+  "listmonk" was minted (dashboard, 2026-10-06 18:54) and wired into
+  listmonk settings (`smtp-relay.brevo.com:587`, auth `login`, STARTTLS).
+  E2E verified live: campaign mail carries `X-Listmonk-Campaign` +
+  `DKIM-Signature d=lazynext.com` via Brevo relay → delivered to
+  support@lazynext.com inbox. Campaigns now send, not just queue.
+- **Microsoft account canonical (2026-10-06)**: recovered + password
+  rotated via support@ IMAP + existing TOTP; `.env` `MICROSOFT_PASSWORD`
+  updated. Aliases: primary `support@lazynext.com`, secondary
+  `lazynextai@outlook.com` (`lazynext@outlook.com` is taken — fallback
+  stands). Display name stays `Lazynext AI` (surname required).
+  NuGet org account already signed-in + email-confirmed via this MSA.
+- **Azure signup staged (tab)**: Step 1/3 form complete (business use,
+  Lazynext, Koramangala virtual-office addr, Karnataka, support@,
+  +91 9199366166) — PAN ID mandatory for India business accounts +
+  terms checkbox unlocks only after PAN validation. Step 2 = SMS OTP to
+  the company phone, Step 3 = card identity-verification (not charged).
+- **Google Business Profile — OUR listing `Lazynext`** (mgm id
+  `1367714245259080808`, shop `17257582153246721852`) is flagged
+  **Duplicate**: Google deduplicated it against the coworking provider's
+  own listing (Aspire Coworks) at the same rented-office address — the
+  `as…@gmail.com` "already claimed" page is THEIRS, not ours; we are a
+  distinct tenant. Two resolution paths, both staged to their human gate:
+  (a) support appeal `Appeal Duplicate Status` → email-contact form
+  filled (issue text, relationship `I own this business`, phone IN,
+  business/addr/ID) — submission requires REQUIRED uploads: storefront
+  photo showing **permanent signage** + business registration/license +
+  utility bill at that address (virtual-office docs are the user's);
+  (b) the listing's verify wizard after "Is this your business?" →
+  "None of these" offers ONLY `Submit a business video` (no
+  phone/postcard option) — must be filmed at the location.
+- **Alibaba Cloud**: account exists under `support@lazynext.com`
+  (`.env ALIBABA_PASSWORD`); Google-OAuth sign-in confirmed + linked.
+  "Complete Sign Up" → mandatory mobile-phone bind (SMS OTP, company
+  phone) — dial-code + country fields geo-locked to the detected
+  region (US in this browser — India likely from an Indian IP).
+- **Lemmy — denied ecosystem-wide**: registrations DENIED at
+  dbzer0 (explicit denial mail) AND discuss.tchncs.de
+  (`login → registration_denied`). Instance survey 2026-10-06:
+  virtually every major instance is `registration_mode:
+  RequireApplication` (company applications keep getting rejected);
+  lemmy.ml/blahaj/sdf/pawb/tchncs = app-gated no-captcha,
+  lemmy.cafe is the only `reg=Open` found — but its Lemmy captcha
+  defeats OCR (~11 failed reads across instances). Staged in browser
+  tab: lemmy.cafe/signup with `lazynext`/`support@`/generated pw —
+  needs ONE human captcha solve (creds `.env` when it lands).
+  Alternative: self-hosted Lemmy CF container (ops pattern exists).
+- **Pinterest post error decoded**: the "Error posting on pinterest"
+  Postiz mail = trial-app `POST /v5/pins` 403 (`code 29`, documented
+  above) — Standard-access upgrade still pending review; channel
+  itself healthy/connected.
+- **X**: `@lazynext` confirmed squatter (joined 2014, never posted) —
+  `@Lazynextai` stays canonical; channel connected but tweet publish
+  stays credit-gated (Pay-Per-Use, $0 balance — needs card at
+  console.x.com billing).
+- **Postiz fleet health (2026-10-06)**: `GET /api/public/v1/integrations`
+  → 20 integrations, ALL `disabled:false` — no drift.
 
 - **nostr channel replaced**: the original (`cmuo7hopx000109r8jxuk5l8n`,
   `No Name`/`nousername`) was deleted and reconnected with a freshly minted
