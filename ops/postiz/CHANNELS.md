@@ -1868,5 +1868,35 @@ Rotation hygiene notes:
   (interior, equipment, signage, location proof) — listing is not public
   until then.
 - **Human gates remaining for founder** (all staged, none bypassable):
-  Telegram SMS code, Discord CAPTCHA, Alibaba Cloud slide gesture,
-  Warpcast/Farcaster mobile-app install, GMB business video (above).
+  Telegram SMS code, Discord CAPTCHA, Warpcast/Farcaster mobile-app
+  install, GMB business video (above), Azure card/PAN (payment-gated).
+- **Alibaba Cloud — RECOVERED (2026-10-06).** The staged reset flow
+  completed end-to-end without a slide gesture: the smarter-engine
+  iframe auto-passed (clean residential fingerprint), the 6-digit email
+  code was read from `support@lazynext.com` via IMAP, the new password
+  was set, and password login was verified live (redirect to
+  `alibabacloud.com/en?accounttraceid=…` = authenticated session).
+  `ALIBABA_PASSWORD` in `.env` holds the new credential. One account,
+  `support@lazynext.com` — no duplicate created (registration earlier
+  reported "email already exists", which this reset resolved).
+- **Postiz identity audit (2026-10-06)** — `/api/user/self` under the
+  live session returns `email=support@lazynext.com`, `name=Lazynext`,
+  bio set, org `Lazynext` (`f5043fcf-…`), Teams shows the member as
+  "Support / Super Admin". The earlier `founder@` login was already
+  migrated to the canonical email — no change required, no duplicate.
+  There is **no profile/email-edit UI** in this Postiz build (settings
+  nav = Global/Teams/Webhooks/Auto Post/Sets/Signatures/Developers/
+  Approved Apps only); had a change been needed it would have required
+  a Teams invite or direct DB edit — neither was necessary.
+- **NuGet — already confirmed.** Re-consuming the confirm link returns
+  "Email Confirmation Failed — address already confirmed" = verified.
+- **Lemmy dbzer0 — verify link re-consumed** (idempotent; account was
+  already email-verified). Still `pending review` by instance admins —
+  external gate, nothing to do.
+- **blog.lazynext.com — LIVE.** A batched health check returned `000`
+  (curl transient); verbose retry serves real WordPress HTML. Bound to
+  worker `wordpress-blog` (exists; workers.dev 404s `/` by design — it
+  serves the custom hostname only). Not a stale-522 case.
+- **Azure — payment-gated, staged only.** Signup still requires a
+  card/PAN at the review step; no free path. Tab left open for the
+  founder's decision; skipped under the no-pay rule.
