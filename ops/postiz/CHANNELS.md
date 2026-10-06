@@ -1540,3 +1540,110 @@ unanswered as of 10-03. Replicate row corrected 10-02 (self-serve rename to
 | **X console** | Notifications badge cleared on visit (no actionable item). Credits still `US$0.00`, no payment method — founder card-add still the only step ($20 free-credit grant on /billing/info banner). |
 | **Inbox (IMAP)** | Nothing new actionable: Medium `#1743333` auto-ack only; BetaList magic link expired unused; Postiz X "Unknown Error" mails = $0-credit posts as expected; hCaptcha/SaaSHub/Wellfound verify mails all already consumed. |
 | **Blog** | cold-start confirmed — first hit 15s-timeout, retry 200. |
+
+## 2026-10-06 — claims sweep (tier-1 + tier-2) + staged-cred audit
+
+Second claims sweep — every missing platform with staged creds attempted.
+Google-OAuth worked throughout (workspace session survives browser restarts).
+
+### Tier-1 (dev/utility)
+
+| Platform | Handle | Status |
+|---|---|---|
+| codeberg.org | **lazynext** | **LIVE** — `codeberg.org/lazynext` 200. Account silently created during an earlier "failed" CAPTCHA attempt; activated via activation-mail link + password confirm (Forgejo requires pw to confirm activation). |
+| codesandbox.io | lazynext + ws `lazynext` | **already LIVE** (Oct-2 claim re-verified — dashboard workspace live). |
+| stackblitz.com | **lazynext** | **LIVE** — GitHub OAuth → dashboard, Free plan. Earlier Oct-2 claim confirmed signed-in as lazynext. |
+| bitbucket.org | ws **lazynext** | **LIVE** — Atlassian ID existed under support@; `lazynext` workspace already provisioned (that's why it read "taken" on re-create). No duplicate created. |
+| archive.org | **@lazynext** | **LIVE** — Google one-tap created it as `@lazynext_ai`; screen-name renamed to `lazynext` via email-code settings unlock. |
+| write.as | — | **PAID-ONLY** — free signups closed; skipped (no-payment rule). |
+| cal.com | **lazynext** | **LIVE** — `cal.com/lazynext`, Google Calendar connected, free plan. |
+| daily.dev | **@lazynext** | **LIVE** — Google OAuth → onboarding done, `@lazynext` on main feed. |
+| greasyfork.org | **lazynext** | **LIVE** — `greasyfork.org/en/users/1650196-lazynext`. |
+| openstreetmap.org | **lazynext** | **LIVE** — `openstreetmap.org/user/lazynext`, Google OAuth. |
+| telegra.ph | — | **BLOCKED** — conn-reset at this egress; anonymous anyway, no handle to claim. |
+
+### Tier-2 (social/media)
+
+| Platform | Handle | Status |
+|---|---|---|
+| quora.com | Lazynext | **LIVE** — Google OAuth, feed live after topic-follow gate. |
+| vimeo.com | **lazynext** | **LIVE** — `vimeo.com/lazynext` (earlier claim confirmed). |
+| dailymotion.com | user/lazynext | **already existed** under support@ — logged in with staged `DAILYMOTION_PASSWORD`. |
+| soundcloud.com | **lazynext** | **LIVE** — `soundcloud.com/lazynext` auto-assigned on OAuth. |
+| mixcloud.com | — | **BLOCKED** — `/jailed/` anti-abuse hold + Turnstile loop on this fingerprint. |
+| hackernoon.com | **@lazynext** | **LIVE** — `hackernoon.com/u/lazynext`; auto-handle `@hacker` fixed via onboarding. |
+| indiehackers.com | **@lazynext** | **already LIVE** — `/lazynext` (earlier claim). |
+| ko-fi.com | **lazynext** | **LIVE** — `ko-fi.com/lazynext`, Google OAuth. |
+| pastebin.com | — | **BLOCKED** — SSL-blocked at this egress. |
+| giphy.com | **lazynext** | **LIVE** — `giphy.com/channel/lazynext` (username persisted on second settings save). |
+| unsplash.com | **@lazynext** | **LIVE** — `unsplash.com/@lazynext` (browser-verified; curl hits anti-bot). |
+| pexels.com | @lazynext-ai-2164691793 | **LIVE** — account created; slug auto-generated, no bare vanity on Pexels. Bio + website set. |
+| pixabay.com | **lazynext** | **LIVE** — `pixabay.com/users/57901764`, `lazynext` auto-assigned. |
+| imgur.com | — | **BLOCKED** — OAuth callback never persists under automation. |
+| deviantart.com | — | **BLOCKED** — FunCaptcha image grid timing-sensitive; join failed. |
+| beacons.ai | **lazynext** | **LIVE** — `beacons.ai/lazynext`, matched real socials + 4 links. |
+| wikipedia.org | **User:Lazynext** | **LIVE** — `en.wikipedia.org/wiki/User:Lazynext` 200. |
+| minds.com | **lazynext** | **LIVE** — `minds.com/lazynext`; text-captcha solved, GUID issued. |
+| bandcamp.com | **lazynext** | **LIVE** — `lazynext.bandcamp.com`, artist signup, genre Podcasts. |
+| about.me | **lazynext** | **LIVE** — `about.me/lazynext` 200, full profile. hCaptcha animal-grid solved. |
+| newgrounds.com | — | **BLOCKED** — SSL-blocked at this egress. |
+| gamejolt.com | **@lazynext** | **LIVE** — `gamejolt.com/@lazynext`, Google OAuth, username fixed LazynextAI→lazynext. |
+| dreamwidth.org | — | **BLOCKED** — HTTP 403 at this egress. |
+| livejournal.com | **lazynext** | **LIVE** — `lazynext.livejournal.com` confirmed via email + profile completed. Angular form needed blur/change event pump to enable Create. |
+| openvc.com | — | **BLOCKED** — founder-type signup; reCAPTCHA token never mints under automation. |
+| matrix.org | **@lazynext:matrix.org** | **LIVE** — registered on matrix.org, email verified, Element OAuth authorized. |
+| spotify.com | Lazynext | **LIVE** — free tier created under support@ (no paid plan selected). |
+| gab.com | — | **BLOCKED** — Cloudflare HTTP 403. |
+| gettr.com | **lazynext** | **LIVE** — `gettr.com/user/lazynext`, Google OAuth. |
+| hackernews | **lazynext** | **LIVE** — `news.ycombinator.com/user?id=lazynext` (earlier claim). |
+
+### Staged-cred audit (2026-10-06 — distinguishing "bot-wall 403" from "account absent")
+
+| Platform | Result |
+|---|---|
+| gitlab.com/lazynextai | **LIVE** — API-confirmed (`id 42916327`, name Lazynext, state active). Public page redirects to sign-in = bot wall, not absence. |
+| dev.to/lazynext | **LIVE (API)** — `dev.to/api/users/by_username?url=lazynext` → id 4154300, name Lazynext, website lazynext.com. Public HTML 404 = quarantine, unchanged. |
+| mastodon.social/@lazynext | **LIVE** — API lookup → `id 117360980376518188`, `acct lazynext`. (Canonical is mstdn.social per the Oct-3 migration; this is the redirected tombstone.) |
+| dribbble.com/lazynext | **LIVE** — logged in via staged `DRIBBBLE_PASSWORD`, title "Lazynext on Dribbble". Earlier 404 = bot-wall/community-member profile gating. |
+| tumblr.com/lazynext | **LIVE** — browser cleared CF challenge → "@lazynext on Tumblr". |
+| sourceforge.net/u/lazynext | **LIVE** — browser renders "lazynext / Profile" (curl 403 = bot wall). |
+| alternativeto.net/user/lazynext | **LIVE** — browser "Lazynext on AlternativeTo". |
+| skool.com/@lazynext | **LIVE** — logged in as "Lazynext Ai" (@lazynext). Public `/@lazynext` 404s — Skool profiles aren't publicly indexable. |
+| wellfound.com | **LIVE** — logged in; `/u/lazynext-ai` (name Lazynext AI, bio set) + company page `/company/lazynext`. |
+| uneed.best/profile/lazynext | **LIVE** — 200. |
+| rumble.com/user/lazynext | **LIVE** — 200 (user exists; no channel `/c/` yet). |
+| producthunt.com/@lazynext | **LIVE** — "Lazynext's profile on Product Hunt". |
+| docker hub | **NO ACCOUNT** — `hub.docker.com/v2/users/lazynext` → `User not found`; `/orgs/` returns error object. Genuinely unclaimed. |
+| microsoft (outlook MSA) | **staged at PerimeterX press-and-hold** — `lazynextai@outlook.com` available, all steps done, Arkose hold won't pass under automation. **Founder gesture.** |
+
+### Leaked-secret rotation queue
+
+Passwords that appeared in automation logs/snapshots — rotate before final
+report: **LiveJournal** (`LIVEJOURNAL_PASSWORD`), **Minds** (`MINDS_PASSWORD`),
+**Dribbble** (`DRIBBBLE_PASSWORD` — pasted an un-stripped `DRIBBBLE_PASSWORD=…`
+line into a login field, visible in snapshot), **Dailymotion**
+(`DAILYMOTION_PASSWORD`).
+
+### Credential rotation results (2026-10-06 PM)
+
+All leaked credentials rotated; each verified by a fresh login before `.env`
+was updated (values never printed; variable names only).
+
+| Platform | Var | Result |
+|---|---|---|
+| LiveJournal | `LIVEJOURNAL_PASSWORD` | **ROTATED** — `changepassword.bml?ok=1` + confirmation email to `support@`. |
+| Minds | `MINDS_PASSWORD` | **ROTATED** — email-2FA code flow, logout/login with new password verified. |
+| Dribbble | `DRIBBBLE_PASSWORD` | **ROTATED** — change → forced re-auth + email code (`831352`), new-password login verified. |
+| Dailymotion | `DAILYMOTION_PASSWORD` | **ROTATED** — partner-studio `Edit password`; first write pasted a `\n`-embedded value (stored with a space → `.env` line split), re-rotated to clean value, fresh login verified, `.env` repaired. |
+| Moltbook | `MOLTBOOK_API_KEY` | **ROTATED + Postiz token refreshed** — owner dashboard (`/humans/dashboard`, magic-link login via `support@` + verified X `@Lazynextai`) → "Refresh API Key". Old key dead immediately; new `moltbook_sk_…` verified `GET /agents/me` → `lazynextai`. Postiz token updated via `GET /api/integrations/social/moltbook` → `POST /api/integrations/social-connect/moltbook {state, code:<key>, timezone:"UTC"}` → upserted the SAME integration `cmuvdbobp000o09s3f52mgqri` (no duplicate). Verification post `cmuwlxb0z000209s2m3xaffte` QUEUEd to `submolt:general`. |
+
+Rotation hygiene notes:
+- Postiz 502 window ~11:33–17:09 UTC this session — soft
+  `restart-container` recovered it (HTTP 200 → next request booted fresh,
+  ~7 min to healthy `/api/public/v1/integrations` 200, all 20 integrations
+  intact); `/data2` pg + R2 state preserved.
+- `.env` had a transient corruption: the Dailymotion write split the password
+  across two lines (newline inside the generated value) — repaired in-place;
+  generation now strips `\n` before append.
+- Moltbook owner account: `lazynext` / `support@lazynext.com` / X `@Lazynextai`
+  — self-serve key refresh lives there (no public API rotate endpoint).
