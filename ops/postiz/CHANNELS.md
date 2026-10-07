@@ -340,6 +340,52 @@ user** creds, verified live against `/api/settings`).
 - After connecting channels no `conn:postiz` edit is needed — `*` already
   covers them; set a comma-list only to restrict fan-out.
 
+## 2026-10-07 — Cloudflare rename ticket rescued + Partner Center vetting decoded + fleet re-verified
+
+- **Cloudflare account-username ticket `02360718` KEPT ALIVE** — the
+  `lazynextai`→`lazynext` rename request was auto-closing ("one business
+  day since we reached out … two more → Resolved"). Replied on the ticket
+  thread from `support@lazynext.com` confirming we still want it and
+  offering verification. Watch the inbox for their reply; ticket stays
+  open while the thread is active.
+- **Microsoft Partner Center — vetting REJECTED, root cause likely the
+  `support@` alias**: Legal info (`/dashboard/account/v3/organization/
+  legalinfo#developer`) shows `Vetting status: Rejected`, and the contact
+  form explicitly warns *"Provide an individual work email address.
+  Generic or group email aliases will result in verification failures."*
+  The original "Action needed: Verify your email" link
+  (`verifyemail.microsoft.com/v1.0/tokenverification/verify?token=…`)
+  expired → `emailexpired`. Resend lives on the **Required Verification**
+  page (`/dashboard/v2/account-settings/organization/required-verification`)
+  which currently returns *"You don't have the required access"* for this
+  account — gated behind the enrollment's admin role. Contact info itself
+  is fully canonical already (name Lazynext/Avas Patel, support@,
+  +91 9199366166, Koramangala address). **Human decision needed**: either
+  retry vetting with an individual email (e.g. `avas@lazynext.com` —
+  violates the support@-only policy, hence flagged not done) or pursue
+  the Required-Verification access issue via Microsoft support.
+- **M365 Developer Program**: joined (welcome mail confirmed); dashboard
+  still states "You don't currently qualify for a Microsoft 365 Developer
+  Program sandbox subscription" — E5 sandbox remains Microsoft-gated.
+- **Fleet re-verified after cold boots**: postiz/blog/ghost/listmonk all
+  502/000 on first sweep → soft `restart-container` on postiz + one warm
+  request each → all 200. Postiz API key valid,
+  `/api/public/v1/integrations` → **21 integrations, 0 disabled**, Lemmy
+  `cmux83vao000409qs72b7yjqb` intact, `lemmy.cafe/post/41045792` → 200.
+  `checker.` + `api./rules` stayed 200 throughout (workers, not containers).
+- **Python 3.14 broke `imaplib`** (PEP 594 removal in-flight — `SEARCH`/
+  `FETCH`/`UID` all return BAD parse errors under the Homebrew 3.14
+  interpreter). Inbox checks now go through the managed browser's Gmail
+  tab instead of IMAP.
+- **Substack publication LIVE** — `lazynext.substack.com` → 200, title
+  "Lazynext", og:description = canonical positioning +
+  `checker.lazynext.com` ("Launched 8 hours ago"). The earlier session's
+  verification code (expired after 10min) was a *login* code, not an
+  account blocker — the publication had already landed. Standalone
+  surface, no Postiz provider.
+- **Opera account created** — welcome mail received ("Congratulations on
+  your new Opera account"), registered under `support@lazynext.com`.
+
 ## 2026-10-06 (cont.) — LEMMY CONNECTED (channel 21) + fleet re-verified
 
 - **lemmy CONNECTED** — `lazynext`@lemmy.cafe, integration
