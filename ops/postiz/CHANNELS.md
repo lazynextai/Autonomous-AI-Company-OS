@@ -2351,3 +2351,35 @@ blocked Microsoft surfaces. Every free surface pushed to its ceiling:
   publication needed. Smithery search shows no Lazynext listing; their
   hosted/stdio model doesn't fit a remote Streamable HTTP server, so
   skipped deliberately.
+
+## 2026-10-07 (continued) — Azure Step 3 reached + inbox re-audit
+
+- **Azure free-account signup — now staged at Step 3/3 (card)**.
+  Step 1 (profile: Lazynext AI / UNITED GLOBAL VENTURES PRIVATE LIMITED /
+  Karnataka / India / support@ / +91 9199366166) and Step 2 (billing
+  address: Aspire Coworks, Koramangala, Bengaluru 560095, Karnataka;
+  terms accepted, partner-marketing unchecked) are committed
+  server-side — Step 3 loads with all address fields pre-filled.
+  Blocker found + fixed: `address_line3` silently failed Angular
+  validation (`propertyValidationFailed` in console, no UI error) —
+  it was the optional line; clearing it released the Next submit.
+  Remaining field = card number/expiry/CVV → bank OTP (no charge;
+  $200 credit + free tiers only, pay-as-you-go never enabled).
+  Founder must type the card in the live tab.
+- **NuGet email now verified**: fresh confirm link
+  (`/account/confirm/lazynext/…`) consumed → 302 (confirmed).
+  API key `lazynext-ci-push` was minted earlier today.
+- **GBP "Lazynext" profile confirmed live-but-unverified** by welcome
+  mail (mgm id 1367714245259080808); duplicate-flag still needs the
+  founder's document upload (registration/license/utility bill at the
+  Aspire Coworks address) — same gate as before, nothing new required.
+- **Alibaba**: fresh email-verification code arrived (10-min class);
+  codes expire before use — trigger a fresh one inside the signup flow
+  when the phone-bind run happens.
+- **Postiz**: Pinterest channel fired a post attempt that errored —
+  expected while Pinterest is Trial-access (production pins blocked
+  pending Standard upgrade review). No ledger action; channel stays
+  connected for read/board ops.
+- **Reddit**: still `{}` on /prefs/apps.json; allowlist ticket
+  `18570750` in review. Cloudflare ticket 02360718 kept alive earlier
+  today — "closing soon" mail predates the reply.
