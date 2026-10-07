@@ -2633,3 +2633,33 @@ blocked Microsoft surfaces. Every free surface pushed to its ceiling:
   (govt ID), GMB (one Google login), Reddit (resubmitted, awaiting),
   MeWe (beta review pending), Wrapcast (Warpcast phone OR $5 ETH),
   TikTok×2 (India geo-block), VK (RU/mobile-app gate).
+
+## 2026-10-07 (cont. 6) — GMB CONNECTED (channel 25) via YouTube-client fallback
+
+- **gmb CONNECTED** — integration `cmuyl96tk000109qtpywduka0` ("Lazynext
+  AI"), verified in `/api/public/v1/integrations` → **25 integrations, 0
+  disabled**. Chain (all in-browser, ~10min after founder Google re-login):
+  (1) enabled `mybusinessbusinessinformation.googleapis.com` +
+  `mybusinessaccountmanagement.googleapis.com` in project
+  `sapient-metrics-509413-f4` (the legacy `mybusiness.googleapis.com`
+  library page 404s — removed from console, and its `/v4/` endpoints 404
+  too — see caveat); (2) added redirect URI
+  `…/integrations/social/gmb` to OAuth client `604725211190-…` (the
+  provider falls back to `YOUTUBE_CLIENT_ID`/`_SECRET` — no second client
+  needed); (3) `/api/integrations/social/gmb` → Google OAuth → granted
+  `business.manage` as `support@` (consent screen shows unlisted scope —
+  Testing-mode test user tolerates it; the scope-picker "Add to table"
+  flow did NOT persist so it's intentionally absent from Data access);
+  (4) `isBetweenSteps` picker → **zero locations** (the Duplicate-flagged
+  listing isn't returned by the locations API until verified) but the
+  integration saved anyway with an empty profile.
+- **GMB caveat — connected ≠ publishable**: `post()` still targets the
+  dead `mybusiness.googleapis.com/v4/{acct}/localPosts` (404 now) —
+  Postiz upstream needs a v1 localPosts URL when the listing is
+  verified. Also `channels()`/`groups()` return nothing until a
+  verified listing exists; fan-out posts to gmb will ERROR meanwhile.
+- **Founder queue after this pass**: LinkedIn govt-ID (founder declined —
+  ID already bound to personal account; appeal path preferred instead),
+  Azure card (founder entering), Warpcast+VK phone apps (founder
+  creating), GMB listing video/docs, Google session keep-alive
+  (browser+gcloud both needed re-auth this run).
