@@ -2456,3 +2456,58 @@ blocked Microsoft surfaces. Every free surface pushed to its ceiling:
 - **Reddit**: still `{}` on /prefs/apps.json; allowlist ticket
   `18570750` in review. Cloudflare ticket 02360718 kept alive earlier
   today — "closing soon" mail predates the reply.
+
+## 2026-10-07 (cont. 3) — Partner Center escalated to MS support + Listmonk SMTP re-verified live
+
+- **Microsoft Partner Center — exhausted UI paths, escalated to a real
+  support case: `2610070060003196`** (filed via
+  `engagecenter.microsoft.com` — the Dev Center Support surface the
+  Partner Center AI assistant points MSA users at; product "Windows
+  Developer Center", problem "Developer Enrollment in Partner Center",
+  plan "Professional No Charge", severity C, email contact).
+  Root findings behind the escalation:
+  - Legal-info → Update → **"Verify Email" OTP fails with
+    `EmailToken_Verification_Panel_Create_Error` for EVERY address** —
+    tested `lazynextai@outlook.com` (verified alias on the signing-in
+    MSA), `avas@lazynext.com` (apex, Google MX), and
+    `avas@reply.lazynext.com` (working Brevo inbound MX). Resend fails
+    identically → no OTP is ever generated → Save stays disabled → the
+    contact email can never be changed or verified in-UI. This is a
+    Microsoft-side token-service failure, not a mail-routing problem.
+  - Microsoft's own email validator returns `isFreeHostDomain: true`
+    for outlook.com — the contact **must** be an individual-format
+    `@lazynext.com` address regardless (shared `support@` was the
+    vetting-rejection cause; outlook aliases can never pass).
+  - Required-Verification page still returns *"You don't have the
+    required access"* — Error ID `913d993e-06c2-4bd2-8b78-656ffd0f41b1`
+    (cited in the ticket).
+  - Ticket asks MS to (a) fix the EmailToken service for this account,
+    or (b) manually set an individual-format contact/approver email +
+    trigger the token-verification mail, and (c) restore
+    Required-Verification access. Confirmation mail received
+    (TrackingID#2610070060003196).
+- **`reply.lazynext.com` DNS experiment — REVERTED**: a CNAME
+  `reply.lazynext.com → lazynext.com` was added while debugging the OTP
+  failure (theory: senders may reject MX-only domains). CNAME coexisting
+  with MX records is undefined DNS behavior — resolvers following the
+  CNAME could fetch Google's MX instead of Brevo's and silently break
+  inbound parsing. It did not fix the OTP error (which proved to be
+  account-side), so the CNAME was deleted; the name is back to
+  MX-only (`inbound1/2.sendinblue.com`) + the Brevo TXT.
+- **Listmonk SMTP re-verified end-to-end (not just "configured")**:
+  `POST /api/settings/smtp/test` takes a FLAT `email.Server` JSON body
+  (`{"email": to, "host","port","auth_protocol","username","password",
+  "tls_type","hello_hostname","email_headers":{},…}` — a nested `smtp`
+  key or `name`-only lookup both fail `dial tcp :0`). Test mail via the
+  `email-brevo-relay` messenger (smtp-relay.brevo.com:587, STARTTLS,
+  `BREVO_SMTP_LOGIN`/`BREVO_SMTP_KEY` in `.env`) delivered twice:
+  → support ticket **#6** through the `reply.lazynext.com` Brevo inbound
+  webhook AND → the `support@lazynext.com` Gmail inbox ("Test
+  connection" / "Powered by listmonk"). Delivery path is live.
+- **Provider waits sweep (inbox)**: no new substantive replies —
+  Reddit 18570750 reconsideration still pending (our compliance reply is
+  the last message), DEV quarantine ack stands, Alibaba 00652HZ3ZX
+  awaiting review, Medium/MeWe/Pinterest-Standard/CF-rename/
+  lemmy.dbzer0/VK/Warpcast/GMB all still provider-side.
+- **Postiz publish confirmations in inbox**: "Your post has been
+  published on Threads" + Facebook notification — fan-out keeps working.
