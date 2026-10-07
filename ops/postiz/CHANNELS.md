@@ -250,13 +250,15 @@ user** creds, verified live against `/api/settings`).
   (`lazynext`/`Lazynext`, OAuth app `app_avfWYCznr7Zt2D`, connected
   2026-10-01 night 2 — see section below for the 3-part fix).
   Reddit `u/lazynext` account exists
-  (Google-OAuth) but its OAuth app registration is bot-score-gated on
-  fresh accounts — retried 2026-10-02 with real reCAPTCHA solves:
+  (Google-OAuth). OAuth app registration is gated on fresh accounts —
   `POST /api/updateapp` returns `"success":true` yet no app persists
-  (`/prefs/apps.json` → `{}`) — silent drop / developer-registration gate.
-  Needs a human retry in the logged-in browser or Reddit dev registration
-  (form prefilled: web app `Lazynext Social`, callback
-  `…/integrations/social/reddit`).
+  (`/prefs/apps.json` → `{}`) — silent drop. Root cause found
+  2026-10-07: new accounts need **Data API allowlisting** via the
+  support ticket form (`ticket_form_id=14868593862164`, role "I'm a
+  developer", "app not in Devvit"). Ticket submitted under
+  `support@lazynext.com` / `u/lazynext` — pending Reddit review.
+  Once allowlisted, create at `reddit.com/prefs/apps`: web app
+  `Lazynext Social`, callback `…/integrations/social/reddit`.
 - **Session-auth note**: the dashboard-auth'd routes
   (`/api/integrations/social/*`, `/api/integrations/social-connect/*`)
   401 under the apiKey — they need the `auth` JWT cookie. Founder
@@ -2327,3 +2329,25 @@ blocked Microsoft surfaces. Every free surface pushed to its ceiling:
   (bluesky devto discord dribbble hashnode kick lemmy listmonk mastodon
   moltbook nostr pinterest skool slack telegram tumblr twitch whop
   wordpress x youtube). `conn:postiz` `*` fan-out unchanged.
+- **Reddit dev-app root cause found + registration submitted
+  (2026-10-07)**: retried `/prefs/apps` in the logged-in browser —
+  reCAPTCHA passed instantly this time, `POST /api/updateapp` → 200,
+  but the app still silently drops (`/prefs/apps.json` → `{}`). The
+  `/r/reddit.com/wiki/api` doc explains it: new accounts must be
+  **allowlisted for Data API access** via
+  `support.reddithelp.com/hc/requests/new?ticket_form_id=14868593862164`.
+  Submitted the full honest application: email `support@lazynext.com`,
+  account `u/lazynext`, role "I'm a developer", "app that does not work
+  in the Devvit ecosystem" (external OAuth2 publishing client — Devvit
+  can't issue OAuth credentials for external posters), platform link
+  `github.com/gitroomhq/postiz-app`, scope "u/lazynext profile +
+  brand-owned communities only". Reddit's review queue now holds it —
+  same class as Pinterest Standard / SaaSHub. On approval: create the
+  `Lazynext Social` web app at `/prefs/apps`, wire
+  `REDDIT_CLIENT_ID`/`REDDIT_CLIENT_SECRET` into Postiz env, connect.
+- **Official MCP Registry confirmed** (not just Glama):
+  `com.lazynext/accessibility-checker` is `active`, `isLatest:true`,
+  published 2026-10-02, remote `api.lazynext.com/mcp` — no duplicate
+  publication needed. Smithery search shows no Lazynext listing; their
+  hosted/stdio model doesn't fit a remote Streamable HTTP server, so
+  skipped deliberately.
