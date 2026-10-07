@@ -2541,3 +2541,95 @@ blocked Microsoft surfaces. Every free surface pushed to its ceiling:
 - **`linkedin`/`linkedin-page` Postiz channels remain parked** — no
   change: connections/age gate for a Company Page + dev app is
   downstream of the restriction lift.
+
+## 2026-10-07 (cont. 5) — live re-verify 24/35 + Reddit DENIED→resubmitted + MeWe dev portal moved
+
+- **Live integration audit**: `GET /api/public/v1/integrations` (KV
+  `conn:postiz` key — `.env` `POSTIZ_API_KEY` matches it; earlier "Invalid
+  API key" was a shell-quoting artifact, not rotation) → **24 connected,
+  0 disabled**: wordpress bluesky slack mastodon hashnode nostr dribbble
+  pinterest tumblr skool devto telegram discord whop kick twitch
+  listmonk x moltbook youtube lemmy facebook instagram threads. The 11
+  unconnected catalog entries are exactly: `linkedin`, `linkedin-page`,
+  `reddit`, `instagram-standalone`, `gmb`, `tiktok`, `tiktok-business`,
+  `wrapcast`, `vk`, `medium`, `mewe`.
+- **Inbox sweep (IMAP via raw-socket script — `imaplib` is removed in
+  Python 3.13+, curl IMAP drops literals; working recipe: ssl socket +
+  `LOGIN`/`SELECT`/`FETCH`)**: zero unread; the only substantive mail =
+  Reddit denial + Microsoft case ACK (below). Instagram password-change
+  / new-login / Threads-published notifications were all ours.
+- **Reddit Data-API application DENIED** (ticket `18570750` /
+  `1P4DYZ-J4MVE`, Oct-7 10:58 PDT): "not in compliance with the
+  Responsible Builder Policy and/or lacks necessary details".
+  **Resubmitted on the same thread** via Brevo SMTP reply to
+  `support+id1P4DYZ-J4MVE@reddit.zendesk.com` with the full compliance
+  packet (posting-only use case, no scraping/storage/resale, low volume,
+  own-account OAuth2, verifiable lazynext.com identity, explicit
+  ask: stop the `/api/updateapp` silent-drop). If the next denial is
+  identical boilerplate the channel is dead-by-policy; `u/lazynext`
+  stays the canonical manual presence.
+- **Microsoft Partner Center case `2610070060003196` ACKED only** — the
+  Oct-7 mail is the submission confirmation (incident title logged:
+  email-OTP `EmailToken_Verification_Panel_Create_Error`, Seller ID
+  `96466040`, severity C). No agent reply yet; vetting page still shows
+  `Rejected` / `Pending Partner Action`.
+- **MeWe — developer application SUBMITTED**: the dev portal moved from
+  `developers.mewe.com` (**NXDOMAIN now — host deleted**) to
+  `developer.mewe.com` ("mewe Open API Developer Preview"). Existing
+  session on `mewe.com/lazynext_ai` → `developer.mewe.com/developer` →
+  "Sign Up for early access" (one click, no form) → **"Your application
+  is being reviewed"**. Beta is limited-spots; approval arrives by
+  mail. Once approved: create Standalone OAuth app → `MEWE_APP_ID` /
+  `MEWE_API_KEY` (+`MEWE_HOST=https://mewe.com`) secrets → connect.
+- **Wrapcast (Farcaster) — payment-or-phone confirmed**: Neynar dev
+  account exists under `support@` (free plan, 10M credits,
+  `NEYNAR_API_KEY`/`NEYNAR_CLIENT_ID` in `.env`, app "Support's App").
+  BUT `GET /v2/farcaster/user/fid` now requires `x-wallet-id` — an app
+  wallet that must be **funded with $5+ ETH on Optimism** (paid path,
+  excluded). Free FID creation only exists inside the Warpcast mobile
+  app (+91 numbers work there — founder action on their phone). Even
+  with a FID, signer approval needs either a Warpcast session on that
+  account or a funded onchain call. So: founder installs Warpcast →
+  creates `lazynext`/`lazynextai` → I take it from there (FID via
+  account lookup, Neynar secrets already staged).
+- **TikTok / tiktok-business — hard geo-block re-verified**:
+  `tiktok.com` + `developers.tiktok.com` both fail TLS in ~20ms
+  (ISP-level block, India ban) in curl AND the managed browser
+  (`ERR_SSL_PROTOCOL_ERROR`). No automation path — needs a non-India
+  network for account + dev-app + OAuth click.
+- **VK — app-gated re-verified**: `id.vk.ru` auth offers ONLY phone
+  (+7-masked) or QR-via-mobile-app; `+91 9199366166` entered →
+  Continue → silent reset (rejected). Non-Russian numbers remain
+  mobile-app-gated.
+- **GMB — new feasible path identified, founder-gated on ONE login**:
+  Postiz's gmb provider **falls back to `YOUTUBE_CLIENT_ID`/`_SECRET`**
+  when `GOOGLE_GMB_*` is unset (`gmb.provider.ts:23-25`), so no new
+  OAuth client needed — but the GCP consent screen needs the
+  `business.manage` scope + redirect URI
+  `…/integrations/social/gmb` on client `604725211190-…` (JSON backup in
+  `.playwright-mcp/`), plus the Business Profile APIs enabled on
+  `sapient-metrics-509413-f4`. **Google session expired in browser AND
+  gcloud** (`Reauthentication failed` — no stored password) → founder
+  must log in once at console.cloud.google.com as `support@lazynext.com`;
+  everything after is ~10min of clicks. Note the listing stays
+  Duplicate-flagged — connecting the channel does NOT require a
+  verified listing; posting would.
+- **LinkedIn — unchanged**: still `login-restriction` page; founder
+  govt-ID via the live Persona link is the only unblock.
+- **instagram-standalone — redundant, keep unconnected**: mutually
+  exclusive with the facebook-login `instagram` channel per Meta app
+  (documented); the connected `instagram` already posts to
+  `@lazynext.ai`. Treating "11 unconnected" as 10 real gaps + this one
+  permanently-N/A.
+- **medium — permanently dead** (support-confirmed API deprecation);
+  `medium.com/@lazynext` stays a manual surface.
+- **Fleet health final**: blog `000`→`503`-warm-page→**200** (designed
+  cold-boot race; non-browser GET waited ~4min through the boot),
+  listmonk `502`→**200**, postiz `307` (login redirect — healthy),
+  `api./rules` + `checker.` **200** throughout.
+- **Net: 24/35 connected; of the 11 unconnected, 2 are
+  permanently-N/A (medium dead-API, instagram-standalone redundant), 9
+  are founder/provider-gated with zero automation path** — LinkedIn×2
+  (govt ID), GMB (one Google login), Reddit (resubmitted, awaiting),
+  MeWe (beta review pending), Wrapcast (Warpcast phone OR $5 ETH),
+  TikTok×2 (India geo-block), VK (RU/mobile-app gate).
