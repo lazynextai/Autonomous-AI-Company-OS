@@ -1097,21 +1097,29 @@ Canonical identity: email `support@lazynext.com`, handle `lazynext` (or
   (nginx strips `/api/` → `public/v1/*`).
 - **Admin session live** — `support@lazynext.com` (UI org "Lazynext";
   `/auth` auto-redirects to `/launches` when a session cookie exists).
-- **Catalog snapshot: 35 providers, 23 connected, 12 unconnected** —
+- **Catalog snapshot: 35 providers, 24 connected, 11 unconnected** —
   (facebook + instagram connected 2026-10-07 via Business-type Meta app
-  `Lazynext Social` `2178147459800832`; `instagram-standalone` obviated).
-  Remaining unconnected are all externally gated: `threads` (Meta app
-  review), `linkedin`/
+  `Lazynext Social` `2178147459800832`; `instagram-standalone` obviated;
+  `threads` connected 2026-10-07 via dedicated use-case Meta app
+  `Lazynext Threads` `1443605737705531` — Threads app ID
+  `1780647902854473`, `lazynext.ai` added+accepted as Threads Tester,
+  redirect `postiz.lazynext.com/integrations/social/threads` whitelisted
+  in the use-case Settings tab (field commits only via real-typing +
+  Enter + real Save click; a JS `.value=` + dispatched `click` reads back
+  filled but silently drops the value on reload).
+  Remaining unconnected are all externally gated: `linkedin`/
   `linkedin-page` (signup security-checkpoint pending), `reddit` (dev-app
   registration silent-drop/bot-gate), `tiktok`/`tiktok-business` (publish
   scopes need approval), `gmb` (Business Profile API OAuth quota +
   listing video-verification pending), `medium` (self-serve tokens killed;
-  request emailed, awaiting reply), `lemmy` (application pending review at
-  lemmy.dbzer0.com), `mewe` (OAuth app approval), `vk` (app-gated non-RU
+  request emailed, awaiting reply), a second `lemmy` instance application
+  pending at lemmy.dbzer0.com (one lemmy channel is already connected via
+  another instance), `mewe` (OAuth app approval), `vk` (app-gated non-RU
   numbers), `wrapcast` (Neynar app + Warpcast phone gate).
-- **Connected (20)**: wordpress, bluesky, slack, mastodon, hashnode, nostr,
+- **Connected (24)**: wordpress, bluesky, slack, mastodon, hashnode, nostr,
   dribbble, pinterest, tumblr, skool, devto, telegram, youtube, discord,
-  whop, kick, twitch, listmonk, x, moltbook.
+  whop, kick, twitch, listmonk, x, moltbook, lemmy, facebook, instagram,
+  threads.
 - **Known publish-gated among connected**: `x` (Pay-Per-Use credits
   depleted — 402), `pinterest` (Trial→Standard upgrade pending),
   `hashnode` (Pro plan required), `devto` (stored key dead, re-mint
@@ -1649,7 +1657,7 @@ unanswered as of 10-03. Replicate row corrected 10-02 (self-serve rename to
 - **Discord** — one human signup pass in a normal browser (form prefilled, `.env` `DISCORD_SIGNUP_PW`).
 - **Lemmy approval** — waiting on lemmy.ml admins.
 - **Slashdot approval** — waiting on feedback@slashdot.org reply.
-- **OAuth apps not yet created** (env `client_id=undefined`): X, LinkedIn(+page), Reddit (app create silently drops on the fresh account — human click needed), Instagram/FB/Threads (Meta app + review), TikTok(+business), Discord, VK, MeWe (needs `MEWE_APP_ID` env + the live `mewe.com/lazynext_ai` account's dev app).
+- **OAuth apps not yet created** (env `client_id=undefined`): X, LinkedIn(+page), Reddit (app create silently drops on the fresh account — human click needed), TikTok(+business), Discord, VK, MeWe (needs `MEWE_APP_ID` env + the live `mewe.com/lazynext_ai` account's dev app). Instagram/Facebook/Threads Meta apps done 2026-10-07 (`Lazynext Social` `2178147459800832` for facebook+instagram; `Lazynext Threads` `1443605737705531` / Threads app `1780647902854473` for threads).
 - **listmonk** — needs a self-hosted Listmonk instance (CF container, Postgres) before the `listmonk` channel can connect.
 - **skool** — needs a skool.com account + the Postiz Chrome-extension cookie flow.
 - **beehiiv** — `BEEHIIVE_API_KEY` needs a paid beehiiv workspace.
