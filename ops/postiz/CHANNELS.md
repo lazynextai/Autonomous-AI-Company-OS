@@ -2253,3 +2253,77 @@ blocked Microsoft surfaces. Every free surface pushed to its ceiling:
   opened the file-chooser gate for business docs; cancelled — needs
   real signage/registration/utility-bill at the Aspire Coworks address
   or the on-site video path. Human only.
+
+## 2026-10-07 pm — Search Console 404/duplicate fixes DEPLOYED + Partner Center root cause corrected + Glama claimed
+
+- **Google Search Console audit (`sc-domain:lazynext.com`)**: 9 indexed /
+  14 not-indexed. Bucket drilldowns:
+  - `Not found (404)` ×5 → `/en` `/de` `/fr` `/es` (locale URLs Google
+    discovered — no source in the current site/sitemap; likely an old
+    deploy) + `api.lazynext.com/.well-known/glama.json` (Glama crawler).
+  - `Duplicate without user-selected canonical` ×2 →
+    `http://lazynext.com/` and `favicon.ico`.
+  - `Blocked due to other 4xx` ×1 → `api.lazynext.com/mcp` (GET→405 is
+    correct — POST-only JSON-RPC endpoint, not a bug).
+  - `Indexed, though blocked by robots.txt` ×1 →
+    `dashboard.lazynext.com` (intentional).
+  - Crawled-not-indexed ×4, redirect ×1, alt-canonical ×1 — normal.
+- **Fixes live (all verified 2026-10-07)**:
+  1. `PATCH /zones/{z}/settings/always_use_https` → `on` — needs the
+     GLOBAL key (`X-Auth-Key`/`X-Auth-Email`); the scoped deploy token
+     401s zone settings (`code 10000`). `http://lazynext.com/*` now
+     301s to https path-preserved.
+  2. Zone ruleset `http_request_dynamic_redirect` (id
+     `e059d98d4da2497790a8b9681fe5dc57`) — PUT to the phase entrypoint
+     (POST /rulesets → `method_not_allowed`): `http.host eq
+     "www.lazynext.com"` → 301 `https://lazynext.com{path}` +
+     `preserve_query_string`. www was bound to `lazynext-marketing`
+     serving duplicate 200s; now 301s.
+  3. `marketing/public/_redirects` (Workers static-assets redirect
+     file — same syntax as Pages) — `/en|de|fr|es` + `/*` splats → `/`
+     301. Deployed via `wrangler deploy` in `marketing/`.
+  4. `<link rel="canonical">` added to all 6 marketing pages
+     (apex absolute URLs).
+  5. `/.well-known/glama.json` on the product worker — Glama
+     connector-claim schema `{"$schema":"…/connector.json",
+     "maintainers":[{"email":"support@lazynext.com"}]}`; served via
+     STATIC_FILES (repo `.well-known/glama.json` → `sync-page.mjs`
+     files map → `deploy.mjs` pushes BOTH `accessibility-checker`
+     scripts). Bare-URL 404 was edge-cached — `?cb=` busted it, then a
+     zone `purge_cache` for the two URLs. Standalone repo pushed
+     (`a12fabb..0ed42df`).
+- **Glama connector `com.lazynext.api/lazynext-accessibility-checker`**:
+  already submitted + **Ownership verified + Healthy** (Streamable HTTP,
+  4 tools indexed: scan_url/scan_html/get_report/list_rules, Glama's
+  TDQS review is favorable). Glama account created via Google OAuth on
+  `support@lazynext.com`, profile `Lazynext`. Full admin access
+  (Listing/Badge/Test-profile/Publisher/Analytics). The glama.json file
+  now doubles as the maintainers claim.
+- **Partner Center vetting — ROOT CAUSE CORRECTED**: the vetting
+  detail page (`/dashboard/v2/account-settings/organization/legalinfo/
+  vetting/developer?sellerId=96466040`) shows step 4/4: Verification
+  Started ✅ · **Email Verification ✅** · Employment Verification ✅ ·
+  **Business Verification ❌ "Pending Partner Action"**. The earlier
+  `support@` group-alias hypothesis was wrong — email is verified; the
+  blocker is a rejected **business document**. `Resolve` → "Account
+  verification" dialog: 3 upload attempts, PDF only, official docs
+  (certificate of incorporation / business license / government-registry
+  record with matching company info). The fresh vetting mail token
+  (03:59) still lands `emailexpired` but is moot — email step is done.
+  **Human ask: a real company registration PDF (e.g. incorporation
+  certificate / GST / Udyam).**
+- **Lemmy account fully verified via API**: login → `email_verified:
+  true`, `accepted_application: true`, email `support@lazynext.com`.
+  The unread "Verify your email" inbox mail was stale (token 400s —
+  already consumed); no action needed. Post `41045792` + community
+  `!lazynext@lemmy.cafe` both still 200.
+- **Pending-review surfaces rechecked, unchanged**: Pinterest
+  `Upgrade to Standard access pending`; SaaSHub listing "Pending
+  approval…" (32d queue). Cloudflare ticket `02360718` — our keep-alive
+  reply is the latest message; awaiting agent.
+- **Fleet cold-boot re-verified**: postiz/blog/ghost 200 immediately;
+  listmonk 502×3 → 200 after ~40s warm-up. `GET
+  /api/public/v1/integrations` → **21 integrations, 0 disabled**
+  (bluesky devto discord dribbble hashnode kick lemmy listmonk mastodon
+  moltbook nostr pinterest skool slack telegram tumblr twitch whop
+  wordpress x youtube). `conn:postiz` `*` fan-out unchanged.
