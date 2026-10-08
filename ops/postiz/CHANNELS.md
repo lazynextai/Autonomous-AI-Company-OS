@@ -2869,3 +2869,26 @@ blocked Microsoft surfaces. Every free surface pushed to its ceiling:
   the only VK ID app path. NEXT: wait for call / retry; then take
   `VK_ID` from the app's settings → `wrangler secret put` on postiz
   worker → wrangler deploy → `POST /__admin/restart-container`.
+- **GBP case 2 (`9-9603000042230`) got the same canned "verify first"
+  reply** — replied on that thread too, pointing out verification IS the
+  issue and the 5 docs are attached. Both case threads now carry the
+  document-verification request.
+- **Postiz worker secrets audited** — pushed `NEYNAR_CLIENT_ID` +
+  `NEYNAR_SECRET_KEY` to `postiz-stack`. Still missing on the worker:
+  `VK_ID` (pending flash-call), `NEYNAR_APP_FID`/`NEYNAR_APP_MNEMONIC`
+  (pending founder FID + recovery phrase), `LINKEDIN_*`, `REDDIT_*`,
+  `TIKTOK_*`, `MEWE_*`, `GOOGLE_GMB_*`, `BEEHIIVE_API_KEY`. One
+  `wrangler deploy` + `POST /__admin/restart-container` needed AFTER the
+  last secrets land (envVars are captured in the DO constructor).
+- **VK app creation — hard blocker**: "Create an application" hit VK
+  flood control ("too many actions in a row") after ~4 flash-call
+  requests; the call never reached +91 9199366166. dev.vk.ru and
+  vk.com/editapp are retired → business console is the only path.
+  Needs: founder watching phone for the flash call (or VK-app push),
+  then retry after flood cooldown.
+- **Warpcast FID lookup via Neynar API**: tried lazynext/lazynextai/
+  lazynext_ai/lazynext-ai — none registered; the founder's new account
+  username isn't guessable. Need the username/FID read from the app.
+- **npm token verified live**: `lazynext-publish` granular token listed
+  on account, expires 2027-01-06. Bypass-2FA deprecation warning is
+  Jan-2027 — rotate/migrate to trusted publishing before then.
