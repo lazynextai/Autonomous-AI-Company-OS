@@ -2892,3 +2892,26 @@ blocked Microsoft surfaces. Every free surface pushed to its ceiling:
 - **npm token verified live**: `lazynext-publish` granular token listed
   on account, expires 2027-01-06. Bypass-2FA deprecation warning is
   Jan-2027 — rotate/migrate to trusted publishing before then.
+
+## 2026-10-08 (night) — direct conn:* connectors wired + telegram bug fix
+
+- **conn:telegram BUG + FIX** — dispatcher split creds on FIRST colon but
+  bot tokens are `id:secret` — token truncated to bare id → Telegram 404.
+  services.ts now splits on the LAST colon; deployed `c6194450`; E2E
+  verified (post id 15 → t.me/lazynext_ai).
+- **conn:* wired this pass** (KV, ttl 0 — runtime source of truth):
+  telegram (LIVE-posted), wordpress (blog.lazynext.com|lazynext+apppw —
+  users/me 200), bluesky (createSession OK did:plc:iqyv…rpt), lemmy
+  (lemmy.cafe login → jwt), ghost (ghost.lazynext.com Admin API JWT OK),
+  listmonk (base|postiz|api-token|list 3 "Lazynext"), devto (key wired —
+  401 while suspension lasts, ~Oct 14).
+- **Skipped with reason**: discord/slack direct need webhooks (bot lacks
+  MANAGE_WEBHOOKS; Postiz paths already post); mastodon.social disabled
+  password grant; x/tumblr/youtube/pinterest/facebook/instagram/threads/
+  gmb OAuth tokens live inside Postiz's DB (Postiz covers them);
+  hashnode gql endpoint now redirects to a Pro announcement (API fully
+  paid-gated); nostr connector deliberately stubbed (relay websockets);
+  matrix/teams/mattermost/zulip/viber/line/snapchat/gitlab/twilio/
+  whatsapp/ayrshare/buffer/letmepost have no accounts/instances.
+- **conn:* state now**: brevo, github, postiz, signwell, telegram,
+  wordpress, bluesky, devto, lemmy, ghost, listmonk = 11 wired.

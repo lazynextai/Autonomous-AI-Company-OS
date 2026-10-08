@@ -1201,7 +1201,10 @@ async function callConnector(
     }
     case "telegram": {
       // cred: "<bot_token>:<chat_id>" — bot must be admin/member of the chat.
-      const [token, chat = ""] = cred.split(":", 2);
+      // Bot tokens contain a colon (id:secret) — split on the LAST colon.
+      const ti = cred.lastIndexOf(":");
+      const token = ti === -1 ? cred : cred.slice(0, ti);
+      const chat = ti === -1 ? "" : cred.slice(ti + 1);
       if (!text) return { ok: false, status: 400, error: "text required" };
       if (!chat) return { ok: false, status: 500, error: "conn:telegram must be '<bot_token>:<chat_id>'" };
       return connPost(`https://api.telegram.org/bot${token}/sendMessage`, {
