@@ -962,6 +962,51 @@ async function googleAccessToken(cred: string): Promise<string | null> {
   return ((r.body ?? {}) as { access_token?: string }).access_token ?? null;
 }
 
+// Nostr NIP-01 publish over relay websockets — Workers DO support outbound
+// WebSocket (new WebSocket + fetch-Upgrade), so the relay path is real, not
+// a stub. cred: "<64-hex privkey>" or "<privkey>|<wss://relay1,wss://relay2>".
+async function nostrPublish(
+  cred: string, text: string,
+): Promise<{ ok: boolean; status?: number; body?: unknown; error?: string }> {
+  const [key = "", relayList = "wss://relay.damus.io,wss://nos.lol"] = cred.split("|");
+  const relays = relayList.split(",").map((r) => r.trim()).filter((r) => r.startsWith("wss://"));
+  if (!/^[0-9a-f]{64}$/i.test(key))
+    return { ok: false, status: 500, error: "conn:nostr must be '<64-char hex privkey>[|wss://relay1,wss://relay2]'" };
+  const { schnorr } = await import("@noble/curves/secp256k1");
+  const { sha256 } = await import("@noble/hashes/sha256");
+  const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+  const pubkey = hex(schnorr.getPublicKey(key));
+  const ev: Record<string, unknown> = {
+    pubkey, created_at: Math.floor(Date.now() / 1000), kind: 1, tags: [], content: text,
+  };
+  const id = hex(sha256(new TextEncoder().encode(
+    JSON.stringify([0, pubkey, ev.created_at, ev.kind, ev.tags, ev.content]),
+  )));
+  ev.id = id;
+  ev.sig = hex(schnorr.sign(id, key));
+  const errs: string[] = [];
+  for (const url of relays) {
+    try {
+      const accepted = await new Promise<boolean>((resolve) => {
+        const ws = new WebSocket(url);
+        const timer = setTimeout(() => { try { ws.close(); } catch { /* noop */ } resolve(false); }, 8000);
+        ws.addEventListener("open", () => ws.send(JSON.stringify(["EVENT", ev])));
+        ws.addEventListener("message", (m) => {
+          try {
+            const msg = JSON.parse(String(m.data)) as unknown[];
+            if (msg[0] === "OK" && msg[1] === id) { clearTimeout(timer); ws.close(); resolve(msg[2] === true); }
+            else if (msg[0] === "NOTICE") errs.push(`${url}: ${String(msg[1]).slice(0, 100)}`);
+          } catch { /* malformed frame */ }
+        });
+        ws.addEventListener("error", () => { clearTimeout(timer); resolve(false); });
+      });
+      if (accepted) return { ok: true, status: 200, body: { id, relay: url } };
+      errs.push(`${url}: no OK`);
+    } catch (e) { errs.push(`${url}: ${String(e).slice(0, 80)}`); }
+  }
+  return { ok: false, status: 502, error: `nostr relays rejected: ${errs.join("; ")}` };
+}
+
 // Worker-side mirror of connectors.py's _DISPATCH. Social connectors take
 // {text}; messaging connectors take {to, text}; brevo takes {to, subject, html}.
 async function callConnector(
@@ -1833,8 +1878,12 @@ async function callConnector(
     }
     case "snapchat":
       return { ok: false, status: 400, error: "snapchat has no organic-post API — Marketing API is ads-only; use meta for ads" };
-    case "nostr":
-      return { ok: false, status: 400, error: "nostr publishes over relay websockets, not REST — no write endpoint to call from a Worker" };
+    case "nostr": {
+      if (!text) return { ok: false, status: 400, error: "text required" };
+      // cred: "<64-hex privkey>[|wss://relay1,wss://relay2]" — NIP-01 signed
+      // note to real relay websockets (Workers support outbound WebSocket).
+      return nostrPublish(cred, text);
+    }
     case "brevo": {
       const to = String(b.to ?? "");
       if (!to) return { ok: false, status: 400, error: "to required" };

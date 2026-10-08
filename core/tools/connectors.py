@@ -930,7 +930,110 @@ async def _snapchat(text: str, cred: str) -> dict:
 
 
 async def _nostr(text: str, cred: str) -> dict:
-    return {"ok": False, "error": "nostr publishes over relay websockets, not REST — no write endpoint"}
+    # cred: "<64-hex privkey>" or "<privkey>|<wss://relay1,wss://relay2>" —
+    # NIP-01 signed note over relay websockets (mirrors nostrPublish in
+    # worker/src/services.ts). BIP340 schnorr implemented inline — no
+    # secp256k1 dep in the venv.
+    import asyncio
+    import hashlib
+    import json
+    import re
+    import time
+
+    key, _, relay_list = cred.partition("|")
+    relays = [r.strip() for r in (relay_list or "wss://relay.damus.io,wss://nos.lol").split(",")
+              if r.strip().startswith("wss://")]
+    if not re.fullmatch(r"[0-9a-fA-F]{64}", key or ""):
+        return {"ok": False, "error": "conn:nostr must be '<64-char hex privkey>[|wss://relay1,wss://relay2]'"}
+
+    # --- BIP340 schnorr (reference impl, secp256k1) ---
+    P = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
+    N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+    Gx, Gy = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798, \
+             0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8
+
+    def _pt_add(p1, p2):
+        if p1 is None:
+            return p2
+        if p2 is None:
+            return p1
+        x1, y1 = p1
+        x2, y2 = p2
+        if x1 == x2 and y1 != y2:
+            return None
+        if x1 == x2:
+            m = (3 * x1 * x1) * pow(2 * y1, P - 2, P)
+        else:
+            m = (y2 - y1) * pow(x2 - x1, P - 2, P)
+        m %= P
+        x3 = (m * m - x1 - x2) % P
+        return x3, (m * (x1 - x3) - y1) % P
+
+    def _pt_mul(k, pt):
+        r = None
+        while k:
+            if k & 1:
+                r = _pt_add(r, pt)
+            pt = _pt_add(pt, pt)
+            k >>= 1
+        return r
+
+    def _tag(tag: str, *msgs: bytes) -> bytes:
+        t = hashlib.sha256(tag.encode()).digest()
+        return hashlib.sha256(t + t + b"".join(msgs)).digest()
+
+    d = int(key, 16)
+    if not 1 <= d < N:
+        return {"ok": False, "error": "conn:nostr privkey out of secp256k1 range"}
+    Px, Py = _pt_mul(d, (Gx, Gy))
+    if Py % 2 == 1:
+        d = N - d
+    pk = Px.to_bytes(32, "big")
+    pubkey = pk.hex()
+
+    ev = {
+        "pubkey": pubkey, "created_at": int(time.time()),
+        "kind": 1, "tags": [], "content": text,
+    }
+    ser = json.dumps(
+        [0, ev["pubkey"], ev["created_at"], ev["kind"], ev["tags"], ev["content"]],
+        separators=(",", ":"), ensure_ascii=False,
+    )
+    eid = hashlib.sha256(ser.encode()).hexdigest()
+    ev["id"] = eid
+
+    # BIP340 sign with aux=0 (deterministic nonce — valid per the spec's
+    # optional auxrand; RFC6979-style determinism is fine for broadcast notes)
+    msg = bytes.fromhex(eid)
+    k0 = int.from_bytes(_tag("BIP0340/nonce", d.to_bytes(32, "big"), pk, msg), "big") % N
+    Rx, Ry = _pt_mul(k0, (Gx, Gy))
+    k = N - k0 if Ry % 2 == 1 else k0
+    e = int.from_bytes(_tag("BIP0340/challenge", Rx.to_bytes(32, "big"), pk, msg), "big") % N
+    ev["sig"] = (Rx.to_bytes(32, "big") + ((k + e * d) % N).to_bytes(32, "big")).hex()
+
+    import websockets
+    errs: list = []
+    for url in relays:
+        try:
+            async def _go():
+                async with websockets.connect(url, open_timeout=8, close_timeout=2) as ws:
+                    await ws.send(json.dumps(["EVENT", ev], separators=(",", ":")))
+                    async for frame in ws:
+                        try:
+                            m = json.loads(frame)
+                        except Exception:
+                            continue
+                        if m[0] == "OK" and m[1] == eid:
+                            return bool(m[2])
+                        if m[0] == "NOTICE":
+                            errs.append(f"{url}: {str(m[1])[:100]}")
+            accepted = await asyncio.wait_for(_go(), timeout=10)
+            if accepted:
+                return {"ok": True, "status": 200, "body": {"id": eid, "relay": url}}
+            errs.append(f"{url}: no OK")
+        except Exception as exc:
+            errs.append(f"{url}: {str(exc)[:80]}")
+    return {"ok": False, "status": 502, "error": f"nostr relays rejected: {'; '.join(errs)}"}
 
 
 async def _brevo(payload: dict, cred: str) -> dict:

@@ -2983,3 +2983,35 @@ blocked Microsoft surfaces. Every free surface pushed to its ceiling:
   beehiiv, nostr, ayrshare, buffer, letmepost, twilio, whatsapp — every one
   gated by card / provider review / phone-call / dead-API / missing-instance
   as documented above.
+
+## 2026-10-08 (final sweep) — nostr live + last gates confirmed
+
+- **conn:nostr LIVE** — real relay-websocket publish implemented (was a stub).
+  Worker: `nostrPublish` in `worker/src/services.ts` — Workers support outbound
+  WebSocket; `@noble/curves` schnorr-signs the NIP-01 event, default relays
+  `wss://relay.damus.io` + `wss://nos.lol`. Python mirror `core/tools/
+  connectors.py::_nostr` ships a pure-Python BIP340 impl (no secp256k1 dep —
+  verified against the official pubkey vector + sign/verify round-trip).
+  cred: `<64-hex privkey>[|wss://relay1,wss://relay2]` (`NOSTR_PRIVATE_KEY`).
+  Verified twice live: worker dispatch → nos.lol `52b356678f80f00e…`, python
+  path → relay.damus.io `66f893f88631c841…`.
+- **conn:mattermost BLOCKED (definitive)** — account verified on
+  community.mattermost.com, joined Contributors team, webhook form loads but
+  Save → "You do not have the appropriate permissions" — the public server
+  grants members no integration perms. Needs a dedicated instance.
+- **conn:teams BLOCKED (definitive)** — `lazynextai@outlook.com` signs into
+  Teams consumer (teams.live.com); consumer tier has no incoming-webhook
+  connectors — requires a commercial M365 tenant.
+- **conn:reddit BLOCKED (definitive)** — logged in u/lazynext, solved the
+  reCAPTCHA on /prefs/apps twice; both submits 200+jQuery-response but silently
+  drop (no app created) — new/low-karma account gate. The pending app-store
+  resubmission remains the path.
+- **conn:slack re-confirmed blocked** — api.slack.com shows no signed-in
+  workspace; sign-in is reCAPTCHA-walled.
+- **conn:* state now (23 live)**: postiz, brevo, github, signwell, telegram,
+  wordpress, bluesky, devto, lemmy, ghost, listmonk, matrix, discord, gitlab,
+  mastodon, tumblr, youtube, facebook, instagram, threads, zulip, webhook,
+  nostr. Remaining 23 all hard-gated: card (x, meta, twilio, beehiiv, ayrshare,
+  buffer, letmepost), provider review (pinterest Standard, reddit), human/phone
+  (vk, linkedin, whatsapp, viber, line, slack, gmb), geo (tiktok), no-instance
+  (teams, mattermost), dead/unsupported API (medium, hashnode, snapchat).
