@@ -2788,3 +2788,44 @@ blocked Microsoft surfaces. Every free surface pushed to its ceiling:
   Cloudflare $4.57, Hashnode Pro; (3) real personal LinkedIn → create
   the Company Page; (4) phone apps for Warpcast + VK; (5) npm manual
   signup; (6) DEV.to appeal email ~Oct 14; (7) Alibaba phone-bind.
+
+## 2026-10-08 (afternoon) — founder actions landed
+
+- **npm PUBLISHED**: `@lazynext/accessibility-checker@1.0.0` live on the
+  public registry. Founder signed up manually (DataDome still blocks
+  automation on /signup); agent completed the rest in-browser — forgot-
+  password via `support@` inbox → password reset → `npm login` CLI
+  handshake (`/login/cli/…`) → email-OTP escalation → minted granular
+  token `lazynext-publish` (bypass-2FA, all-packages RW, 90-day expiry →
+  rotate by ~2027-01-06) in `.env` as `NPM_TOKEN` + `NPM_PASSWORD`.
+  Publish needed the token because the web-login session token can't
+  publish without 2FA-bypass.
+- **GBP support case SUBMITTED**: `business_other_v2` email form →
+  Case ID **9-9603000042230**. Attached 5 founder docs
+  (`United Global Ventures Private Limited Doc.pdf`,
+  `United Global Ventures Private Limited.pdf`, `KMG WIFI BILL SEP
+  26.pdf`, `SEP KMG BILL.pdf`, `NOC from LL.pdf` — copies kept in
+  gitignored `.playwright-mcp/gbp-docs/`). Description explains
+  Lazynext trades as UGV Pvt Ltd, coworking space = no signage video,
+  requests document verification. Response lands at `support@`.
+- **VK**: account created by founder (phone). Web login QR live in the
+  managed browser — founder scans with the VK app's scanner to land the
+  web session → then vk.com/apps → VK_ID secret on postiz worker.
+- **Warpcast/Farcaster**: account created by founder. Postiz needs
+  `NEYNAR_APP_FID` + `NEYNAR_APP_MNEMONIC` (the account's FID + its
+  recovery/custody phrase, exported in-app) → `wrangler secret put` on
+  the postiz worker → deploy + `/__admin/restart-container` → Postiz
+  generates a signer-approval QR → founder approves in Warpcast.
+  `NEYNAR_SECRET_KEY` (API key) already held; `NEYNAR_CLIENT_ID` =
+  `ef48d016-0d04-4b6b-9d62-d9004d30fe44` (Support's App on dev.neynar.com).
+- **Postiz env trap reminder**: `envVars` are captured in the DO
+  constructor — `wrangler secret put` alone is invisible; need
+  `wrangler deploy` THEN `POST /__admin/restart-container`
+  (`x-admin-key: ADMIN_RESTART_KEY`) for secrets to reach the container.
+- **Founder queue now**: (1) company card (~2-3d) → Azure signup, X
+  credits, Cloudflare $4.57 OTP decision (real Workers-Paid invoice on
+  card *2288 — pay it or swap card first), Hashnode Pro ₹500.80/mo;
+  (2) real personal LinkedIn → create `/company/lazynext` page;
+  (3) VK app QR scan (live in browser); (4) Warpcast FID + recovery
+  phrase export; (5) DEV.to appeal email to yo@dev.to after ~Oct 14;
+  (6) Alibaba phone-bind.
