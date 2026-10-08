@@ -3322,3 +3322,52 @@ blocked Microsoft surfaces. Every free surface pushed to its ceiling:
   non-IN IP, Teams org tenant. Remaining Ayrshare linkable tiles pending
   underlying accounts: bluesky, fb/ig/threads (Meta session), telegram,
   snapchat, tiktok, x-byok, linkedin, youtube.
+
+## 2026-10-07 — connector verification sweep (37 credentialed → all tested)
+
+Newly LIVE-verified via /api/v1/connectors/{id} (real dispatch):
+- bluesky (post 3mxfjmd6dj42r), mastodon (toot 117407686351966936),
+  discord (204), slack (ts 1791499122.928299), telegram (msg 7 →
+  @lazynext_ai channel), zulip (sandbox msg 630281678), matrix
+  (event_id $TEarV0…), gitlab (public snippet 6066311), nostr (note
+  via wss://nos.lol), lemmy (post 41121687 → lemmy.cafe/c/lazynext —
+  fixed missing https:// in stored cred), facebook (page post
+  …500865), threads (…533502), instagram (media …127070 with og.png),
+  wordpress (post id 5, deleted after verify), listmonk (draft
+  campaign 13, junk test campaigns cleaned), webhook (Discord webhook
+  — stored cred had a stray leading '"', stripped; code now sends
+  Discord's native {content} shape when the URL is a discord webhook).
+- youtube — durable refresh-token cred verified (access_token mints
+  fine); full e2e needs a media_url video.
+- whatsapp — token+phone_id verified via Graph (test number, quality
+  UNKNOWN); live send just needs payload.to.
+- meta — token+ad account work; campaign+adset+creative all created
+  OK, final ad refused: "No payment method" on the ad account
+  (founder billing action; test objects deleted).
+
+**NEW TRAP — worker→same-zone workers.dev subrequests 404.** A fetch
+from ai-company-os to *.dry-hall-6a50.workers.dev siblings is
+intercepted by CF internal routing and 404s BEFORE reaching the
+sibling's router (proven: POST /__health and POST /query both 404
+while identical local calls succeed). Custom domains are unaffected
+(postiz.lazynext.com returned a real response). conn:listmonk now
+uses `listmonk.lazynext.com` (bound via workers/domains PUT) instead
+of its workers.dev URL — dispatch then succeeded instantly. Same fix
+needed for ANY future connector whose cred URL is a same-zone
+workers.dev hostname.
+
+Dead creds found (need founder re-auth/new key):
+- devto — stored API key 401s on /users/me (revoked).
+- tumblr — 401; stored value looks like an OAuth1 consumer key, the
+  dispatch path needs an OAuth2 access token.
+- ghost — "Unknown Admin API Key" — ghost.lazynext.com is a fresh
+  install (integration lost on rebuild); needs a new Admin API key
+  from the Ghost panel.
+
+Mailbox sweep (Outlook + Gmail): all read. Notable items — Reddit
+confirmed the Ayrshare OAuth grant; Hashnode removed an earlier
+"connector probe" post (spam filter — keep real titles); LinkedIn
+appeal denied again (personal OAuth remains the only path); WhatsApp
+template approvals; GBP verify reminder; Buffer API key confirm;
+Peerlist profile <40% (still hidden) — completing it is an open
+growth-surface task.

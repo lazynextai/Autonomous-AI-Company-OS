@@ -1801,16 +1801,21 @@ async function callConnector(
       const [url, bearer = ""] = cred.split("|");
       if (!url.startsWith("https://"))
         return { ok: false, status: 500, error: "conn:webhook must be an https:// url (|bearer optional)" };
+      // Discord/Slack incoming webhooks reject the generic {text} envelope —
+      // send their native field instead.
+      const discord = url.includes("discord.com/api/webhooks") || url.includes("discordapp.com/api/webhooks");
       return connPost(url, {
         method: "POST",
         headers: {
           "content-type": "application/json",
           ...(bearer ? { authorization: `Bearer ${bearer}` } : {}),
         },
-        body: JSON.stringify({
-          text, source: "lazynext", ts: Date.now(),
-          ...(typeof b.payload === "object" && b.payload !== null ? { payload: b.payload } : {}),
-        }),
+        body: JSON.stringify(discord
+          ? { content: text }
+          : {
+            text, source: "lazynext", ts: Date.now(),
+            ...(typeof b.payload === "object" && b.payload !== null ? { payload: b.payload } : {}),
+          }),
       });
     }
     case "ayrshare": {

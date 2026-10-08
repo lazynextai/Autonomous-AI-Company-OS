@@ -802,13 +802,18 @@ async def _webhook(payload: dict, cred: str) -> dict:
     url, _, bearer = cred.partition("|")
     if not url.startswith("https://"):
         return {"ok": False, "error": "conn:webhook must be an https:// url (|bearer optional)"}
-    body: dict[str, Any] = {
-        "text": payload.get("text") or "",
-        "source": "lazynext",
-        "ts": int(__import__('time').time() * 1000),
-    }
-    if isinstance(payload.get("payload"), dict):
-        body["payload"] = payload["payload"]
+    # Discord/Slack incoming webhooks reject the generic {text} envelope —
+    # send their native field instead.
+    if "discord.com/api/webhooks" in url or "discordapp.com/api/webhooks" in url:
+        body: dict[str, Any] = {"content": payload.get("text") or ""}
+    else:
+        body = {
+            "text": payload.get("text") or "",
+            "source": "lazynext",
+            "ts": int(__import__('time').time() * 1000),
+        }
+        if isinstance(payload.get("payload"), dict):
+            body["payload"] = payload["payload"]
     return await _post(
         url,
         headers={"authorization": f"Bearer {bearer}"} if bearer else None,
