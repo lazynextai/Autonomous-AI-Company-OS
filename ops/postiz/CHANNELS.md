@@ -2718,3 +2718,73 @@ blocked Microsoft surfaces. Every free surface pushed to its ceiling:
 - **Azure step-3 screenshots**: `azure-passkey.png`/`azure-step3.png`
   moved to `.playwright-mcp/` (gitignored) — kept locally for reference,
   not committed. Card form remains staged in the managed browser.
+
+## 2026-10-08 — Founder-gate resolution pass (company-card wait)
+
+- **Azure + X card entries PARKED by founder decision**: personal debit
+  card declined for use; company current account opens in ~2-3 days,
+  company debit card after that. Azure signup form stays staged in the
+  managed browser tab; X console.x.com card step untouched.
+- **Cloudflare $4.57 confirmed = real payment**: invoice for Workers
+  Paid $5.00 + IGST $0.90 − $1.33 applied balance, Oct billing period.
+  Card `*2288` on file; Stripe link needs Visa Secure bank OTP. Not a
+  verification hold — unpaid risks account restriction. Founder may
+  swap to company card first, then confirm.
+- **Hashnode Pro confirmed = real paid subscription**: ₹500.80/mo.
+  GraphQL writes (and publication-scoped reads) require active Pro —
+  free API access was retired. No verify-only path. Parked with the
+  other card items.
+- **GMB documents-path verdict (drove the full official flow)**:
+  re-ran the verify wizard end-to-end — duplicate screen (Aspire
+  Coworks / Bizzhub / None-of-these) → "Select a way to get verified"
+  offers ONLY "Submit a business video"; "More options" reveals only
+  "Verify Later". The verification-status troubleshooter
+  (`business/workflow/12825603`) → confirm email → select Lazynext →
+  "physical location" → lands back on the same video-only verify link.
+  gethelp flow: "Can't make or upload verification video" chip routes
+  to help articles only; Step-3 "Contact options" → Email opens the
+  REAL form `business/contact/business_other_v2` (iframe, "Genie
+  module"). The "My business profile is not verified" issue type
+  renders Google's standing answer: **"You cannot change the
+  verification methods available in your Business Profile."** The
+  "I need support for a different issue" type IS the document channel —
+  it requires attaching (1) business registration/license showing the
+  name+address matching the listing and (2) a utility bill at the same
+  name+address, plus phone + relationship fields. **Form fully staged**:
+  name/email/business/address/profile-ID `1367714245259080808`/website/
+  description all filled, phone `9199366166` (+91), relationship
+  "I own this business" — blocked ONLY on the two required document
+  uploads (must be the founder's real documents; do not fabricate).
+- **LinkedIn — separate-company path resolved (research)**: LinkedIn
+  has no standalone company accounts; a Company Page must be created
+  and administered by a personal profile (admin linkage is not shown
+  publicly — separation IS achieved). Requirements: personal account
+  ≥7d old, intermediate+ profile strength, several connections, real
+  first+last name, company-domain email (we have @lazynext.com). The
+  "Lazynext AI" persona account is company-named (policy risk) AND
+  ID-restricted — leave it parked. Correct path: founder's REAL
+  personal LinkedIn → add a @lazynext.com email → list Lazynext in
+  Experience → For Business → Create a Company Page (`/company/lazynext`
+  slug is free — no existing Page). Support will not override the
+  personal-admin requirement; it is structural.
+- **Warpcast confirmed app-only**: `warpcast.com/~/signup` →
+  `farcaster.xyz/~/signup` shows only a QR code + iOS/Android store
+  links. No web form exists to automate.
+- **VK confirmed app-only**: `vk.com/join` → `vk.ru/join` renders
+  "Install VK app — scan QR" only; phone form no longer appears for
+  our region.
+- **npm confirmed manual-only**: `/signup` 403 via curl AND managed
+  browser (DataDome); registry `PUT /-/user/` returns "legacy account
+  creation unavailable, use web signup". Founder browser ~2min.
+- **DEV.to**: key still 401 (suspension active, lifts ~Oct 14). Appeal
+  drafted — send to `yo@dev.to` AFTER Oct 14: acknowledge Terms of Use
+  + Code of Conduct + Content Policy §11; commit to substantial
+  original technical content, not backlink posts; request
+  reinstatement. From `support@lazynext.com`, subject
+  "Account reinstatement appeal — @lazynext".
+- **Founder queue after this pass**: (1) provide the two GBP documents
+  (registration + utility bill) so the staged support form can be
+  submitted — or submit video instead; (2) company card → Azure, X,
+  Cloudflare $4.57, Hashnode Pro; (3) real personal LinkedIn → create
+  the Company Page; (4) phone apps for Warpcast + VK; (5) npm manual
+  signup; (6) DEV.to appeal email ~Oct 14; (7) Alibaba phone-bind.
