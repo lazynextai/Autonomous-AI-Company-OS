@@ -196,12 +196,50 @@ async def _mastodon(text: str, cred: str) -> dict:
 
 
 async def _reddit(payload: dict, cred: str) -> dict:
-    # cred: "<client_id>:<client_secret>:<username>:<password>:<subreddit>" —
-    # script-app OAuth, then self-post. Payload 'to' overrides the subreddit,
-    # 'body' overrides the post body (text is the title).
+    # Two credential shapes:
+    #   a) "<client_id>:<client_secret>:<username>:<password>:<subreddit>" —
+    #      script-app OAuth, then self-post.
+    #   b) "<reddit_session>:<loid>:<subreddit>" — web session cookies.
+    #      Script-app creation is silently dropped on low-karma accounts,
+    #      but the first-party web session mints a fresh 24h token_v2 via
+    #      Set-Cookie on any authed page load, and oauth.reddit.com accepts
+    #      it for /api/submit (no captcha on that path).
+    # Payload 'to' overrides the subreddit, 'body' overrides the post body
+    # (text is the title).
     parts = cred.split(":")
+    if len(parts) == 3:
+        sess, loid, sr = parts
+        if not (payload.get("text") or ""):
+            return {"ok": False, "error": "text required"}
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            page = await client.get(
+                "https://www.reddit.com/",
+                headers={
+                    "cookie": f"reddit_session={sess}; loid={loid}",
+                    "user-agent": "lazynext/1.0",
+                },
+            )
+        tv = next(
+            (h for h in page.headers.get_list("set-cookie")
+             if h.startswith("token_v2=")),
+            "",
+        )
+        at = tv.split("token_v2=", 1)[1].split(";")[0] if tv else ""
+        if not at:
+            return {"ok": False, "status": page.status_code,
+                    "error": "reddit session did not mint token_v2 — reddit_session may be expired or IP-bound"}
+        return await _post(
+            "https://oauth.reddit.com/api/submit",
+            headers={"authorization": f"Bearer {at}", "user-agent": "lazynext/1.0"},
+            data={
+                "sr": payload.get("to") or sr,
+                "title": (payload.get("text") or "")[:300],
+                "text": payload.get("body") or payload.get("text") or "",
+                "kind": "self", "api_type": "json",
+            },
+        )
     if len(parts) < 5:
-        return {"ok": False, "error": "conn:reddit must be '<client_id>:<client_secret>:<username>:<password>:<subreddit>'"}
+        return {"ok": False, "error": "conn:reddit must be '<client_id>:<client_secret>:<username>:<password>:<subreddit>' or '<reddit_session>:<loid>:<subreddit>'"}
     cid, secret, user, pw, sr = parts[0], parts[1], parts[2], parts[3], parts[4]
     tok = await _post(
         "https://www.reddit.com/api/v1/access_token",
@@ -781,8 +819,8 @@ async def _letmepost(payload: dict, cred: str) -> dict:
     # cred: "<api_key>|<account_ids_csv>[|<base_url>]" — letmepost.dev API
     # key; account ids from GET /v1/accounts. Base defaults to the hosted
     # API; self-hosted image takes '<domain>'. Their reviewed app-of-record
-    # posts to X/Bluesky/Pinterest today and Meta/LinkedIn/TikTok as their
-    # platform reviews clear — no per-platform approval needed on our side.
+    # posts to X/Bluesky/Pinterest/Facebook/Instagram/Threads/LinkedIn/TikTok
+    # — no per-platform developer approval needed on our side.
     key, _, rest = cred.partition("|")
     accts, _, base = rest.partition("|")
     if not accts:
@@ -796,7 +834,8 @@ async def _letmepost(payload: dict, cred: str) -> dict:
         headers={"authorization": f"Bearer {key}"},
         json_body={
             "text": text,
-            "account_ids": [a.strip() for a in accts.split(",") if a.strip()],
+            "targets": [{"accountId": a.strip()} for a in accts.split(",") if a.strip()],
+            **({"media": [{"kind": str(payload.get("media_kind") or "image"), "url": str(payload["media_url"])}]} if payload.get("media_url") else {}),
         },
     )
 

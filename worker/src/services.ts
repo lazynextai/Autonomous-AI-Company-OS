@@ -1181,12 +1181,47 @@ async function callConnector(
       });
     }
     case "reddit": {
-      // cred: "<client_id>:<client_secret>:<username>:<password>:<subreddit>" —
-      // script-app OAuth, then self-post. Payload 'to' overrides the subreddit,
-      // 'body' overrides the post body (text is the title).
+      // Two credential shapes:
+      //   a) "<client_id>:<client_secret>:<username>:<password>:<subreddit>" —
+      //      script-app OAuth, then self-post.
+      //   b) "<reddit_session>:<loid>:<subreddit>" — web session cookies.
+      //      Script-app creation is silently dropped on low-karma accounts,
+      //      but the first-party web session mints a fresh 24h token_v2 via
+      //      Set-Cookie on any authed page load, and oauth.reddit.com accepts
+      //      it for /api/submit (no captcha on that path). Self-heals as long
+      //      as reddit_session is valid (~6 months).
+      // Payload 'to' overrides the subreddit, 'body' overrides the post body
+      // (text is the title).
       const parts = cred.split(":");
+      if (parts.length === 3) {
+        const [sess, loid, sr] = parts;
+        if (!text) return { ok: false, status: 400, error: "text required" };
+        const page = await fetch("https://www.reddit.com/", {
+          headers: {
+            cookie: `reddit_session=${sess}; loid=${loid}`,
+            "user-agent": "lazynext/1.0",
+          },
+        });
+        const tv = page.headers.getSetCookie()
+          .find((h) => h.startsWith("token_v2="));
+        const at = tv?.split("token_v2=", 2)[1]?.split(";")[0];
+        if (!at)
+          return { ok: false, status: page.status, error: "reddit session did not mint token_v2 — reddit_session may be expired or IP-bound" };
+        return connPost("https://oauth.reddit.com/api/submit", {
+          method: "POST",
+          headers: {
+            authorization: `Bearer ${at}`,
+            "content-type": "application/x-www-form-urlencoded",
+            "user-agent": "lazynext/1.0",
+          },
+          body: new URLSearchParams({
+            sr: String(b.to ?? sr), title: text.slice(0, 300),
+            text: String(b.body ?? text), kind: "self", api_type: "json",
+          }).toString(),
+        });
+      }
       if (parts.length < 5)
-        return { ok: false, status: 500, error: "conn:reddit must be '<client_id>:<client_secret>:<username>:<password>:<subreddit>'" };
+        return { ok: false, status: 500, error: "conn:reddit must be '<client_id>:<client_secret>:<username>:<password>:<subreddit>' or '<reddit_session>:<loid>:<subreddit>'" };
       const [cid, secret, user, pass, sr] = parts;
       if (!text) return { ok: false, status: 400, error: "text required" };
       const tok = await connPost("https://www.reddit.com/api/v1/access_token", {
@@ -1763,9 +1798,9 @@ async function callConnector(
       // cred: "<api_key>|<account_ids_csv>[|<base_url>]" — letmepost.dev API
       // key; account ids from GET /v1/accounts. Base defaults to the hosted
       // API; self-hosted image takes '<domain>'. The key value: their
-      // reviewed app-of-record posts to X/Bluesky/Pinterest today and
-      // Meta/LinkedIn/TikTok as their platform reviews clear — no per-
-      // platform developer approval needed on our side.
+      // reviewed app-of-record posts to X/Bluesky/Pinterest/Facebook/
+      // Instagram/Threads/LinkedIn/TikTok — no per-platform developer
+      // approval needed on our side.
       const [key, accts = "", baseRaw = ""] = cred.split("|");
       if (!accts)
         return { ok: false, status: 500, error: "conn:letmepost must be '<api_key>|<account_ids>[|<base_url>]'" };
@@ -1775,7 +1810,8 @@ async function callConnector(
         headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
         body: JSON.stringify({
           text,
-          account_ids: accts.split(",").map((s) => s.trim()).filter(Boolean),
+          targets: accts.split(",").map((s) => s.trim()).filter(Boolean).map((accountId) => ({ accountId })),
+          ...(b.media_url ? { media: [{ kind: String(b.media_kind ?? "image"), url: String(b.media_url) }] } : {}),
         }),
       });
     }

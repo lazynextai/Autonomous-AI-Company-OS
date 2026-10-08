@@ -63,3 +63,7 @@ knowledge_base/
 .dev.vars
 ops/mcp-registry/dns-key.pem
 .mcp_publisher_token
+.lmp_key.txt
+.reddit_state.json
+.medium_state.json
+.twilio_cred.txt
