@@ -219,10 +219,13 @@ Credentialed but platform-gated:
   `402 credits-depleted`. Needs a payment method on the X developer
   account. Buffer/Postiz/letmepost cover X meanwhile.
 - `ayrshare` — free Basic-plan API key stored (no card; 20 posts/mo,
-  13 networks). Linked so far: **reddit, pinterest, gmb** — all three
-  dispatch live via the `ayrshare` cred short-circuit on their own
-  `conn:*` keys. Remaining tiles need the underlying account to exist
-  first — see `ops/postiz/CHANNELS.md`.
+  13 networks). Linked so far: **reddit, pinterest, gmb, bluesky** —
+  the first three dispatch live via the `ayrshare` cred short-circuit
+  on their own `conn:*` keys. Telegram linking needs `@AyrshareBot`
+  added as channel admin from the Telegram mobile app (founder);
+  X-BYOK/Facebook consent flows don't complete page/app selection;
+  remaining tiles need the underlying account to exist first — see
+  `ops/postiz/CHANNELS.md`.
 
 Not credentialed — the blocker is founder action or spend, not code:
 

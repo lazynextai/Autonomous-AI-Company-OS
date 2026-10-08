@@ -1214,7 +1214,7 @@ user-gated, same as admin.google.com.
 | pinterest | not ours (existing lazynext ≠ ours) | — | signup silently drops |
 | stackoverflow | Lazynext (users/33177966) | support@ (Google) | live — already existed, verified session 2026-10-02 |
 | producthunt | @lazynext | support@ | live — already existed, verified session 2026-10-02 |
-| peerlist | Lazynext | support@ | live — already existed, verified session 2026-10-02 |
+| peerlist | lazynext | support@ | live — profile >40% (public/interactive) since 2026-10-11 |
 | substack | @lazynext | support@ | **live — publication `lazynext.substack.com` provisioned 2026-10-06** |
 | mewe | **mewe.com/lazynext_ai** (`Lazynext AI`) | support@ (Google) | **live 2026-10-02** — onboarding unblocked via real clicks |
 | gmb | Lazynext (wizard at address step) | support@ | **address-gated** — needs real business address for verification |
@@ -3370,4 +3370,7 @@ confirmed the Ayrshare OAuth grant; Hashnode removed an earlier
 appeal denied again (personal OAuth remains the only path); WhatsApp
 template approvals; GBP verify reminder; Buffer API key confirm;
 Peerlist profile <40% (still hidden) — completing it is an open
-growth-surface task.
+growth-surface task. RESOLVED 2026-10-11: Google-SSO'd, claimed
+`peerlist.io/lazynext`, filled Basic Details + photo (og.png) +
+tags (ai/Python/JavaScript/SaaS) + social links (X @lazynextai,
+PH @lazynext) → past the 40% interaction gate, profile public.
