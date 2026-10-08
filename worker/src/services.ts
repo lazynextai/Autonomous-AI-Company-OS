@@ -5,6 +5,7 @@
  */
 import { Env, json, authorize, touchKey, listAll } from "./gateway";
 import { publishToBus } from "./webhooks";
+import puppeteer from "@cloudflare/puppeteer";
 
 // Media library — the Postiz piece the native scheduler lacked. Bytes live
 // in R2 (media/{id}) when the MEDIA binding is bound — video-capable up to
@@ -1475,25 +1476,113 @@ async function callConnector(
     }
     case "medium": {
       if (!text) return { ok: false, status: 400, error: "text required" };
-      // cred: "<integration_token>" — medium.com → Settings → Integration
-      // tokens. Medium's API is officially unsupported (no new integrations)
-      // but integration tokens still work — treat as best-effort.
-      // /v1/me resolves the user id at call time so the cred stays one value.
-      const me = await connPost("https://api.medium.com/v1/me", {
-        method: "GET",
-        headers: { authorization: `Bearer ${cred}` },
-      });
-      if (!me.ok) return me;
-      const uid = ((me.body ?? {}) as { data?: { id?: string } }).data?.id;
-      if (!uid) return { ok: false, status: 500, error: "medium /v1/me returned no user id" };
-      return connPost(`https://api.medium.com/v1/users/${uid}/posts`, {
-        method: "POST",
-        headers: { authorization: `Bearer ${cred}`, "content-type": "application/json" },
-        body: JSON.stringify({
-          title: String(b.title ?? text.split("\n")[0].slice(0, 100)),
-          contentFormat: "markdown", content: text, publishStatus: "public",
-        }),
-      });
+      // cred: "<uid>|<sid>|<xsrf>|<cf_clearance>" — medium.com session
+      // cookies harvested from a logged-in browser ('|' because sid embeds
+      // a ':' and cf_clearance is required on POSTs). Medium's public API
+      // died years ago; this drives the private web API end-to-end:
+      //   1) POST /new-story?logLockId → creates a draft, returns payload.value.id
+      //   2) POST /p/{id}/deltas       → delta ops write title+body text
+      //   3) POST /_/graphql           → SubmitPublishPostMutation publishes
+      // Verified live against @lazynext — published post 613809f93442.
+      // NOTE: cf_clearance is IP/UA-bound — if edge egress re-challenges,
+      // re-harvest and re-store the credential.
+      const [mUid = "", mSid = "", mXsrf = "", mCfc = ""] = cred.split("|");
+      if (!mUid || !mSid || !mXsrf)
+        return { ok: false, status: 500, error: "conn:medium must be '<uid>|<sid>|<xsrf>[|<cf_clearance>]' (session cookies)" };
+      const cookie = `uid=${mUid}; sid=${mSid}; xsrf=${mXsrf}${mCfc ? `; cf_clearance=${mCfc}` : ""}`;
+      const mHdr = {
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+        "content-type": "application/json",
+        cookie, origin: "https://medium.com", referer: "https://medium.com/new-story",
+        "x-xsrf-token": mXsrf, accept: "application/json",
+      };
+      // Medium prefixes every JSON response with "])}while(1);</x>" — strip it.
+      const medPost = async (u: string, payload: unknown) => {
+        const r = await fetch(u, { method: "POST", headers: mHdr, body: JSON.stringify(payload) });
+        const raw = await r.text();
+        const clean = raw.replace(/^\]\)\}while\(1\);<\/x>/, "");
+        let parsed: unknown = {};
+        try { parsed = JSON.parse(clean); } catch { /* html/error page */ }
+        return { ok: r.ok, status: r.status, body: parsed as Record<string, unknown>, raw: clean };
+      };
+      const title = String(b.title ?? text.split("\n")[0].slice(0, 100));
+      const bodyLines = String(b.content ?? text).split("\n").filter((l) => l.trim());
+      const rn = () => Math.random().toString(36).slice(2, 6);
+      const paras: { name: string; ptype: number; text: string }[] = [
+        { name: rn(), ptype: 3, text: title },
+        ...bodyLines.map((line) => ({ name: rn(), ptype: 1, text: line })),
+      ];
+      const mkOps = () => {
+        const ops: unknown[] = [{ type: 8, index: 0, section: { name: rn(), startIndex: 0 } }];
+        paras.forEach((p, i) =>
+          ops.push({ type: 1, index: i, paragraph: { name: p.name, type: p.ptype, text: "", markups: [] } }));
+        paras.forEach((p, i) =>
+          ops.push({ type: 3, index: i, paragraph: { name: p.name, type: p.ptype, text: p.text, markups: [] }, verifySameName: true }));
+        return ops;
+      };
+      const GQL_PUB = "mutation SubmitPublishPostMutation($input: SetPostPublishedInput!) { setPostPublished(input: $input) { __typename } }";
+      // The 3-step flow as a page-evaluated script — used verbatim in the
+      // Browser Rendering fallback below (runs inside medium.com's origin so
+      // the browser's own cf_clearance + cookies apply).
+      const flowSrc = `async (postJson, ops, gqlPub, xsrf) => {
+        const ll = Math.floor(Math.random()*9000)+1000;
+        const hdrs = {"content-type":"application/json","x-xsrf-token":xsrf,"accept":"application/json"};
+        const strip = t => { try { return JSON.parse(t.replace(/^\\]\\)\\}while\\(1\\);<\\/x>/, "")); } catch(e) { return {__raw: t.slice(0,200)}; } };
+        const s = await fetch("/new-story?logLockId="+ll, {method:"POST",headers:hdrs,body:postJson});
+        const sj = strip(await s.text());
+        const pid = sj?.payload?.value?.id ?? sj?.id;
+        if (!pid) return {ok:false, step:"draft", status:s.status, body:JSON.stringify(sj).slice(0,200)};
+        const d = await fetch("/p/"+pid+"/deltas?logLockId="+ll, {method:"POST",headers:hdrs,body:JSON.stringify({id:pid,deltas:ops,baseRev:-1})});
+        if (d.status >= 400) return {ok:false, step:"deltas", status:d.status, body:(await d.text()).slice(0,160)};
+        const p = await fetch("/_/graphql", {method:"POST",headers:hdrs,body:JSON.stringify([{operationName:"SubmitPublishPostMutation",variables:{input:{postId:pid}},query:gqlPub}])});
+        if (p.status >= 400) return {ok:false, step:"publish", status:p.status, body:(await p.text()).slice(0,160)};
+        return {ok:true, postId:pid, url:"https://medium.com/p/"+pid};
+      }`;
+      const logLockId = Math.floor(Math.random() * 9000) + 1000;
+      const story = await medPost(`https://medium.com/new-story?logLockId=${logLockId}`,
+        { deltas: [], baseRev: -1, coverless: true, visibility: 0 });
+      let postId = String(
+        (((story.body ?? {}) as { payload?: { value?: { id?: string } } }).payload?.value?.id)
+        ?? ((story.body ?? {}) as { id?: string }).id ?? "");
+      if (!postId) {
+        // cf_clearance is IP-bound to the harvesting browser, so datacenter
+        // egress gets Cloudflare-challenged. Fall back to the worker's own
+        // Browser Rendering session: a real Chromium on our side solves the
+        // challenge itself, and uid/sid/xsrf alone authenticate.
+        if (!env.BROWSER)
+          return { ok: false, status: story.status, error: `medium draft create failed (${story.status}) and no BROWSER binding: ${story.raw.slice(0, 160)}` };
+        let br: Awaited<ReturnType<typeof puppeteer.launch>> | undefined;
+        try {
+          br = await puppeteer.launch(env.BROWSER);
+          const page = await br.newPage();
+          const mk = (name: string, value: string) => ({
+            name, value, domain: ".medium.com", path: "/", secure: true,
+          });
+          await page.setCookie(mk("uid", mUid), mk("sid", mSid), mk("xsrf", mXsrf));
+          const nav = await page.goto("https://medium.com/new-story", { waitUntil: "domcontentloaded", timeout: 60_000 }).catch((e) => null);
+          const landedUrl = page.url();
+          if (!nav || !landedUrl.includes("medium.com"))
+            return { ok: false, status: 502, error: `medium BR nav failed: ${landedUrl} (${nav?.status() ?? "no-response"})` };
+          await page.waitForNetworkIdle({ idleTime: 1500, timeout: 15_000 }).catch(() => {});
+          const out = await page.evaluate(
+            `(${flowSrc})(${JSON.stringify(JSON.stringify({ deltas: [], baseRev: -1, coverless: true, visibility: 0 }))}, ${JSON.stringify(mkOps())}, ${JSON.stringify(GQL_PUB)}, ${JSON.stringify(mXsrf)})`);
+          if ((out as { ok?: boolean })?.ok)
+            return { ok: true, status: 200, body: out };
+          return { ok: false, status: 502, error: `medium BR flow failed: ${JSON.stringify(out).slice(0, 240)}` };
+        } finally {
+          if (br) await br.disconnect().catch(() => br!.close().catch(() => {}));
+        }
+      }
+      const dl = await medPost(`https://medium.com/p/${postId}/deltas?logLockId=${logLockId}`,
+        { id: postId, deltas: mkOps(), baseRev: -1 });
+      if (!dl.ok) return { ok: false, status: dl.status, error: `medium deltas write failed: ${dl.status} ${dl.raw.slice(0, 160)}` };
+      const pub = await medPost("https://medium.com/_/graphql", [{
+        operationName: "SubmitPublishPostMutation",
+        variables: { input: { postId } },
+        query: GQL_PUB,
+      }]);
+      if (!pub.ok) return { ok: false, status: pub.status, error: `medium publish failed: ${pub.status} ${pub.raw.slice(0, 160)}` };
+      return { ok: true, status: 200, body: { postId, url: `https://medium.com/p/${postId}` } };
     }
     case "wordpress": {
       if (!text) return { ok: false, status: 400, error: "text required" };

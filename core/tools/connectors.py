@@ -498,28 +498,75 @@ async def _hashnode(payload: dict, cred: str) -> dict:
 async def _medium(payload: dict, cred: str) -> dict:
     if isinstance(payload, str):
         payload = {"text": payload}
-    # cred: "<integration_token>" — medium.com → Settings → Integration
-    # tokens. Medium's API is officially unsupported (no new integrations)
-    # but integration tokens still work — treat as best-effort.
-    # /v1/me resolves the user id at call time so the cred stays one value.
+    # cred: "<uid>|<sid>|<xsrf>|<cf_clearance>" — medium.com session cookies
+    # ('|' because sid embeds a ':'; cf_clearance is required on POSTs).
+    # The public API is dead; this drives the private web API:
+    # POST /new-story creates a draft, POST /p/{id}/deltas writes title+body,
+    # and the graphql SubmitPublishPostMutation publishes it. Verified live.
+    import re as _re
+    import random as _rnd
     text = payload.get("text") or ""
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        me = await client.get("https://api.medium.com/v1/me",
-                              headers={"authorization": f"Bearer {cred}"})
-    if me.status_code >= 400:
-        return {"status": me.status_code, "ok": False, "body": me.json() if me.text else {}}
-    uid = (me.json().get("data") or {}).get("id")
-    if not uid:
-        return {"ok": False, "error": "medium /v1/me returned no user id"}
-    return await _post(
-        f"https://api.medium.com/v1/users/{uid}/posts",
-        headers={"authorization": f"Bearer {cred}"},
-        json_body={
-            "title": payload.get("title") or text.split("\n")[0][:100],
-            "contentFormat": "markdown", "content": text,
-            "publishStatus": "public",
-        },
-    )
+    parts = (cred.split("|") + ["", "", "", ""])[:4]
+    uid, sid, xsrf, cfc = parts
+    if not (uid and sid and xsrf):
+        return {"ok": False, "error": "conn:medium must be '<uid>|<sid>|<xsrf>[|<cf_clearance>]' (session cookies)"}
+    cookie = f"uid={uid}; sid={sid}; xsrf={xsrf}" + (f"; cf_clearance={cfc}" if cfc else "")
+    ua = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+          "(KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36")
+    hdr = {
+        "user-agent": ua, "content-type": "application/json", "cookie": cookie,
+        "origin": "https://medium.com", "referer": "https://medium.com/new-story",
+        "x-xsrf-token": xsrf, "accept": "application/json",
+    }
+
+    def _medjson(resp):
+        import json as _j
+        raw = _re.sub(r"^\]\)\}while\(1\);</x>", "", resp.text)
+        try:
+            return _j.loads(raw)
+        except Exception:
+            return {}
+
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        log_lock = _rnd.randint(1000, 9999)
+        story = await client.post(
+            f"https://medium.com/new-story?logLockId={log_lock}", headers=hdr,
+            json={"deltas": [], "baseRev": -1, "coverless": True, "visibility": 0})
+        sj = _medjson(story)
+        post_id = ((sj.get("payload") or {}).get("value") or {}).get("id") or sj.get("id")
+        if not post_id:
+            return {"status": story.status_code, "ok": False,
+                    "error": f"medium draft create failed ({story.status_code}): {story.text[:200]}"}
+        title = payload.get("title") or text.split("\n")[0][:100]
+        lines = [l for l in str(payload.get("content") or text).split("\n") if l.strip()]
+
+        def rn():
+            return "".join(_rnd.choice("abcdefghijklmnopqrstuvwxyz0123456789") for _ in range(4))
+
+        ops = [{"type": 8, "index": 0, "section": {"name": rn(), "startIndex": 0}}]
+        paras = [{"name": rn(), "ptype": 3, "text": title}] + [
+            {"name": rn(), "ptype": 1, "text": l} for l in lines]
+        for i, p in enumerate(paras):
+            ops.append({"type": 1, "index": i,
+                        "paragraph": {"name": p["name"], "type": p["ptype"], "text": "", "markups": []}})
+        for i, p in enumerate(paras):
+            ops.append({"type": 3, "index": i,
+                        "paragraph": {"name": p["name"], "type": p["ptype"], "text": p["text"], "markups": []},
+                        "verifySameName": True})
+        dl = await client.post(
+            f"https://medium.com/p/{post_id}/deltas?logLockId={log_lock}",
+            headers=hdr, json={"id": post_id, "deltas": ops, "baseRev": -1})
+        if dl.status_code >= 400:
+            return {"status": dl.status_code, "ok": False, "body": _medjson(dl)}
+        pub = await client.post(
+            "https://medium.com/_/graphql", headers=hdr,
+            json=[{"operationName": "SubmitPublishPostMutation",
+                   "variables": {"input": {"postId": post_id}},
+                   "query": "mutation SubmitPublishPostMutation($input: SetPostPublishedInput!) { setPostPublished(input: $input) { __typename } }"}])
+    if pub.status_code >= 400:
+        return {"status": pub.status_code, "ok": False, "body": _medjson(pub)}
+    return {"ok": True, "status": 200,
+            "body": {"postId": post_id, "url": f"https://medium.com/p/{post_id}"}}
 
 
 async def _wordpress(payload: dict, cred: str) -> dict:

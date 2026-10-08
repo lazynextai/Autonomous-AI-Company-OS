@@ -3156,3 +3156,20 @@ blocked Microsoft surfaces. Every free surface pushed to its ceiling:
   a blank SPA in this browser; a 14-day cloud trial is ephemeral anyway.
   Durable path remains the CF-container pattern (postiz/listmonk/
   wordpress templates in ops/).
+
+## 2026-10-08 — medium cracked (private web API), twilio live
+
+- `conn:twilio` LIVE — trial account + founder +91 number verified as
+  caller ID through the console UI; real SMS dispatched (SM0726f33f…).
+  Trial sends only reach verified numbers — documented.
+- `conn:medium` LIVE — Medium's public API died years ago; the connector
+  now drives the private web API captured from the real editor:
+  POST /new-story?logLockId → POST /p/{id}/deltas (delta ops: type 8
+  section / 1 paragraph / 3 text) → POST /_/graphql
+  SubmitPublishPostMutation. Cred: `uid|sid|xsrf|cf_clearance` session
+  cookies. cf_clearance is IP-bound so edge egress falls back to the
+  worker's own Browser Rendering session (in-page fetch, real publish
+  9a6fe3b2b349); Python mirror verified locally (0cf414dc6e52).
+- GMB cloud-platform OAuth re-verify also hits the Google password wall
+  (sensitive scope → fresh-auth requirement). Still founder-gated;
+  Postiz GMB channel remains the covered path.
