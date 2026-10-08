@@ -945,6 +945,23 @@ async function connPost(
     error: r.ok ? undefined : String(data.message ?? data.error ?? r.status) };
 }
 
+// Google OAuth creds can be "<access_token>" (expires ~1h) or the durable
+// "<refresh_token>:<client_id>:<client_secret>" — refresh per call so the
+// stored cred never dies. Returns the token or null when the refresh fails.
+async function googleAccessToken(cred: string): Promise<string | null> {
+  const parts = cred.split(":");
+  if (parts.length < 3 || !parts[0].startsWith("1//")) return parts[0] ?? null;
+  const r = await connPost("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "refresh_token", refresh_token: parts[0],
+      client_id: parts[1], client_secret: parts[2],
+    }).toString(),
+  });
+  return ((r.body ?? {}) as { access_token?: string }).access_token ?? null;
+}
+
 // Worker-side mirror of connectors.py's _DISPATCH. Social connectors take
 // {text}; messaging connectors take {to, text}; brevo takes {to, subject, html}.
 async function callConnector(
@@ -1701,13 +1718,16 @@ async function callConnector(
       });
     }
     case "youtube": {
-      // cred: "<access_token>" — video upload only; YouTube has no text-post
-      // API. Resumable upload: init returns the upload URL in `location`.
+      // cred: "<access_token>" or durable "<refresh_token>:<client_id>:<client_secret>"
+      // — video upload only; YouTube has no text-post API. Resumable upload:
+      // init returns the upload URL in `location`.
       const media = String(b.media_url ?? "");
       if (!media) return { ok: false, status: 400, error: "youtube requires media_url — no text/community posts via API" };
+      const yt = await googleAccessToken(cred);
+      if (!yt) return { ok: false, status: 401, error: "google token refresh failed" };
       const init = await fetch("https://upload.youtube.com/upload/youtube/v3/videos?part=snippet,status&uploadType=resumable", {
         method: "POST",
-        headers: { authorization: `Bearer ${cred.split(":")[0]}`, "content-type": "application/json" },
+        headers: { authorization: `Bearer ${yt}`, "content-type": "application/json" },
         body: JSON.stringify({
           snippet: { title: (text || "Lazynext").slice(0, 100), description: String(b.body ?? text) },
           status: { privacyStatus: String(b.privacy ?? "public") },
@@ -1750,10 +1770,17 @@ async function callConnector(
     }
     case "gmb": {
       if (!text) return { ok: false, status: 400, error: "text required" };
-      // cred: "<access_token>:<accounts/{a}/locations/{l}>" — Google Business
-      // Profile local post (the "update" card on the listing).
-      const [token, loc = ""] = cred.split(":", 2);
-      if (!loc) return { ok: false, status: 500, error: "conn:gmb must be '<access_token>:<accounts/{a}/locations/{l}>'" };
+      // cred: "<access_token>:<accounts/{a}/locations/{l}>" or durable
+      // "<refresh_token>:<client_id>:<client_secret>:<accounts/{a}/locations/{l}>"
+      // — Google Business Profile local post ("update" card on the listing).
+      const parts = cred.split(":");
+      const refreshable = parts[0]?.startsWith("1//") && parts.length === 4;
+      const loc = refreshable ? parts[3] : parts[1] ?? "";
+      if (!loc) return { ok: false, status: 500, error: "conn:gmb must be '<token>:<accounts/{a}/locations/{l}>'" };
+      const token = refreshable
+        ? await googleAccessToken(parts.slice(0, 3).join(":"))
+        : parts[0];
+      if (!token) return { ok: false, status: 401, error: "google token refresh failed" };
       return connPost(`https://mybusiness.googleapis.com/v4/${loc}/localPosts`, {
         method: "POST",
         headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },

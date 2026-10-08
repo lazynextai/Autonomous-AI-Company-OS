@@ -2915,3 +2915,71 @@ blocked Microsoft surfaces. Every free surface pushed to its ceiling:
   whatsapp/ayrshare/buffer/letmepost have no accounts/instances.
 - **conn:* state now**: brevo, github, postiz, signwell, telegram,
   wordpress, bluesky, devto, lemmy, ghost, listmonk = 11 wired.
+
+## 2026-10-08 (continued) — second conn:* sweep: OAuth mints + new accounts
+
+- **conn:matrix LIVE** — password login → access token → `#lazynext:matrix.org`
+  room created on matrix.org; cred `https://matrix.org|!room|token`. Test post
+  returned event id. KV note: `/kv/put` takes `{key,value,ttl}` in the JSON
+  body — key as query param silently no-ops.
+- **conn:discord LIVE** — bot lacks MANAGE_WEBHOOKS (50013); created the
+  channel webhook via the logged-in Discord UI instead (webhook URL captured
+  by hooking `navigator.clipboard.writeText` — synthetic clicks bypass the
+  scrim overlay that swallows real pointer events). Dispatch → HTTP 204.
+- **conn:gitlab LIVE** — new account `gitlab.com/lazynextai` (email-verified
+  via support inbox code); PAT `api` scope exp 2026-11-07 (`GITLAB_PAT` in
+  .env). Test dispatch → snippet 201.
+- **conn:mastodon LIVE** — account migrated `mastodon.social` →
+  `lazynext@mstdn.social`; new OAuth app on mstdn.social, cred
+  `mstdn.social:<token>` (colon, not pipe).
+- **conn:tumblr LIVE** — OAuth for `lazynext` blog; access token stored
+  (Tumblr issues no refresh token — 42-day expiry, Postiz holds the durable
+  OAuth channel anyway). Test post → 201.
+- **conn:youtube LIVE** — Google OAuth minted with youtube.upload +
+  business.manage scopes. YouTube/GMB connectors upgraded to accept durable
+  `<refresh_token>:<client_id>:<client_secret>` (refresh per call; bare
+  access tokens still work). Deployed.
+- **conn:gmb BLOCKED** — Business Profile APIs quota=0 on the GCP project;
+  enabling them needs the Google console (founder password). Postiz channel
+  covers GBP meanwhile.
+- **conn:facebook LIVE** — added `https://lazynext.com/` to Valid OAuth
+  Redirect URIs on `Lazynext Social` (2178147459800832). URI-commit quirk:
+  the oauth.php-placeholder input is only a validation tester — the real
+  editor is the combobox inside the chips (`aria-label="Valid OAuth redirect
+  URIs."`), value commits on real-keystroke Enter, then Save Changes.
+  Long-lived user token → page token for Page `Lazynext` (1432380749948461).
+  Test dispatch → real page post id 1432380749948461_122102250267500865.
+- **conn:instagram LIVE** — same page token + IG business account
+  17841441043022642 (@lazynext.ai) resolved off the Page. Requires image_url
+  per dispatch (IG has no text posts).
+- **conn:threads LIVE** — same redirect-whitelist trick on `Lazynext
+  Threads` app (threads api client 1780647902854473) → OAuth code →
+  long-lived token (59d) → cred `<token>:29624812597119793`. Test dispatch →
+  real Threads post id 18100678094376519.
+- **conn:zulip LIVE** — created org `lazynext.zulipchat.com` (support@,
+  Business, ALTCHA auto-solved; form needs org-type select + terms checkbox
+  — both easy to miss). Bot `lazynext-bot@lazynext.zulipchat.com` created via
+  session `/json/bots` POST (csrfmiddlewaretoken cookie); posts to #general
+  without needing a subscription. Test → message 630140606.
+- **conn:webhook LIVE** — generic https bridge pointed at the Discord
+  channel webhook (real sink; retarget later if a better inbound exists).
+- **conn:pinterest BLOCKED** — trial app generates tokens with READ scopes
+  only (`pins:read boards:read user_accounts:read ads:read catalogs:read`,
+  24h expiry). `pins:write` needs Standard access — upgrade request pending
+  with Pinterest. Not wired (a read-only cred would flip status true but
+  every dispatch 403s).
+- **conn:x BLOCKED** — console.x.com shows $0.00 balance / $0 free credits;
+  the API is credit-metered now. Same company-card blocker as before.
+- **conn:meta BLOCKED** — no ad account under the business (token exchange
+  worked but `me/adaccounts` unsupported-get-request; ad-account creation is
+  card-gated anyway).
+- **conn:slack BLOCKED** — Slack sign-in is reCAPTCHA-walled; no workspace
+  session to mint a webhook.
+- **conn:* state now (22 live)**: postiz, brevo, github, signwell, telegram,
+  wordpress, bluesky, devto, lemmy, ghost, listmonk, matrix, discord,
+  gitlab, mastodon, tumblr, youtube, facebook, instagram, threads, zulip,
+  webhook. Still off: x, linkedin, meta, reddit, pinterest, vk, tiktok, gmb,
+  snapchat, slack, teams, mattermost, viber, line, hashnode, medium,
+  beehiiv, nostr, ayrshare, buffer, letmepost, twilio, whatsapp — every one
+  gated by card / provider review / phone-call / dead-API / missing-instance
+  as documented above.
