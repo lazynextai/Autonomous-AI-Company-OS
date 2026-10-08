@@ -3358,11 +3358,45 @@ workers.dev hostname.
 
 Dead creds found (need founder re-auth/new key):
 - devto — stored API key 401s on /users/me (revoked).
-- tumblr — 401; stored value looks like an OAuth1 consumer key, the
-  dispatch path needs an OAuth2 access token.
-- ghost — "Unknown Admin API Key" — ghost.lazynext.com is a fresh
-  install (integration lost on rebuild); needs a new Admin API key
-  from the Ghost panel.
+  2026-10-12 re-check: GitHub SSO login still works (account alive),
+  but `/settings/extensions` → Generate API Key → `/users/api_secrets`
+  404s and `/api/users/me` 401s — API surface restricted, stays
+  appeal-gated. No new key obtainable.
+- tumblr — RESOLVED 2026-10-12: OAuth2 grant re-run against the
+  existing app (scope must include `basic` or authorize 400s);
+  code captured via a temporary callback swap, exchanged for an
+  access token, `conn:tumblr` updated → dispatch 201 (post id
+  829949646856208384). App callbacks restored to
+  `https://postiz.lazynext.com/integrations/social/tumblr`.
+- ghost — RESOLVED 2026-10-12: ghost.lazynext.com was at first-run
+  setup (container DB rebuilt). Owner `support@lazynext.com`
+  re-created via admin UI (password in `.env` `GHOST_OWNER_PASSWORD`),
+  new custom integration minted → Admin key into `.env`
+  `GHOST_ADMIN_API_KEY` + `conn:ghost` (`<site>|<id>:<secret>`) →
+  dispatch 201, live post published.
+
+2026-10-12 batch verification — real dispatch probes through
+`POST /api/v1/connectors/:id` (admin key): LIVE = mastodon(200),
+telegram(200), discord(204), slack(200), medium(200), hashnode(200),
+nostr(200), matrix(200), wordpress(201), bluesky(200), buffer(200),
+zulip(200 — stream must be `general`, `#general` 400s
+STREAM_DOES_NOT_EXIST), tumblr(201), ghost(201). Token-layer LIVE =
+youtube (refresh grant mints access tokens; upload needs media_url),
+whatsapp, meta (ads blocked only by missing payment method).
+letmepost — Instagram text-only correctly rejected by preflight
+(media required, not a cred failure).
+
+- youtube — Postiz channel re-linked 2026-10-12 via the full consent
+  flow (channel `@lazynext`, `Channel Added`). The Google delegation
+  quirk (`invalid_request: response_type` after account-pick) is
+  bypassed by reconstructing the `/o/oauth2/v2/auth` URL directly
+  with `authuser=0` from the delegation page's own params, then
+  clicking through delegation → account → Continue → Allow.
+- linkedin — stored `LINKEDIN_PASSWORD` authenticates (password
+  accepted), then reCAPTCHA Enterprise checkpoint — one human click
+  required (staged on the open tab).
+- Mailbox re-swept 2026-10-12 (Outlook + Gmail): all unread read,
+  nothing deleted, nothing actionable.
 
 Mailbox sweep (Outlook + Gmail): all read. Notable items — Reddit
 confirmed the Ayrshare OAuth grant; Hashnode removed an earlier
