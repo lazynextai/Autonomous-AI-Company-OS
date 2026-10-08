@@ -67,3 +67,4 @@ ops/mcp-registry/dns-key.pem
 .reddit_state.json
 .medium_state.json
 .twilio_cred.txt
+.buf_key.txt

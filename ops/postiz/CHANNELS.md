@@ -3119,3 +3119,30 @@ blocked Microsoft surfaces. Every free surface pushed to its ceiling:
   line (phone), gmb (quota), tiktok (geo), teams/mattermost (instance),
   medium (private API), beehiiv/ayrshare/hashnode-Pro (paid), x-direct
   (credits — but x posting works via letmepost).
+
+## 2026-10-08 (buffer live + support inbox unlocked) — 28 credentialed
+
+- **support@lazynext.com is a Google Workspace Gmail** — NOT the Outlook
+  mailbox (that's a separate Microsoft account sharing the address).
+  Every verification code reads cleanly via IMAP:
+  `imap.gmail.com:993, login support@lazynext.com, GOOGLE_APP_PASSWORD`
+  (16-char app password in .env). This unblocks ALL email-verify flows
+  going forward — no browser needed.
+- **conn:buffer LIVE** — free Buffer account (support@, Google-SSO
+  path blocked by hCaptcha → email+password signup, image captcha solved
+  by founder). Email verified via IMAP-read `verify-account?jwt=` link —
+  NOTE the link 200s as "expired" when fetched bare; it must be opened
+  in the browser holding the publish.buffer.com session (auth cookie
+  required past the JWT check). Minted 1-year personal key
+  (platform-worker, all scopes) at publish.buffer.com/settings/api;
+  GraphQL `api.buffer.com` — `account{email}` probe 200.
+- 3 free-tier channels connected through browser OAuth/app-pw:
+  X `Lazynextai` (6ac7f80b6a5c39ccb6564d2e), Pinterest `lazynext`
+  (6ac7f8796a5c39ccb65653ec), Bluesky `lazynext.bsky.social`
+  (6ac7f8986a5c39ccb65655a5). conn:buffer wired `<key>:<x-channel-id>`,
+  createPost shareNow → real post 6ac7f81cc121d891140670f7 on X.
+- Buffer is now a second X publish path (their OAuth1 tokens) AND a
+  second Pinterest/Bluesky path — redundant coverage for the two
+  channels whose direct connectors are still gated (pinterest Standard,
+  x credits).
+- **conn:* state now (28 credentialed)**: previous 27 + buffer.
