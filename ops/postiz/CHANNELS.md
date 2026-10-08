@@ -3034,10 +3034,11 @@ blocked Microsoft surfaces. Every free surface pushed to its ceiling:
   1505405768094681). System user `lazynextapi` (61592646175388) granted
   Full access on WABA + app; never-expire token minted with
   whatsapp_business_messaging+management. `/register`ed the number.
-  Dispatch reaches Meta cleanly; sends to numbers not on the dev
-  test-recipient list get #131030 — the documented test-number boundary.
-  Add the founder's phone under WhatsApp → API setup → "To" dropdown to
-  make sends real.
+  Dispatch reaches Meta cleanly; founder's +91 number was added through
+  "Manage phone number list" (5-digit WhatsApp OTP verified in-session) and
+  a real send now returns a wamid — fully live. Gotcha: the 'to' field must
+  carry the full E.164 digits incl. country code ('919199366166', not
+  '9199366166') or you get #131030 even for a listed recipient.
 - **conn:meta LIVE (api) / payment-gated (serve)** — created ad account
   `Lazynext Ads` act_1591580066046773 WITHOUT a card (creation is free;
   *serving* needs billing). Assigned to system user; token carries
