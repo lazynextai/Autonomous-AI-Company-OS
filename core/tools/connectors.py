@@ -826,6 +826,13 @@ async def _ayrshare(payload: dict, cred: str) -> dict:
     body: dict[str, Any] = {"post": payload.get("text") or ""}
     if payload.get("platforms"):
         body["platforms"] = payload["platforms"]
+    media = payload.get("media_url") or payload.get("image_url")
+    if media:
+        body["mediaUrls"] = [media]
+    if payload.get("title"):
+        body["title"] = payload["title"]
+    if payload.get("subreddit") or payload.get("to"):
+        body["subreddit"] = payload.get("subreddit") or payload["to"]
     return await _post(
         "https://api.ayrshare.com/api/post",
         headers={"authorization": f"Bearer {cred}"},
@@ -1290,6 +1297,28 @@ async def call_connector(connector_id: str, payload: dict[str, Any] | str) -> di
     cred = await _credential(connector_id)
     if not cred:
         return {"ok": False, "error": f"'{connector_id}' not connected — set it in Settings → Connector library"}
+    if cred == "ayrshare":
+        # Routed through the approved Ayrshare app — used for networks whose
+        # native app review is blocked (reddit karma-gate, pinterest trial
+        # read-only, gmb quota=0).
+        key = await _credential("ayrshare")
+        if not key:
+            return {"ok": False, "error": "conn:ayrshare not set — required for ayrshare-routed connectors"}
+        if isinstance(payload, str):
+            payload = {"text": payload}
+        payload = {**payload, "platforms": [connector_id]}
+        if connector_id == "reddit":
+            payload.setdefault("title", (payload.get("text") or "").split("\n")[0][:120])
+            payload.setdefault("subreddit", payload.get("to") or "u_lazynext")
+        if connector_id == "pinterest" and not (payload.get("media_url") or payload.get("image_url")):
+            return {"ok": False, "error": "pinterest requires media_url/image_url"}
+        try:
+            result = await _ayrshare(payload, key)
+            logger.info("connector_called", id=connector_id, ok=result.get("ok"), via="ayrshare")
+            return result
+        except Exception as e:
+            logger.error("connector_call_failed", id=connector_id, error=str(e))
+            return {"ok": False, "error": str(e)}
     try:
         result = await fn(payload, cred)
         logger.info("connector_called", id=connector_id, ok=result.get("ok"))

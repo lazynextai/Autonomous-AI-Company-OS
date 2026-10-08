@@ -3292,3 +3292,33 @@ blocked Microsoft surfaces. Every free surface pushed to its ceiling:
   Founder gate list for the next session: GBP video, beehiiv hold,
   LinkedIn OAuth (tab staged), LINE/Viber phone, X payment method,
   TikTok account on non-IN IP, Teams org tenant, Ayrshare network linking.
+
+## 2026-10-06 (later) — ayrshare-routed connectors shipped
+
+- **Ayrshare profile now linked**: reddit (`u_lazynext`), pinterest
+  (`lazynext`, board `Lazynext` selected via tile → board picker),
+  gmb (unverified listing). Pinterest needed a board + re-link before
+  posts resolved (error 261 "board not found" → fixed by creating
+  `Lazynext` board, relinking, selecting it in the picker). Media must be
+  a fetchable raster URL — `lazynext.com/og.png` works, svg/404s get
+  error 251.
+- **`ayrshare` cred short-circuit shipped** (worker + python mirror):
+  any `conn:*` set to the literal value `ayrshare` dispatches through the
+  linked Ayrshare profile (`conn:ayrshare` key) instead of native creds.
+  conn:reddit, conn:pinterest, conn:gmb now all = `ayrshare` (ttl:0).
+  worker `ayrsharePost()` maps reddit→{title,subreddit},
+  pinterest→{mediaUrls} (accepts media_url or image_url),
+  gmb→bare post; python `call_connector` does the same before dispatch.
+  Deployed `3a74d479`.
+- **All three LIVE through /api/v1/connectors/{id}** (admin scope):
+  reddit → r/u_lazynext/comments/1x14vsh/ · pinterest → pin
+  1152288254698754329 · gmb → localPosts 5395156555665463920 (pending
+  listing verification, expected warning).
+- Ayrshare generic case + `_ayrshare` now pass mediaUrls/title/subreddit
+  through, so `conn:ayrshare` alone can hit any linked network with
+  `{platforms, media_url, title, subreddit}`.
+- Founder gate list shrinks to: GBP video, beehiiv hold, LinkedIn OAuth
+  (tab staged), LINE/Viber phone, X payment method, TikTok account on
+  non-IN IP, Teams org tenant. Remaining Ayrshare linkable tiles pending
+  underlying accounts: bluesky, fb/ig/threads (Meta session), telegram,
+  snapchat, tiktok, x-byok, linkedin, youtube.

@@ -946,6 +946,33 @@ async function connPost(
     error: r.ok ? undefined : String(data.message ?? data.error ?? r.status) };
 }
 
+// Fan-out through the linked Ayrshare profile — used when a conn's own cred
+// is the literal string "ayrshare" (meaning: post via the approved Ayrshare
+// app instead of a native credential). Lets networks whose direct app review
+// is blocked (reddit karma-gate, pinterest trial read-only, gmb quota=0)
+// dispatch through one connector key.
+async function ayrsharePost(
+  env: Env, platform: string, text: string, b: Record<string, unknown>,
+): Promise<{ ok: boolean; status: number; body?: unknown; error?: string }> {
+  const key = await connCred(env, "ayrshare");
+  if (!key) return { ok: false, status: 500, error: "conn:ayrshare not set — required for ayrshare-routed connectors" };
+  const body: Record<string, unknown> = { post: text, platforms: [platform] };
+  if (platform === "reddit") {
+    body.title = String(b.title ?? text.split("\n")[0].slice(0, 120));
+    body.subreddit = String(b.subreddit ?? b.to ?? "u_lazynext");
+  }
+  if (platform === "pinterest") {
+    const media = String(b.media_url ?? b.image_url ?? "");
+    if (!media) return { ok: false, status: 400, error: "pinterest requires media_url/image_url (raster image — og.png works, svg does not)" };
+    body.mediaUrls = [media];
+  }
+  return connPost("https://api.ayrshare.com/api/post", {
+    method: "POST",
+    headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
 // Google OAuth creds can be "<access_token>" (expires ~1h) or the durable
 // "<refresh_token>:<client_id>:<client_secret>" — refresh per call so the
 // stored cred never dies. Returns the token or null when the refresh fails.
@@ -1213,6 +1240,10 @@ async function callConnector(
       });
     }
     case "reddit": {
+      if (cred === "ayrshare") {
+        if (!text) return { ok: false, status: 400, error: "text required" };
+        return ayrsharePost(env, "reddit", text, b);
+      }
       // Two credential shapes:
       //   a) "<client_id>:<client_secret>:<username>:<password>:<subreddit>" —
       //      script-app OAuth, then self-post.
@@ -1282,6 +1313,7 @@ async function callConnector(
     }
     case "pinterest": {
       if (!text) return { ok: false, status: 400, error: "text required" };
+      if (cred === "ayrshare") return ayrsharePost(env, "pinterest", text, b);
       // cred: "<access_token>:<board_id>" — every pin requires media, so
       // image_url is mandatory (a bare link pin 400s at Pinterest).
       const [token, board = ""] = cred.split(":", 2);
@@ -1787,12 +1819,16 @@ async function callConnector(
       // out to every linked network — incl. TikTok, YouTube, Snapchat and
       // GMB, which have no sane direct posting API. Omit 'platforms' to post
       // to all linked networks ("all" is not a documented platform value).
+      const media = b.media_url ?? b.image_url;
       return connPost("https://api.ayrshare.com/api/post", {
         method: "POST",
         headers: { authorization: `Bearer ${cred}`, "content-type": "application/json" },
         body: JSON.stringify({
           post: text,
           ...(b.platforms ? { platforms: b.platforms as string[] } : {}),
+          ...(media ? { mediaUrls: [String(media)] } : {}),
+          ...(b.title ? { title: String(b.title) } : {}),
+          ...(b.subreddit ?? b.to ? { subreddit: String(b.subreddit ?? b.to) } : {}),
         }),
       });
     }
@@ -2022,6 +2058,7 @@ async function callConnector(
     }
     case "gmb": {
       if (!text) return { ok: false, status: 400, error: "text required" };
+      if (cred === "ayrshare") return ayrsharePost(env, "gmb", text, b);
       // cred: "<access_token>:<accounts/{a}/locations/{l}>" or durable
       // "<refresh_token>:<client_id>:<client_secret>:<accounts/{a}/locations/{l}>"
       // — Google Business Profile local post ("update" card on the listing).

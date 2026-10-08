@@ -188,13 +188,18 @@ Every adapter's request shape checked against current provider docs:
 
 ## Status (live-credentialed sweep, 2026-10-08)
 
-35 `conn:*` keys are stored in KV — `ayrshare`, `bluesky`, `brevo`, `buffer`,
-`devto`, `discord`, `facebook`, `ghost`, `github`, `gitlab`, `hashnode`,
+37 `conn:*` keys are stored in KV — `ayrshare`, `bluesky`, `brevo`, `buffer`,
+`devto`, `discord`, `facebook`, `ghost`, `github`, `gitlab`, `gmb`, `hashnode`,
 `instagram`, `lemmy`, `letmepost`, `listmonk`, `mastodon`, `matrix`, `medium`,
-`meta`, `nostr`, `postiz`, `reddit`, `signwell`, `slack`, `telegram`,
-`threads`, `tumblr`, `twilio`, `vk`, `webhook`, `whatsapp`, `wordpress`, `x`,
-`youtube`, `zulip` (plus `conn:github`/`conn:signwell`/`conn:brevo` env
-fallbacks).
+`meta`, `nostr`, `pinterest`, `postiz`, `reddit`, `signwell`, `slack`,
+`telegram`, `threads`, `tumblr`, `twilio`, `vk`, `webhook`, `whatsapp`,
+`wordpress`, `x`, `youtube`, `zulip` (plus `conn:github`/`conn:signwell`/
+`conn:brevo` env fallbacks).
+
+Any `conn:*` set to the literal value `ayrshare` routes through the linked
+Ayrshare profile (`conn:ayrshare` key) instead of native creds — this is how
+`reddit`, `pinterest` and `gmb` dispatch today (their native app reviews are
+karma/quota gated; the approved Ayrshare app bypasses all three).
 
 Queue-verified end-to-end (real post through `POST /social/schedule` →
 `social_posts` row `posted`): `vk` (community `club242132537`), `reddit`,
@@ -203,22 +208,27 @@ IP-bound so the edge falls back to an in-page flow), `twilio` (real SMS to
 verified caller id), `buffer`, `postiz`, `letmepost`, `hashnode` (internal
 web-editor REST path — see note below).
 
+Gateway-verified live (real post via `POST /api/v1/connectors/{id}`):
+`reddit` (r/u_lazynext/comments/1x14vsh/), `pinterest` (pin
+1152288254698754329 on board `Lazynext`), `gmb` (localPosts
+5395156555665463920 — pending listing verification).
+
 Credentialed but platform-gated:
 
 - `x` — OAuth1 user token pair stored; signature verified, post returns
   `402 credits-depleted`. Needs a payment method on the X developer
   account. Buffer/Postiz/letmepost cover X meanwhile.
 - `ayrshare` — free Basic-plan API key stored (no card; 20 posts/mo,
-  13 networks). Per-network OAuth linking still required in their
-  dashboard before posts fan out — see `ops/postiz/CHANNELS.md`.
+  13 networks). Linked so far: **reddit, pinterest, gmb** — all three
+  dispatch live via the `ayrshare` cred short-circuit on their own
+  `conn:*` keys. Remaining tiles need the underlying account to exist
+  first — see `ops/postiz/CHANNELS.md`.
 
 Not credentialed — the blocker is founder action or spend, not code:
 
 | Connector | Blocker |
 | --- | --- |
 | `linkedin` | Personal-profile OAuth staged in letmepost — founder signs in with the personal account (company account is restricted; two appeals denied) |
-| `gmb` | Google sensitive scopes demand a fresh password re-verify for `support@lazynext.com`; founder enters it once |
-| `pinterest` | One founder OAuth click in the Buffer channels tab |
 | `tiktok` | India geo-block is bypassed via the `/browse` BR egress route (all portals render), but account creation is risk-engine suppressed on datacenter IPs — needs one account made on a non-IN residential/mobile network, then OAuth + Content Posting API is pure API |
 | `viber` / `line` | Signup funnels through the mobile app on the founder's phone |
 | `teams` | Free MSA org auto-provisioned (via the Outlook account) but channel webhooks are org-tier; the free M365 dev sandbox is now qualification-gated — needs a paid 365 org, Power Automate tenant, or a qualifying program (e.g. Founders Hub) |
