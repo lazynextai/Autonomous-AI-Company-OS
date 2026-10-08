@@ -1058,10 +1058,14 @@ async function callConnector(
       // cred: "<access_token>:<ad_account_id>"
       const [token, acct = ""] = cred.split(":", 2);
       if (!acct) return { ok: false, status: 500, error: "conn:meta must be '<access_token>:<ad_account_id>'" };
+      const ad: Record<string, unknown> = { name: text.slice(0, 120), access_token: token };
+      if (b.adset_id) ad.adset_id = String(b.adset_id);
+      if (b.creative_id) ad.creative = { creative_id: String(b.creative_id) };
+      ad.status = "PAUSED";
       return connPost(`https://graph.facebook.com/v25.0/act_${acct}/ads`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name: text.slice(0, 120), access_token: token }),
+        body: JSON.stringify(ad),
       });
     }
     case "twilio": {
@@ -1254,7 +1258,20 @@ async function callConnector(
     }
     case "slack": {
       if (!text) return { ok: false, status: 400, error: "text required" };
-      // cred: full incoming-webhook URL.
+      // cred: full incoming-webhook URL — or a bot token pair
+      // "xoxb-<token>:<channel_id>" (chat.postMessage; bot must be invited to
+      // the channel). Webhook posting vs bot posting reach the same channel.
+      if (cred.startsWith("xoxb-")) {
+        const si = cred.lastIndexOf(":");
+        const bot = si === -1 ? cred : cred.slice(0, si);
+        const channel = si === -1 ? "" : cred.slice(si + 1);
+        if (!channel) return { ok: false, status: 500, error: "conn:slack bot cred must be 'xoxb-<token>:<channel_id>'" };
+        return connPost("https://slack.com/api/chat.postMessage", {
+          method: "POST",
+          headers: { authorization: `Bearer ${bot}`, "content-type": "application/json" },
+          body: JSON.stringify({ channel, text }),
+        });
+      }
       return connPost(cred, {
         method: "POST",
         headers: { "content-type": "application/json" },

@@ -3015,3 +3015,65 @@ blocked Microsoft surfaces. Every free surface pushed to its ceiling:
   buffer, letmepost), provider review (pinterest Standard, reddit), human/phone
   (vk, linkedin, whatsapp, viber, line, slack, gmb), geo (tiktok), no-instance
   (teams, mattermost), dead/unsupported API (medium, hashnode, snapchat).
+
+## 2026-10-08 (credential salvage) — slack + whatsapp + meta wired; 26 live
+
+- **Postiz R2 backup mined** — `lazynext-media/postiz-backup/latest.sql.gz`
+  (`wrangler r2 object get … --remote`; local-mode get misreads miniflare
+  storage) → `Integration` table holds usable creds Postiz already legit
+  stored. Salvaged: slack `xoxb` bot token, x OAuth1 pair, gmb refresh
+  token + location id, pinterest token.
+- **conn:slack LIVE** — Postiz's Slack `xoxb` bot token passes `auth.test`
+  (`lazynextworkspace`, bot "Lazynext Social"). Worker extended:
+  `conn:slack` = webhook URL **or** `xoxb-<token>:<channel_id>` → native
+  `chat.postMessage` (Python mirror same). Verified: real post to #social
+  (C0C64BGCVT4).
+- **conn:whatsapp LIVE** — free Meta test number path: added WhatsApp
+  product to app `Lazynext Social` (2178147459800832), auto-provisioned
+  test number +1 555-641-2469 (phone id 1333569676512362, WABA
+  1505405768094681). System user `lazynextapi` (61592646175388) granted
+  Full access on WABA + app; never-expire token minted with
+  whatsapp_business_messaging+management. `/register`ed the number.
+  Dispatch reaches Meta cleanly; sends to numbers not on the dev
+  test-recipient list get #131030 — the documented test-number boundary.
+  Add the founder's phone under WhatsApp → API setup → "To" dropdown to
+  make sends real.
+- **conn:meta LIVE (api) / payment-gated (serve)** — created ad account
+  `Lazynext Ads` act_1591580066046773 WITHOUT a card (creation is free;
+  *serving* needs billing). Assigned to system user; token carries
+  ads_management+ads_read+business_management. Flipped the app to **Live
+  mode** (required filling privacy/terms/deletion URLs — added
+  lazynext.com/privacy + /terms pages, marketing `_redirects` /
+  data-deletion alias) — dev mode blocks adcreatives. Granted system user
+  Ads+Content on the FB Page (creative creation needs Advertiser role).
+  Full funnel proven: campaign 120253808696570785, adset
+  120253808697580785, creative 1464143828918468 — ad POST then stops at
+  `#1359188 No payment method` (same company-card class as X). Worker
+  `conn:meta` now accepts optional `adset_id` + `creative_id` and always
+  ships `status: PAUSED` (python mirror parity) — one dispatch creates a
+  real ad once a card lands.
+- **conn:x still BLOCKED** — the salvaged OAuth1 pair signs fine but the
+  API answers HTTP 402 credits-depleted. Billing-gated, not cred-gated.
+- **conn:gmb still BLOCKED** — salvaged refresh token mints a valid
+  `business.manage` access token, but mybusiness* endpoints return 429
+  quota=0 / 403 service-disabled — Google-side quota grant is the missing
+  piece, not code.
+- **conn:pinterest still BLOCKED (definitive)** — salvaged token lists
+  boards fine but pin POST → `code 29 "Apps with Trial access may not
+  create Pins in production"` — trial is write-dead, sandbox-only.
+  Standard access is an app review.
+- **conn:hashnode BLOCKED (new, definitive)** — gql.hashnode.com now 301s
+  to an announcement: the GraphQL API went fully Pro-only (2026-05-13);
+  the HASHNODE_TOKEN in .env is worthless without a paid publication.
+  Parked with the other company-card items.
+- **conn:* state now (26 credentialed)**: postiz, brevo, github, signwell,
+  telegram, wordpress, bluesky, devto, lemmy, ghost, listmonk, matrix,
+  discord, gitlab, mastodon, tumblr, youtube, facebook, instagram, threads,
+  zulip, webhook, nostr, slack, whatsapp, meta. Send-path fully green:
+  slack/whatsapp-api/meta-management all reach their APIs; whatsapp sends
+  need a whitelisted recipient, meta ad objects need a card. Remaining 20
+  are all external gates — card (x, twilio, beehiiv, ayrshare, buffer,
+  letmepost, hashnode-Pro), provider review (pinterest, reddit, linkedin
+  page), phone/QR-only signup (vk, viber, line, warpcast), quota grant
+  (gmb), geo (tiktok), no-instance (teams, mattermost), dead API (medium,
+  snapchat-organic).

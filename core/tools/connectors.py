@@ -97,12 +97,20 @@ async def _linkedin(text: str, cred: str) -> dict:
     )
 
 
-async def _meta(text: str, cred: str) -> dict:
+async def _meta(payload: dict, cred: str) -> dict:
     # cred format: "<access_token>:<ad_account_id>"
+    if isinstance(payload, str):
+        payload = {"text": payload}
     token, _, acct = cred.partition(":")
+    ad = {"name": (payload.get("text") or "")[:120],
+          "access_token": token, "status": "PAUSED"}
+    if payload.get("adset_id"):
+        ad["adset_id"] = str(payload["adset_id"])
+    if payload.get("creative_id"):
+        ad["creative"] = {"creative_id": str(payload["creative_id"])}
     return await _post(
         f"https://graph.facebook.com/v25.0/act_{acct}/ads",
-        json_body={"name": text[:120], "access_token": token},
+        json_body=ad,
     )
 
 
@@ -264,7 +272,17 @@ async def _discord(text: str, cred: str) -> dict:
 
 
 async def _slack(text: str, cred: str) -> dict:
-    # cred: full incoming-webhook URL.
+    # cred: full incoming-webhook URL — or "xoxb-<token>:<channel_id>"
+    # (chat.postMessage; bot must be invited to the channel).
+    if cred.startswith("xoxb-"):
+        token, _, channel = cred.rpartition(":")
+        if not channel:
+            return {"ok": False, "error": "conn:slack bot cred must be 'xoxb-<token>:<channel_id>'"}
+        return await _post(
+            "https://slack.com/api/chat.postMessage",
+            headers={"authorization": f"Bearer {token}"},
+            json_body={"channel": channel, "text": text},
+        )
     return await _post(cred, json_body={"text": text})
 
 

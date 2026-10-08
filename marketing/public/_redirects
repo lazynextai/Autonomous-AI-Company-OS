@@ -1,3 +1,8 @@
+# Canonical legal URLs — Meta/Google app-review fields want dedicated paths.
+# privacy.html/terms.html are real copies of legal.html (canonical stays /legal);
+# this redirect covers only the data-deletion alias.
+/data-deletion /legal 301
+
 # Locale-prefixed URLs Google discovered (no localized content exists yet).
 # 301 to the English canonical so Search Console drops the 404s.
 /en / 301
