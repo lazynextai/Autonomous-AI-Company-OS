@@ -1017,6 +1017,37 @@ async function callConnector(
   switch (id) {
     case "x": {
       if (!text) return { ok: false, status: 400, error: "text required" };
+      // cred: OAuth2 user bearer — or durable OAuth1 quad "ck|cs|at|ats"
+      // (consumer key|secret + access token|secret; never expires).
+      if (cred.includes("|")) {
+        const [ck, cs, at, ats] = cred.split("|");
+        const enc = (s: string) => encodeURIComponent(s).replace(/[!'()*]/g, (c) => "%" + c.charCodeAt(0).toString(16).toUpperCase());
+        const p: Record<string, string> = {
+          oauth_consumer_key: ck, oauth_nonce: crypto.randomUUID().replace(/-/g, ""),
+          oauth_signature_method: "HMAC-SHA1", oauth_timestamp: String(Math.floor(Date.now() / 1000)),
+          oauth_token: at, oauth_version: "1.0",
+        };
+        const api = "https://api.x.com/2/tweets";
+        const base = "POST&" + enc(api) + "&" + enc(
+          Object.keys(p).sort().map((k) => `${enc(k)}=${enc(p[k])}`).join("&"),
+        );
+        const key = await crypto.subtle.importKey(
+          "raw", new TextEncoder().encode(`${enc(cs)}&${enc(ats)}`),
+          { name: "HMAC", hash: "SHA-1" }, false, ["sign"],
+        );
+        const sig = btoa(String.fromCharCode(...new Uint8Array(
+          await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(base)),
+        )));
+        p.oauth_signature = sig;
+        return connPost(api, {
+          method: "POST",
+          headers: {
+            authorization: "OAuth " + Object.keys(p).sort().map((k) => `${enc(k)}="${enc(p[k])}"`).join(", "),
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ text }),
+        });
+      }
       return connPost("https://api.x.com/2/tweets", {
         method: "POST",
         headers: { authorization: `Bearer ${cred}`, "content-type": "application/json" },

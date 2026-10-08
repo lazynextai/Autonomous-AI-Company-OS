@@ -61,6 +61,32 @@ async def _post(url: str, *, headers: dict | None = None, json_body: Any = None,
 # --- Social posting -------------------------------------------------------
 
 async def _x(text: str, cred: str) -> dict:
+    # cred: OAuth2 user bearer — or durable OAuth1 quad "ck|cs|at|ats"
+    # (consumer key|secret + access token|secret; never expires).
+    if "|" in cred:
+        import base64, hashlib, hmac, secrets, time, urllib.parse
+        ck, cs, at, ats = cred.split("|")[:4]
+        enc = lambda s: urllib.parse.quote(str(s), safe="")
+        params = {
+            "oauth_consumer_key": ck,
+            "oauth_nonce": secrets.token_hex(16),
+            "oauth_signature_method": "HMAC-SHA1",
+            "oauth_timestamp": str(int(time.time())),
+            "oauth_token": at,
+            "oauth_version": "1.0",
+        }
+        api = "https://api.x.com/2/tweets"
+        base = "POST&" + enc(api) + "&" + enc(
+            "&".join(f"{enc(k)}={enc(params[k])}" for k in sorted(params))
+        )
+        key = (enc(cs) + "&" + enc(ats)).encode()
+        params["oauth_signature"] = base64.b64encode(
+            hmac.new(key, base.encode(), hashlib.sha1).digest()
+        ).decode()
+        auth = "OAuth " + ", ".join(
+            f'{enc(k)}="{enc(params[k])}"' for k in sorted(params)
+        )
+        return await _post(api, headers={"authorization": auth}, json_body={"text": text})
     return await _post(
         "https://api.x.com/2/tweets",
         headers={"authorization": f"Bearer {cred}"},
