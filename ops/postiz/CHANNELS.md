@@ -3146,3 +3146,13 @@ blocked Microsoft surfaces. Every free surface pushed to its ceiling:
   channels whose direct connectors are still gated (pinterest Standard,
   x credits).
 - **conn:* state now (28 credentialed)**: previous 27 + buffer.
+- **LinkedIn account is RESTRICTED** — inbox shows two denied appeals
+  ("doesn't comply with Professional Community Policies", 19:05 + 19:48
+  UTC). The government-ID checkpoint seen earlier IS this restriction,
+  not an automation heuristic. Remaining path: founder's PERSONAL
+  LinkedIn → letmepost OAuth (w_member_social — posts to personal
+  profile; company account is dead until LinkedIn's next review).
+- **conn:mattermost still parked** — customers.mattermost.com signup is
+  a blank SPA in this browser; a 14-day cloud trial is ephemeral anyway.
+  Durable path remains the CF-container pattern (postiz/listmonk/
+  wordpress templates in ops/).
