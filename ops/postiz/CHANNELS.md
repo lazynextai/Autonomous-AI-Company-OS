@@ -2854,3 +2854,18 @@ blocked Microsoft surfaces. Every free surface pushed to its ceiling:
   inbox if needed.
 - **npm email confirms publish** — `Successfully published
   @lazynext/accessibility-checker@1.0.0`.
+- **VK — logged in via QR** (founder scanned; session live as
+  "Lazynext Ai"). `id.vk.ru/business` → "Continue as guest" created
+  guest business profile (org `14608234`, account `497459`) — NO
+  TIN/VAT required. App registration `Lazynext Social` filled (Web
+  platform, base domain `postiz.lazynext.com`, redirect
+  `https://postiz.lazynext.com/integrations/social/vk` — Postiz
+  builds `FRONTEND_URL + /integrations/social/vk`, verified in
+  vk.provider.ts). Final "Create" triggers a **flash-call check**:
+  VK drops a call to the account phone, must enter last 6 digits of
+  the calling number. Call not arriving on +91 9199366166
+  (international-call delivery to India unreliable). Legacy
+  vk.com/editapp + dev.vk.ru consoles retired → business console is
+  the only VK ID app path. NEXT: wait for call / retry; then take
+  `VK_ID` from the app's settings → `wrangler secret put` on postiz
+  worker → wrangler deploy → `POST /__admin/restart-container`.
