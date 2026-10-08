@@ -109,7 +109,7 @@ queue — roughly 15 minutes of clicking each:
 | `bluesky` | Settings → App passwords → `<handle>:<app_password>` |
 | `mastodon` | Instance preferences → Development → new app → token; prepend instance host |
 | `devto` | dev.to Settings → Extensions → API keys |
-| `hashnode` | Pro-gated since 2026-10: PAT/API/CLI all need a Pro publication plan; cred format still `<token>:<publication_id>` |
+| `hashnode` | gql API is Pro-gated, but the web-editor REST path works free — cred is the `hashnode-session` cookie value (publication id resolved via `/api/publications`); live-verified from the edge |
 | `medium` | Medium Settings → Security and apps → integration token (works, best-effort — API officially unsupported) |
 | `wordpress` | WP Admin → Users → Application Passwords → `<site_base>\|<user>\|<app_password>` |
 | `ghost` | Ghost Admin → Integrations → custom → Admin API key |
@@ -172,9 +172,12 @@ Every adapter's request shape checked against current provider docs:
   networks); `["all"]` isn't a documented platform value.
 - **Medium** — API officially unsupported (archived docs, no new integrations)
   but integration tokens still function — flagged best-effort.
-- **Hashnode** — `gql.hashnode.com` 301s to a paid-access announcement; the
-  free GraphQL API (and PATs/CLI) now require a Pro plan on the publication.
-  `conn:hashnode` is stored and ready but publish calls fail until Pro.
+- **Hashnode** — `gql.hashnode.com` 301s to a paid-access announcement (PAT
+  /CLI/API need Pro), BUT the authenticated web-editor REST path still works
+  free: `POST hashnode.com/api/drafts` → `PUT /api/drafts/{id}` →
+  `POST /api/drafts/{id}/publish`, driven by the `hashnode-session` cookie
+  (no `cf_clearance` needed — callable from the edge). Queue-verified live
+  (`lazynext.hashnode.dev/lazynext-connector-check`).
 - Verified current (no change): Bluesky, Mastodon, Reddit, VK `5.199`,
   Discord/Slack/Mattermost webhooks, Telegram, Matrix `client/v3`, Zulip,
   Viber, LINE broadcast, dev.to, WordPress REST,
@@ -183,31 +186,31 @@ Every adapter's request shape checked against current provider docs:
   0.18/0.19 bridge), Listmonk `send_later`, Twilio, YouTube resumable upload,
   GMB `localPosts`, Postiz public v1, Buffer `createPost`.
 
-## Status (live-credentialed sweep, 2026-10-07)
+## Status (live-credentialed sweep, 2026-10-08)
 
-34 `conn:*` keys are stored in KV — `bluesky`, `brevo`, `buffer`, `devto`,
-`discord`, `facebook`, `ghost`, `github`, `gitlab`, `hashnode`, `instagram`,
-`lemmy`, `letmepost`, `listmonk`, `mastodon`, `matrix`, `medium`, `meta`,
-`nostr`, `postiz`, `reddit`, `signwell`, `slack`, `telegram`, `threads`,
-`tumblr`, `twilio`, `vk`, `webhook`, `whatsapp`, `wordpress`, `x`, `youtube`,
-`zulip` (plus `conn:github`/`conn:signwell`/`conn:brevo` env fallbacks).
+35 `conn:*` keys are stored in KV — `ayrshare`, `bluesky`, `brevo`, `buffer`,
+`devto`, `discord`, `facebook`, `ghost`, `github`, `gitlab`, `hashnode`,
+`instagram`, `lemmy`, `letmepost`, `listmonk`, `mastodon`, `matrix`, `medium`,
+`meta`, `nostr`, `postiz`, `reddit`, `signwell`, `slack`, `telegram`,
+`threads`, `tumblr`, `twilio`, `vk`, `webhook`, `whatsapp`, `wordpress`, `x`,
+`youtube`, `zulip` (plus `conn:github`/`conn:signwell`/`conn:brevo` env
+fallbacks).
 
 Queue-verified end-to-end (real post through `POST /social/schedule` →
 `social_posts` row `posted`): `vk` (community `club242132537`), `reddit`,
 `medium` (session-cookie path via Browser Rendering — `cf_clearance` is
 IP-bound so the edge falls back to an in-page flow), `twilio` (real SMS to
-verified caller id), `buffer`, `postiz`, `letmepost`.
+verified caller id), `buffer`, `postiz`, `letmepost`, `hashnode` (internal
+web-editor REST path — see note below).
 
 Credentialed but platform-gated:
 
 - `x` — OAuth1 user token pair stored; signature verified, post returns
   `402 credits-depleted`. Needs a payment method on the X developer
   account. Buffer/Postiz/letmepost cover X meanwhile.
-- `hashnode` — PAT + publication id `6ac1180493383ddaacaa87b6` stored.
-  Hashnode retired the free `gql.hashnode.com` API (301 → paid-access
-  announcement); PAT/CLI/API all require a Pro plan on the publication.
-  Postiz covers Hashnode meanwhile; the stored cred activates the moment
-  Pro is enabled.
+- `ayrshare` — free Basic-plan API key stored (no card; 20 posts/mo,
+  13 networks). Per-network OAuth linking still required in their
+  dashboard before posts fan out — see `ops/postiz/CHANNELS.md`.
 
 Not credentialed — the blocker is founder action or spend, not code:
 
@@ -216,12 +219,11 @@ Not credentialed — the blocker is founder action or spend, not code:
 | `linkedin` | Personal-profile OAuth staged in letmepost — founder signs in with the personal account (company account is restricted; two appeals denied) |
 | `gmb` | Google sensitive scopes demand a fresh password re-verify for `support@lazynext.com`; founder enters it once |
 | `pinterest` | One founder OAuth click in the Buffer channels tab |
-| `tiktok` | Dev-app audit + founder OAuth |
+| `tiktok` | India geo-block is bypassed via the `/browse` BR egress route (all portals render), but account creation is risk-engine suppressed on datacenter IPs — needs one account made on a non-IN residential/mobile network, then OAuth + Content Posting API is pure API |
 | `viber` / `line` | Signup funnels through the mobile app on the founder's phone |
-| `teams` | Free MSA org auto-provisioned (via the Outlook account) but channel webhooks are org-tier; needs a paid Teams/365 org or Power Automate tenant |
+| `teams` | Free MSA org auto-provisioned (via the Outlook account) but channel webhooks are org-tier; the free M365 dev sandbox is now qualification-gated — needs a paid 365 org, Power Automate tenant, or a qualifying program (e.g. Founders Hub) |
 | `beehiiv` | `app.beehiiv.com/signup` sits behind a press-and-hold bot wall; one human hold then it's a normal signup form |
 | `mattermost` | No hosted free tier; self-hosted deployment parked (CF container) |
-| `ayrshare` | Paid-only aggregator ($149+/mo after trial); Buffer/Postiz/letmepost already cover its fan-out role |
 | `snapchat` | No organic-write API exists (Marketing API is ads-only) — fails fast by design |
 | `nostr` | Stored cred uses the fail-fast catalog path; relay-websocket publishing isn't REST |
 

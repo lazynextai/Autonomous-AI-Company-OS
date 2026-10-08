@@ -651,6 +651,9 @@ export const OPENAPI_SPEC = {
     "/pdf": {
       post: { summary: "Render a URL to PDF via Browser Rendering", "x-internal": true, security: [{ internalAuth: [] }], responses: { "200": { description: "application/pdf" } } },
     },
+    "/browse": {
+      post: { summary: "Interactive BR session driver — {sessionId?, page?, actions:[goto|click|type|press|wait|select|eval|read|shot]}; session persists via keep_alive + sessionId reconnect", "x-internal": true, security: [{ internalAuth: [] }], responses: { "200": { description: "Action results" } } },
+    },
     "/exec": {
       post: { summary: "Run code in the exec container (CODE_EXEC binding)", "x-internal": true, security: [{ internalAuth: [] }], responses: { "200": { description: "Execution result" }, "503": { description: "container not configured" } } },
     },

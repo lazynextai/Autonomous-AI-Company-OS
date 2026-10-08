@@ -1487,20 +1487,54 @@ async function callConnector(
     }
     case "hashnode": {
       if (!text) return { ok: false, status: 400, error: "text required" };
-      // cred: "<token>:<publication_id>" — hashnode.com → Account → Developer.
+      // cred: "<cred>:<publication_id>" — <cred> is either the HttpOnly
+      // `hashnode-session` cookie value (works free-tier — drives the
+      // internal REST API the web editor uses) or a Developer PAT (needs
+      // a Pro publication; gql.hashnode.com 301s for free accounts).
+      // The session path is tried first; PATs fall through to GraphQL.
       const [token, pub = ""] = cred.split(":", 2);
       if (!pub) return { ok: false, status: 500, error: "conn:hashnode must be '<token>:<publication_id>'" };
+      const title = String(b.title ?? text.split("\n")[0].slice(0, 100));
+      const hn = (u: string, init: RequestInit) =>
+        connPost(`https://hashnode.com${u}`, {
+          ...init,
+          headers: {
+            cookie: `hashnode-session=${token}`,
+            "content-type": "application/json",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+            ...(init.headers ?? {}),
+          },
+        });
+      const created = await hn("/api/drafts", {
+        method: "POST",
+        body: JSON.stringify({ publicationId: pub }),
+      });
+      const draftId = ((created.body ?? {}) as { draftId?: string; draft?: { _id?: string } }).draftId
+        ?? ((created.body ?? {}) as { draft?: { _id?: string } }).draft?._id;
+      if (draftId) {
+        const saved = await hn(`/api/drafts/${draftId}`, {
+          method: "PUT",
+          body: JSON.stringify({ title, contentMarkdown: text }),
+        });
+        if (!saved.ok) return saved;
+        const published = await hn(`/api/drafts/${draftId}/publish`, {
+          method: "POST",
+          body: "{}",
+        });
+        if (published.ok) {
+          const post = ((published.body ?? {}) as { post?: { url?: string; id?: string } }).post;
+          return { ...published, body: { post: { id: post?.id, url: post?.url } } };
+        }
+        return published;
+      }
+      // Session path failed — treat <token> as a PAT on the (Pro-gated) gql API.
       return connPost("https://gql.hashnode.com/", {
         method: "POST",
         headers: { authorization: token, "content-type": "application/json" },
         body: JSON.stringify({
           query: "mutation($input: PublishPostInput!) { publishPost(input: $input) { post { id url } } }",
           variables: {
-            input: {
-              title: String(b.title ?? text.split("\n")[0].slice(0, 100)),
-              contentMarkdown: text,
-              publicationId: pub,
-            },
+            input: { title, contentMarkdown: text, publicationId: pub },
           },
         }),
       });

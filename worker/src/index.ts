@@ -13,7 +13,7 @@ import { handleA2a } from "./a2a";
 import { handleBilling, reconcileBilling } from "./billing";
 import { handleOAuth } from "./oauth";
 import { handleWebSearch, serper } from "./websearch";
-import { handleScrape, handleRender, handlePdf } from "./scrape";
+import { handleScrape, handleRender, handlePdf, handleBrowse } from "./scrape";
 import { getContainer } from "@cloudflare/containers";
 export { CodeExecContainer } from "./exec_container";
 import { handleWidget } from "./widget";
@@ -356,6 +356,9 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, path: string
     }
     case "/pdf": {
       return handlePdf(req, env);
+    }
+    case "/browse": {
+      return handleBrowse(req, env);
     }
     case "/exec": {
       if (!env.CODE_EXEC) return json({ error: "exec container not configured" }, 503);

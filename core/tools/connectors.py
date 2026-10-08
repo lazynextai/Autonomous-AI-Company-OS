@@ -48,9 +48,9 @@ async def _credential(connector_id: str) -> str | None:
 
 
 async def _post(url: str, *, headers: dict | None = None, json_body: Any = None,
-                data: Any = None, auth: tuple | None = None) -> dict[str, Any]:
+                data: Any = None, auth: tuple | None = None, method: str = "POST") -> dict[str, Any]:
     async with httpx.AsyncClient(timeout=20.0) as client:
-        r = await client.post(url, headers=headers, json=json_body, data=data, auth=auth)
+        r = await client.request(method, url, headers=headers, json=json_body, data=data, auth=auth)
         try:
             body = r.json()
         except Exception:
@@ -500,22 +500,51 @@ async def _devto(payload: dict, cred: str) -> dict:
 async def _hashnode(payload: dict, cred: str) -> dict:
     if isinstance(payload, str):
         payload = {"text": payload}
-    # cred: "<token>:<publication_id>" — hashnode.com → Account → Developer.
+    # cred: "<cred>:<publication_id>" — <cred> is either the HttpOnly
+    # `hashnode-session` cookie value (free tier — drives the internal
+    # REST API the web editor uses) or a Developer PAT (Pro-gated gql).
     token, _, pub = cred.partition(":")
     text = payload.get("text") or ""
     if not pub:
         return {"ok": False, "error": "conn:hashnode must be '<token>:<publication_id>'"}
+    title = payload.get("title") or text.split("\n")[0][:100]
+    headers = {
+        "cookie": f"hashnode-session={token}",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+    }
+    created = await _post(
+        "https://hashnode.com/api/drafts",
+        headers=headers,
+        json_body={"publicationId": pub},
+    )
+    body = created.get("body") if isinstance(created.get("body"), dict) else {}
+    draft_id = body.get("draftId") or (body.get("draft") or {}).get("_id")
+    if draft_id:
+        saved = await _post(
+            f"https://hashnode.com/api/drafts/{draft_id}",
+            headers=headers,
+            method="PUT",
+            json_body={"title": title, "contentMarkdown": text},
+        )
+        if not saved.get("ok"):
+            return saved
+        published = await _post(
+            f"https://hashnode.com/api/drafts/{draft_id}/publish",
+            headers=headers,
+            json_body={},
+        )
+        if published.get("ok"):
+            pb = published.get("body") if isinstance(published.get("body"), dict) else {}
+            post = pb.get("post") or {}
+            return {**published, "body": {"post": {"id": post.get("id"), "url": post.get("url")}}}
+        return published
     return await _post(
         "https://gql.hashnode.com/",
         headers={"authorization": token},
         json_body={
             "query": "mutation($input: PublishPostInput!) { publishPost(input: $input) { post { id url } } }",
             "variables": {
-                "input": {
-                    "title": payload.get("title") or text.split("\n")[0][:100],
-                    "contentMarkdown": text,
-                    "publicationId": pub,
-                }
+                "input": {"title": title, "contentMarkdown": text, "publicationId": pub}
             },
         },
     )

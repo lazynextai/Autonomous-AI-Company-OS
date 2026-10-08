@@ -662,3 +662,99 @@ export async function handleRender(req: Request, env: Env): Promise<Response> {
     await releaseBrowser(browser);
   }
 }
+
+type BrowseAction = {
+  goto?: string;
+  click?: string;
+  type?: string;
+  text?: string;
+  press?: string;
+  wait?: number;
+  eval?: string;
+  shot?: boolean;
+  select?: string;
+  value?: string;
+  read?: string;
+};
+
+// Interactive agent browsing — a persistent BR session the caller drives with
+// a small action list (goto/click/type/eval/screenshot). Unlike /scrape and
+// /render this keeps the page alive across calls (keep_alive + reconnect by
+// sessionId), so multi-step flows like logins and signup wizards work from
+// the edge. Internal-route only; every action runs inside the bounded loop.
+export async function handleBrowse(req: Request, env: Env): Promise<Response> {
+  const body = (await req.json()) as { sessionId?: string; actions?: BrowseAction[]; keep?: boolean; page?: number };
+  const actions = Array.isArray(body.actions) ? body.actions : [];
+  if (!env.BROWSER) return json({ error: "browser binding not configured" }, 503);
+  if (!actions.length || actions.length > 24) return json({ error: "1-24 actions required" }, 400);
+
+  let browser: Brw | undefined;
+  try {
+    if (body.sessionId) browser = await puppeteer.connect(env.BROWSER, body.sessionId).catch(() => undefined);
+    if (!browser) {
+      const sessions = (await puppeteer.sessions(env.BROWSER).catch(() => [])) as {
+        sessionId?: string;
+        connectionId?: string | null;
+      }[];
+      const idle = sessions.find((s) => s.sessionId && !s.connectionId);
+      if (idle?.sessionId) browser = await puppeteer.connect(env.BROWSER, idle.sessionId).catch(() => undefined);
+    }
+    if (!browser) browser = await puppeteer.launch(env.BROWSER, { keep_alive: 300_000 });
+    const sessionId = browser.sessionId();
+
+    const pages = await browser.pages();
+    const open = pages.filter((p) => !p.isClosed());
+    const pageIdx = typeof body.page === "number" ? body.page : open.length - 1;
+    const page = open[Math.max(0, Math.min(pageIdx, open.length - 1))] ?? (await browser.newPage());
+    await page.setViewport({ width: 1366, height: 900 }).catch(() => {});
+    await page.setUserAgent(
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+    ).catch(() => {});
+
+    const results: unknown[] = [];
+    for (const a of actions) {
+      try {
+        if (a.goto) {
+          await page.goto(a.goto, { waitUntil: "domcontentloaded", timeout: 30000 });
+          results.push({ goto: a.goto, ok: true });
+        } else if (a.click) {
+          await page.click(a.click);
+          results.push({ click: a.click, ok: true });
+        } else if (a.type) {
+          await page.type(a.type, String(a.text ?? ""), { delay: 30 });
+          results.push({ type: a.type, ok: true });
+        } else if (a.press) {
+          await page.keyboard.press(a.press as never);
+          results.push({ press: a.press, ok: true });
+        } else if (a.wait) {
+          await new Promise((r) => setTimeout(r, Math.min(Math.max(a.wait ?? 0, 0), 9000)));
+          results.push({ wait: a.wait, ok: true });
+        } else if (a.select) {
+          await page.select(a.select, String(a.value ?? ""));
+          results.push({ select: a.select, ok: true });
+        } else if (a.eval !== undefined) {
+          results.push({ eval: await page.evaluate(a.eval) });
+        } else if (a.read !== undefined) {
+          const t = a.read
+            ? await page.$eval(a.read, (el) => String((el as { innerText?: string }).innerText ?? "")).catch(() => null)
+            : await page.evaluate(() => (globalThis as { document?: { body?: { innerText?: string } } }).document?.body?.innerText ?? "");
+          results.push({ read: String(t ?? "").slice(0, 4000) });
+        } else if (a.shot) {
+          const b = await page.screenshot({ type: "jpeg", quality: 50, encoding: "base64" });
+          results.push({ shot: String(b) });
+        } else {
+          results.push({ error: "unknown action" });
+        }
+      } catch (e) {
+        results.push({ error: e instanceof Error ? e.message.slice(0, 200) : String(e).slice(0, 200) });
+      }
+    }
+    const out: Record<string, unknown> = { sessionId, url: page.url(), title: await page.title().catch(() => ""), results };
+    if (body.keep === false) await page.close().catch(() => {});
+    return json(out);
+  } catch (e) {
+    return json({ error: e instanceof Error ? e.message : String(e), provider: "cloudflare-browser" }, 502);
+  } finally {
+    await releaseBrowser(browser);
+  }
+}
