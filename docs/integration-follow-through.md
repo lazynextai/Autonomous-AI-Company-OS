@@ -39,6 +39,18 @@ in this current 24-channel response.
 
 ## Full carried-forward inventory
 
+### 2026-10-10 account inspection
+
+LINE developer console redirected to its normal Business ID email login.
+The email field is prepared with support@lazynext.com; authenticated console
+inspection remains pending. No new access token was created or wired.
+
+VK browser navigation redirected to vk.ru/challenge.html. Browser security
+policy explicitly prohibited this surface and prohibited workarounds. No
+challenge bypass or alternative browser route was attempted. The previously
+verified invalid API token remains unresolved; founder sign-in through the
+normal VK app is the next available step.
+
 These entries still need a current inspection. They are not confirmed blocked.
 
 | Area | Items and required verification |
