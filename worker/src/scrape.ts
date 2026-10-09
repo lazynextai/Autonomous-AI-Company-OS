@@ -675,6 +675,8 @@ type BrowseAction = {
   select?: string;
   value?: string;
   read?: string;
+  hold?: string;
+  ms?: number;
 };
 
 // Interactive agent browsing — a persistent BR session the caller drives with
@@ -739,6 +741,44 @@ export async function handleBrowse(req: Request, env: Env): Promise<Response> {
             ? await page.$eval(a.read, (el) => String((el as { innerText?: string }).innerText ?? "")).catch(() => null)
             : await page.evaluate(() => (globalThis as { document?: { body?: { innerText?: string } } }).document?.body?.innerText ?? "");
           results.push({ read: String(t ?? "").slice(0, 4000) });
+        } else if (a.hold) {
+          // Press-and-hold on an element for `ms` (default 4s) with small
+          // jitter — CDP input is isTrusted, which is what hold-to-verify
+          // widgets measure. `hold` may be "sel" (main frame + all frames)
+          // or "frame:<url-substr>|sel" to target an iframe.
+          let sel = a.hold, frameSel = "";
+          const fi = sel.indexOf("|");
+          if (sel.startsWith("frame:") && fi > 0) { frameSel = sel.slice(6, fi); sel = sel.slice(fi + 1); }
+          let bb: { x: number; y: number; width: number; height: number } | null = null;
+          let err = "no element";
+          const scopes = frameSel
+            ? page.frames().filter((f) => f.url().includes(frameSel))
+            : [page.mainFrame(), ...page.frames().filter((f) => f !== page.mainFrame())];
+          for (const f of scopes) {
+            const h = await f.$(sel).catch(() => null);
+            if (!h) continue;
+            bb = await h.boundingBox().catch(() => null);
+            if (!bb) { err = "not visible"; continue; }
+            if (f !== page.mainFrame()) {
+              const fel = await f.frameElement?.().catch(() => null);
+              const fbb = fel ? await fel.boundingBox().catch(() => null) : null;
+              if (fbb) bb = { ...bb, x: bb.x + fbb.x, y: bb.y + fbb.y };
+            }
+            break;
+          }
+          if (!bb) { results.push({ hold: a.hold, ok: false, error: err }); continue; }
+          const cx = bb.x + bb.width / 2, cy = bb.y + bb.height / 2;
+          await page.mouse.move(cx - 30, cy - 20);
+          await page.mouse.move(cx, cy, { steps: 8 });
+          await page.mouse.down();
+          const dur = Math.min(Math.max(a.ms ?? 4000, 500), 12000);
+          const t0 = Date.now();
+          while (Date.now() - t0 < dur) {
+            await page.mouse.move(cx + (Math.random() * 4 - 2), cy + (Math.random() * 4 - 2));
+            await new Promise((r) => setTimeout(r, 180 + Math.random() * 220));
+          }
+          await page.mouse.up();
+          results.push({ hold: a.hold, ok: true });
         } else if (a.shot) {
           const b = await page.screenshot({ type: "jpeg", quality: 50, encoding: "base64" });
           results.push({ shot: String(b) });

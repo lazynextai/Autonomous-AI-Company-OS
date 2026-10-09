@@ -1,0 +1,24 @@
+name = "mattermost-stack"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[containers]]
+# wrangler builds the Dockerfile and pushes to the CF registry on deploy.
+# To skip the local build, pin a pushed digest instead:
+#   image = "registry.cloudflare.com/85953070bae00da372951a8833bd3459/mattermost-stack-mattermoststack@sha256:<digest>"
+image = "./Dockerfile"
+class_name = "MattermostStack"
+max_instances = 1
+# postgres + mattermost (Go server) + nginx — heavier than listmonk.
+instance_type = "standard-1"
+constraints = { tiers = [1, 2, 3, 4] }
+observability = { enabled = true }
+
+[[durable_objects.bindings]]
+name = "MATTERMOST"
+class_name = "MattermostStack"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["MattermostStack"]
