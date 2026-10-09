@@ -19,10 +19,17 @@ account email: `support@lazynext.com`. Do not rename existing accounts blindly.
 | Pinterest | Latest unread mail acknowledges Standard-access resubmission | Inspect developer portal decision and app demo requirements |
 | Pastebin | Current welcome mail confirms lazynext account | Inspect profile/access; old signup-block claim is stale |
 | Linktree | Current welcome mail confirms account creation | Inspect profile completion; old signup-block claim is stale |
-| beehiiv | Registration reminder conflicts with old completed-account claim | Inspect registration before assuming ID is the only gate |
+| beehiiv | Signed in successfully as support@lazynext.com; Lazynext's Newsletter exists; current API settings explicitly require Stripe identity verification to create a key | Founder identity verification; API key creation and wiring afterward |
 | Gmail | All 36 unread messages returned by current query reviewed | No deletions, label changes, replies, or sends performed |
 
 GitLab verification: https://gitlab.com/-/snippets/6066554
+
+beehiiv API gate inspected directly at
+https://app.beehiiv.com/settings/workspace/api. Registration reminder is not
+evidence that the account is absent. The current dashboard shows the account
+created and onboarding checklist 1/6 complete. LINE has account identifiers in
+the local environment but no access-token variable; its missing connector is
+still unresolved and historical future-dated completion notes are insufficient.
 
 Postiz enabled providers: wordpress, bluesky, slack, mastodon, hashnode,
 nostr, dribbble, tumblr, skool, devto, telegram, discord, whop, kick,

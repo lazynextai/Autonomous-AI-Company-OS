@@ -31,8 +31,8 @@ These are recorded dependencies, not newly verified provider-account states:
 - Listmonk SMTP is configured and enabled. Fresh STARTTLS authentication
   succeeded (235); the operating ledger records earlier delivered test emails.
   No new email was sent during this review.
-- beehiiv registration and API access need a current account inspection;
-  recent registration mail conflicts with the historical identity-only gate.
+- beehiiv account and publication were inspected successfully; current API
+  settings require Stripe identity verification before API key creation.
 - Pinterest Standard access and several directory listings await provider review.
 - Google Business Profile requires genuine founder verification material.
 - LinkedIn and Snapchat have recorded founder-interaction gates.
