@@ -942,6 +942,12 @@ async function connPost(
 ): Promise<{ ok: boolean; status: number; body?: unknown; error?: string }> {
   const r = await fetch(url, init);
   const data = (await r.json().catch(() => ({}))) as Record<string, unknown>;
+  // VK reports rejected API calls inside HTTP 200 responses.
+  if (new URL(url).hostname === "api.vk.com" && data.error) {
+    const failure = data.error as Record<string, unknown>;
+    return { ok: false, status: r.status, body: data,
+      error: `VK API error ${failure.error_code ?? "unknown"}: ${failure.error_msg ?? "request rejected"}` };
+  }
   return { ok: r.ok, status: r.status, body: data,
     error: r.ok ? undefined : String(data.message ?? data.error ?? r.status) };
 }
