@@ -41,6 +41,29 @@ in this current 24-channel response.
 
 ### 2026-10-10 account inspection
 
+VK dispatch reporting corrected in both worker and local connectors: a VK
+HTTP 200 error envelope is now a failed result rather than a successful post.
+Worker tests: 48 passed; local VK regressions: 3 passed. Valid credentials
+remain required. This change does not restore expired account access.
+Deployed worker version: `94384edb-b0ae-4abe-b300-d64d71690e58`.
+Deployment used `--containers-rollout=none` because no container image change
+was required and the local Docker CLI was unavailable. Existing container
+deployment was preserved. No VK test post was sent.
+
+Pinterest developer portal currently redirects to a signed-out login page.
+Latest email review acknowledgement remains the last authenticated evidence.
+
+Current Microsoft program guidance does not guarantee a free Teams tenant.
+Its FAQ lists Microsoft 365 among investor-offer benefits, subject to eligibility;
+the investor offer requires an affiliation referral code. Azure credit activation
+requires a card and can transition to paid billing. Do not enroll or activate a
+subscription solely to bypass the Teams requirement.
+Source: https://learn.microsoft.com/en-us/startups/microsoft-for-startups/mfs-faqs
+
+Context7 and Firecrawl were found as available but uninstalled plugins; suggested
+for user installation. No callable Penpot capability was found. Working browser
+automation and web research remain available independently.
+
 LINE developer console redirected to its normal Business ID email login.
 The email field is prepared with support@lazynext.com; authenticated console
 inspection remains pending. No new access token was created or wired.
