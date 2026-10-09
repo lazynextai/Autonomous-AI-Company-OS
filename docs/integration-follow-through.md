@@ -21,6 +21,7 @@ account email: `support@lazynext.com`. Do not rename existing accounts blindly.
 | Linktree | Current welcome mail confirms account creation | Inspect profile completion; old signup-block claim is stale |
 | beehiiv | Signed in successfully as support@lazynext.com; Lazynext's Newsletter exists; current API settings explicitly require Stripe identity verification to create a key | Founder identity verification; API key creation and wiring afterward |
 | Gmail | All 36 unread messages returned by current query reviewed | No deletions, label changes, replies, or sends performed |
+| npm SDK | Registry lists @lazynext/accessibility-checker 1.0.0, published 2026-10-08; maintainer lazynext; registry archive SHA1 verified; all four published files exactly match repository | Publication verified complete; local npm login currently 401 and needed only for future releases |
 
 GitLab verification: https://gitlab.com/-/snippets/6066554
 
@@ -84,7 +85,7 @@ These entries still need a current inspection. They are not confirmed blocked.
 | Provider reviews | Reddit case 18570750; MeWe developer app; Lemmy dbzer0; SaaSHub; VS Marketplace domain; Partner Center case 2610070060003196; Glama; DEV.to; NuGet key expiry/rotation |
 | Account interaction | Farcaster signer; VK phone verification; Google Business verification; LinkedIn appeal/identity; TikTok, Snapchat, Viber signup; Telegram admin; Poe SMS; Blogger reauthentication; Hetzner address; Alibaba phone; Gumroad payout |
 | Business decisions | X funding, Meta funding, Hashnode Pro, mcp.so, Azure subscription, Teams organization; research current Microsoft startup benefits before promising a tenant |
-| Previously reported network failures | npm scope and SDK publication, CodePen, Slashdot, OpenHub, Postman, StackShare, Mixcloud, Imgur, DeviantArt, Newgrounds, Dreamwidth, OpenVC, Gab, telegra.ph; Linktree and Pastebin now have creation evidence |
+| Previously reported network failures | CodePen, Slashdot, OpenHub, Postman, StackShare, Mixcloud, Imgur, DeviantArt, Newgrounds, Dreamwidth, OpenVC, Gab, telegra.ph; npm SDK publication is verified complete; Linktree and Pastebin now have creation evidence |
 | Claimed unavailable paths | Medium Postiz, Snapchat organic API, Instagram standalone, Nostr REST, Quora/Hacker News/Product Hunt write APIs, WeChat, Weibo, Xiaohongshu, Lemon8; verify current official capabilities before declaring permanent impossibility |
 | Repository/account cleanup | Historical AGENTS ledger changes, DEV.to profile visibility, Instagram display name, Dribbble credential rotation; current git status has no pending AGENTS.md change |
 
