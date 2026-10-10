@@ -19,7 +19,7 @@ account email: `support@lazynext.com`. Do not rename existing accounts blindly.
 | Pinterest | Latest unread mail acknowledges Standard-access resubmission | Inspect developer portal decision and app demo requirements |
 | Pastebin | Current welcome mail confirms lazynext account | Inspect profile/access; old signup-block claim is stale |
 | Linktree | Current welcome mail confirms account creation | Inspect profile completion; old signup-block claim is stale |
-| beehiiv | Signed in successfully as support@lazynext.com; Lazynext's Newsletter exists; current API settings explicitly require Stripe identity verification to create a key | Founder identity verification; API key creation and wiring afterward |
+| beehiiv | Identity submission acknowledged by current API page: results processing; email outcome pending | Provider verification decision; API key creation and wiring afterward |
 | Gmail | All 36 unread messages returned by current query reviewed | No deletions, label changes, replies, or sends performed |
 | npm SDK | Registry lists @lazynext/accessibility-checker 1.0.0, published 2026-10-08; maintainer lazynext; registry archive SHA1 verified; all four published files exactly match repository | Publication verified complete; local npm login currently 401 and needed only for future releases |
 
@@ -65,9 +65,16 @@ Context7 and Firecrawl were found as available but uninstalled plugins; suggeste
 for user installation. No callable Penpot capability was found. Working browser
 automation and web research remain available independently.
 
-LINE developer console redirected to its normal Business ID email login.
-The email field is prepared with support@lazynext.com; authenticated console
-inspection remains pending. No new access token was created or wired.
+LINE login completed by founder. Authenticated developer console lists no
+providers; Official Account Manager lists no accounts under this Business ID.
+Official Account creation leads to required SMS identity verification. The
+verification page is open with India +91 selected. Founder must complete SMS
+verification and agree to verification-information handling before account
+creation can continue. No new access token was created or wired.
+
+beehiiv current API page acknowledges submitted identity information and says
+results are being processed. Do not ask the founder to repeat verification
+while review is pending; approval is not yet confirmed.
 
 VK browser navigation redirected to vk.ru/challenge.html. Browser security
 policy explicitly prohibited this surface and prohibited workarounds. No
