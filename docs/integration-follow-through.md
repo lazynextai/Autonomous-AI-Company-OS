@@ -152,6 +152,21 @@ Sources:
 
 ## Guardrails and evidence limits
 
+Continuation checks: Snapchat's current web sign-in reaches a password screen
+for the company email; no saved Snapchat password is available locally. This
+does not establish whether an account exists. The page is ready for founder
+sign-in. Instagram login with its current saved credential reaches reCAPTCHA;
+profile normalization is awaiting that security check. No password reset,
+new account, or challenge workaround was attempted.
+
+Context7's beehiiv SDK documentation describes API-key-authenticated publication
+operations; the publication ID is an identifier, not a replacement credential.
+Targeted mailbox searches since October 7 found no new decisions from Reddit,
+MeWe, dbzer0, Glama, or NuGet. Absence of matching mail is not a portal decision.
+
+Fresh repository validation: 85 Python tests passed, five skipped; all 48 worker
+tests passed; all 398 product tests passed. Total: 531 passed, five skipped.
+
 Do not claim all integrations complete from credential counts. Publishing,
 email delivery, identity verification, paid subscriptions, account changes,
 and provider decisions require their own evidence and appropriate authorization.
