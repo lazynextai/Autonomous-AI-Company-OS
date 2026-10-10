@@ -22,6 +22,7 @@ account email: `support@lazynext.com`. Do not rename existing accounts blindly.
 | beehiiv | Identity submission acknowledged by current API page: results processing; email outcome pending | Provider verification decision; API key creation and wiring afterward |
 | Gmail | All 36 unread messages returned by current query reviewed | No deletions, label changes, replies, or sends performed |
 | npm SDK | Registry lists @lazynext/accessibility-checker 1.0.0, published 2026-10-08; maintainer lazynext; registry archive SHA1 verified; all four published files exactly match repository | Publication verified complete; local npm login currently 401 and needed only for future releases |
+| LINE | Founder-issued token verified via bot/info HTTP 200 for lazynext @118xfmuh; conn:line saved durably; private local fallback saved; broadcast message validation HTTP 200 | Connection and payload validation complete; actual broadcast delivery not yet tested |
 
 GitLab verification: https://gitlab.com/-/snippets/6066554
 
@@ -70,10 +71,11 @@ to accept account terms, Official Account creation succeeded: display name
 `lazynext`, basic ID `@118xfmuh`, India, Internet and Software. After explicit
 API-access and API-terms approval, Messaging API activation succeeded.
 Provider `Lazynext` ID `2005622325`; channel ID `2011959429`.
-Long-lived channel access token remains unissued; the Issue button is open
-for founder credential creation, as required by browser handoff rules.
-No token has been wired. Historical identifiers in the environment are not
-the newly verified account.
+Founder issued the long-lived token. Bot info confirmed the newly created
+account before conn:line was stored with ttl 0. Private local CONN_LINE fallback
+and current account identifiers were saved in the uncommitted environment file.
+No credential values are included in this document. Broadcast validation 200
+does not prove delivery; no broadcast was sent.
 
 beehiiv current API page acknowledges submitted identity information and says
 results are being processed. Do not ask the founder to repeat verification
