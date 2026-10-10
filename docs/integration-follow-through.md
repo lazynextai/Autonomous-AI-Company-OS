@@ -2,8 +2,37 @@
 
 Evidence reviewed on 2026-10-09 and updated on 2026-10-10. This covers the supplied Devin backlog;
 historical restrictions remain unverified unless current evidence appears below.
-Account naming preference: `lazynext`, or `lazynextai` when unavailable;
-account email: `support@lazynext.com`. Do not rename existing accounts blindly.
+Account username preference for all existing and future accounts, in order:
+`lazynext`, `lazynextai`, `lazynext.ai`, `lazynext-ai`, `lazynext_ai`.
+Choose the first available format supported by the provider; do not invent
+another fallback. Account email: `support@lazynext.com`. Check rename restrictions
+and update affected links/integrations when correcting existing handles.
+Snapchat `lazynextvideo` needs correction under this rule; no rename is yet verified.
+
+## Username correction review (2026-10-10)
+
+- Instagram: changed `lazynext.ai` to first-choice `lazynext`. Reopened the
+  username settings and verified the saved value. Accounts Centre lists lazynext.
+- Threads: independently changed `lazynext.ai` to first-choice `lazynext`.
+  Accounts Centre and reopened username settings both verify the saved value.
+- Snapchat: desktop Accounts has no username-change control. Official support
+  directs changes through app Settings → My Account → Username → Change Username;
+  changes are limited to once per year. Founder phone-app step requested, using
+  the five preferred names in order. Availability is not yet confirmed.
+  Source: https://help.snapchat.com/hc/en-us/articles/7012349845140-How-do-I-change-my-Snapchat-username
+- No old Instagram/Threads profile URLs were found in repository content in a
+  targeted search. Ayrshare may retain cached labels; rename does not itself
+  prove publishing access. No verification post was sent.
+- This is a partial account audit, not a claim that every account now follows
+  the naming rule. Connected-network display names are not always usernames.
+- Ayrshare refreshed dashboard: Reddit label `lazynext`, Bluesky
+  `lazynext.bsky.social` (provider domain suffix), Snapchat `lazynextvideo`.
+  Instagram label still caches `lazynext.ai` despite the verified source rename;
+  all ten previously linked networks remain marked Linked. Do not disconnect
+  working accounts merely to refresh labels. Other labels are display names,
+  so their actual handles need source-account review.
+- Postiz account inventory could not be refreshed: two read-only integrations
+  requests returned HTTP 502. No account changes or container restarts performed.
 
 ## Fresh evidence
 
@@ -154,8 +183,9 @@ Sources:
 
 Snapchat signup continuation (2026-10-10): the founder completed signup/sign-in.
 The authenticated Accounts screen confirms display name Lazynext and username
-lazynextvideo. Preserve this founder-created account; the requested preferred
-handles have not been confirmed available. Ayrshare Google sign-in succeeded
+lazynextvideo. Subsequent founder instructions require correcting this handle
+under the ordered naming rule above; availability remains unconfirmed.
+Ayrshare Google sign-in succeeded
 for support@lazynext.com. Its Snapchat link reaches the actual OAuth consent
 screen, requesting Ads Manager Organisation and Public Profile APIs. The
 founder explicitly approved this access. Snapchat then displayed Authorisation

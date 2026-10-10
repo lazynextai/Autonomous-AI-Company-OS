@@ -1,5 +1,17 @@
 # Lazynext — Agent Operating Notes
 
+## Founder account username preference (2026-10-10)
+
+For every existing and future Lazynext account, use the first available,
+provider-supported username in this exact order: `lazynext`, `lazynextai`,
+`lazynext.ai`, `lazynext-ai`, `lazynext_ai`. Skip unsupported formats;
+do not invent another fallback if all five are unavailable. Existing handles
+outside this order must be reviewed for correction, including Snapchat
+`lazynextvideo`. Check availability and provider rename restrictions before
+changing a handle; update affected profile links and integrations afterward.
+Do not report a rename as complete until verified. This supersedes earlier
+two-option naming preferences. Account email remains `support@lazynext.com`.
+
 ## Founder verification preference (2026-10-10)
 
 The founder does not authorize personal identity documents, selfies, or personal
