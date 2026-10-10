@@ -56,11 +56,19 @@ refreshed authenticated desktop account verifies it.
   Lemmy and Pinterest; Bluesky `lazynext.bsky.social`; YouTube `@lazynext`.
   These are connection records, not fresh source-account verification.
 - Other recorded handles still need first-choice availability review: Kick,
-  Twitch, X and Moltbook use `lazynextai`; Telegram uses `lazynext_ai`;
+  Twitch and Moltbook use `lazynextai`; Telegram uses `lazynext_ai`;
   Slack's integration profile is `lazynext_social` (verify whether this is a
   bot/integration label rather than the company account username).
 - Instagram/Threads connection records cache the previous handles; source
   account rename evidence above is authoritative. No additional post sent.
+- X: authenticated username settings tested first-choice `lazynext`; provider
+  returned "That username has been taken. Please choose another." Existing
+  second-choice `Lazynextai` retained (case-insensitive handle). Restored the
+  original form value with Save disabled; no X account change or payment made.
+- Kick: existing password rejected with both support email and recorded
+  `lazynextai` username. No password reset started. Founder sign-in requested.
+- Twitch: existing-account login returned "Your browser is not currently
+  supported." Founder direct sign-in requested; no security bypass attempted.
 
 | Item | Current evidence | Remaining action |
 | --- | --- | --- |
