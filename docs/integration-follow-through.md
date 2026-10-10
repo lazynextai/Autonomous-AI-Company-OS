@@ -13,7 +13,7 @@ account email: `support@lazynext.com`. Do not rename existing accounts blindly.
 | Listmonk | Settings API 200; enabled Brevo SMTP on 587 with STARTTLS; fresh SMTP authentication 235; prior delivery recorded in CHANNELS.md | Fresh delivery requires a separately authorized email |
 | Native catalog | Fresh catalog confirms 39/45 credentials present and line true | Six missing: linkedin, tiktok, snapchat, teams, viber, beehiiv; publication capability must be checked separately |
 | Postiz | API recovered after backend startup; 24 enabled integrations | Enabled status alone does not prove publishing |
-| Ayrshare | Nine linked accounts: bluesky, facebook, gmb, instagram, pinterest, reddit, threads, twitter, youtube | Recheck remaining linking options and account restrictions |
+| Ayrshare | Ten linked accounts: bluesky, facebook, gmb, instagram, pinterest, reddit, snapchat, threads, twitter, youtube; Snapchat confirmed by UI and /api/user HTTP 200 | LinkedIn, Telegram, TikTok remain unlinked; publishing needs separate evidence |
 | DEV.to | Current authenticated users/me returns 401; recent appeal correspondence reviewed | Inspect account/appeal state; do not reuse invalid credentials |
 | VK | Current users.get returns API error 5 | Reauthorize through supported account flow |
 | Pinterest | Latest unread mail acknowledges Standard-access resubmission | Inspect developer portal decision and app demo requirements |
@@ -165,9 +165,16 @@ advertising spend has occurred. Desktop Business Manager loads the existing
 Lazynext organisation and offers Public Profiles in its product menu; the
 Profile Manager existing-account flow succeeded through the company Google
 login. It now shows Complete your Public Profile for lazynextvideo and the
-Create Public Profile button. Clicking that button accepts Commercial Content
-Terms; explicit approval of this separate agreement has been requested. No
-phone-only limitation is inferred from Ayrshare's generic error text.
+Create Public Profile button. The founder explicitly approved its Commercial
+Content Terms, and creation succeeded for profile
+dfa7da04-3362-4845-9e05-a01b68174d0e. The Ayrshare authorization was completed
+with the already-approved permissions: its UI shows Snapchat successfully
+linked as lazynextvideo; /api/user returned HTTP 200 with snapchat among ten
+activeSocialAccounts. Public Profile details saved and visibly verified: display
+name Lazynext, company bio, Business category, India, support@lazynext.com,
+https://lazynext.com. No new password was captured, no photo was uploaded, and
+no post or advertising spend occurred. Linking does not prove publication.
+No phone-only limitation is inferred from Ayrshare's generic error text.
 
 Continuation checks: Snapchat's current web sign-in reaches a password screen
 for the company email; no saved Snapchat password is available locally. This
