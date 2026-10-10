@@ -152,6 +152,23 @@ Sources:
 
 ## Guardrails and evidence limits
 
+Snapchat signup continuation (2026-10-10): the founder completed signup/sign-in.
+The authenticated Accounts screen confirms display name Lazynext and username
+lazynextvideo. Preserve this founder-created account; the requested preferred
+handles have not been confirmed available. Ayrshare Google sign-in succeeded
+for support@lazynext.com. Its Snapchat link reaches the actual OAuth consent
+screen, requesting Ads Manager Organisation and Public Profile APIs. The
+founder explicitly approved this access. Snapchat then displayed Authorisation
+successful. Ayrshare's callback rejected linking because a Public Profile is
+required; its Snapchat tile still says Click to link. No Snapchat post or
+advertising spend has occurred. Desktop Business Manager loads the existing
+Lazynext organisation and offers Public Profiles in its product menu; the
+Profile Manager existing-account flow succeeded through the company Google
+login. It now shows Complete your Public Profile for lazynextvideo and the
+Create Public Profile button. Clicking that button accepts Commercial Content
+Terms; explicit approval of this separate agreement has been requested. No
+phone-only limitation is inferred from Ayrshare's generic error text.
+
 Continuation checks: Snapchat's current web sign-in reaches a password screen
 for the company email; no saved Snapchat password is available locally. This
 does not establish whether an account exists. The page is ready for founder
