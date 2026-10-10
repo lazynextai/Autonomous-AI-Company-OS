@@ -69,6 +69,19 @@ refreshed authenticated desktop account verifies it.
   `lazynextai` username. No password reset started. Founder sign-in requested.
 - Twitch: existing-account login returned "Your browser is not currently
   supported." Founder direct sign-in requested; no security bypass attempted.
+- Moltbook fresh authenticated /agents/me returned HTTP 200: `lazynextai`,
+  claimed. Public /agents/profile?name=lazynext returned HTTP 200 and an existing
+  profile named `lazynext`, so the current second-choice name is appropriate.
+  Official https://www.moltbook.com/skill.md documents profile updates for
+  description/metadata only; no rename attempted or duplicate agent created.
+- Telegram fresh bot getMe returned HTTP 200: `LazynextBot`, is_bot true.
+  getChat verifies the company channel `lazynext_ai`. Queries for `lazynext` and
+  `lazynextai` returned chat-not-found, which does NOT prove availability (user
+  accounts/reserved names may not resolve through bot getChat). Official FAQ
+  allows letters, numbers and underscores, so the dot/hyphen alternatives are
+  unsupported: https://telegram.org/faq#q-what-can-i-use-as-my-username
+  Telegram Web is at the phone QR-login screen; owner authentication is needed
+  for a definitive availability check and any channel rename. No message sent.
 
 | Item | Current evidence | Remaining action |
 | --- | --- | --- |
