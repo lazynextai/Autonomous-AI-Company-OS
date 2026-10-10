@@ -36,6 +36,9 @@ These are recorded dependencies, not newly verified provider-account states:
 - Pinterest Standard access and several directory listings await provider review.
 - Google Business Profile requires genuine founder verification material.
 - LinkedIn and Snapchat have recorded founder-interaction gates.
+- Snapchat's gate was subsequently completed: Public Profile created, Ayrshare
+  linked, founder renamed account to `lazynext`, verified in desktop Accounts.
+  LinkedIn remains pending under the company-only verification preference.
 - Microsoft Clarity installation was left pending a business decision.
 
 Keep Dodo in test mode as instructed. Preserve two-factor enrollment and the
@@ -46,3 +49,12 @@ before attempting any recorded pending integration.
 The expanded Devin backlog and fresh connector checks are tracked in
 `integration-follow-through.md`. Credential presence and linked channels are
 not treated as proof of successful publication.
+
+## Fresh continuation (2026-10-11)
+
+Read-only checks again passed for all six configured HTTP services and all five
+KV liveness timestamps. These checks did not send email or publish a post.
+Account names verified at source: Instagram, Threads, Snapchat, GitLab,
+YouTube and Pinterest use `lazynext`. GitHub, X and Moltbook retain second-choice
+`lazynextai` after first-choice unavailability was checked. This does not cover
+every account; remaining authentication/provider gates are tracked separately.

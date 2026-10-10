@@ -1,6 +1,6 @@
 # Integration follow-through
 
-Evidence reviewed on 2026-10-09 and updated on 2026-10-10. This covers the supplied Devin backlog;
+Evidence reviewed on 2026-10-09 and updated on 2026-10-11. This covers the supplied Devin backlog;
 historical restrictions remain unverified unless current evidence appears below.
 Account username preference for all existing and future accounts, in order:
 `lazynext`, `lazynextai`, `lazynext.ai`, `lazynext-ai`, `lazynext_ai`.
@@ -82,10 +82,17 @@ refreshed authenticated desktop account verifies it.
   unsupported: https://telegram.org/faq#q-what-can-i-use-as-my-username
   Telegram Web is at the phone QR-login screen; owner authentication is needed
   for a definitive availability check and any channel rename. No message sent.
+- GitHub authenticated account is `lazynextai`. Public lookup of `lazynext`
+  returned 404, but the actual authenticated rename form explicitly says
+  "Username 'lazynext' is unavailable." Cancelled the form and retained the
+  valid second choice; no repository paths changed. A public 404 is not proof
+  that a username is available.
+- Fresh read-only health checks passed: all six HTTP services and five KV
+  liveness timestamps. No transition alerts or outbound messages sent.
 
 | Item | Current evidence | Remaining action |
 | --- | --- | --- |
-| GitLab | Existing PAT authenticated as lazynextai; restored conn:gitlab; platform dispatch returned 201; public snippet 6066554 has the exact approved content | Verification complete for text snippets |
+| GitLab | Account renamed to lazynext; existing PAT authenticates (200); public snippet 6066554 still readable and author now lazynext | Verification complete for text snippets |
 | Listmonk | Settings API 200; enabled Brevo SMTP on 587 with STARTTLS; fresh SMTP authentication 235; prior delivery recorded in CHANNELS.md | Fresh delivery requires a separately authorized email |
 | Native catalog | Fresh catalog confirms 39/45 credentials present and line true | Six missing: linkedin, tiktok, snapchat, teams, viber, beehiiv; publication capability must be checked separately |
 | Postiz | API recovered after backend startup; 24 enabled integrations | Enabled status alone does not prove publishing |
@@ -180,9 +187,9 @@ These entries still need a current inspection. They are not confirmed blocked.
 | --- | --- |
 | Native restrictions | X credits; Meta ad serving; Pinterest write scope; Google Business API quota and listing; Hashnode official API; WhatsApp production recipients; YouTube upload |
 | Missing Postiz channels | LinkedIn, LinkedIn Page, Reddit, TikTok, TikTok Business, Farcaster/Warpcast, VK, MeWe, Google Business Profile |
-| Ayrshare missing links | LinkedIn, Snapchat, Telegram, TikTok; inspect actual dashboard rather than infer from old list |
+| Ayrshare missing links | LinkedIn, Telegram, TikTok; Snapchat is now linked |
 | Provider reviews | Reddit case 18570750; MeWe developer app; Lemmy dbzer0; SaaSHub; VS Marketplace domain; Partner Center case 2610070060003196; Glama; DEV.to; NuGet key expiry/rotation |
-| Account interaction | Farcaster signer; VK phone verification; Google Business verification; LinkedIn appeal/identity; TikTok, Snapchat, Viber signup; Telegram admin; Poe SMS; Blogger reauthentication; Hetzner address; Alibaba phone; Gumroad payout |
+| Account interaction | Farcaster signer; VK phone verification; Google Business verification; LinkedIn company-only alternative; TikTok, Viber signup; Telegram admin; Poe SMS; Blogger reauthentication; Hetzner address; Alibaba phone; Gumroad payout. Snapchat signup/profile/linking completed |
 | Business decisions | X funding, Meta funding, Hashnode Pro, mcp.so, Azure subscription, Teams organization; research current Microsoft startup benefits before promising a tenant |
 | Previously reported network failures | CodePen, Slashdot, OpenHub, Postman, StackShare, Mixcloud, Imgur, DeviantArt, Newgrounds, Dreamwidth, OpenVC, Gab, telegra.ph; npm SDK publication is verified complete; Linktree and Pastebin now have creation evidence |
 | Claimed unavailable paths | Medium Postiz, Snapchat organic API, Instagram standalone, Nostr REST, Quora/Hacker News/Product Hunt write APIs, WeChat, Weibo, Xiaohongshu, Lemon8; verify current official capabilities before declaring permanent impossibility |
@@ -230,8 +237,8 @@ Sources:
 
 Snapchat signup continuation (2026-10-10): the founder completed signup/sign-in.
 The authenticated Accounts screen confirms display name Lazynext and username
-lazynextvideo. Subsequent founder instructions require correcting this handle
-under the ordered naming rule above; availability remains unconfirmed.
+lazynextvideo at signup. Subsequent founder phone-app rename to lazynext was
+independently verified; see the ordered naming review above.
 Ayrshare Google sign-in succeeded
 for support@lazynext.com. Its Snapchat link reaches the actual OAuth consent
 screen, requesting Ads Manager Organisation and Public Profile APIs. The
