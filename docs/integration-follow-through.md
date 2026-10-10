@@ -7,7 +7,8 @@ Account username preference for all existing and future accounts, in order:
 Choose the first available format supported by the provider; do not invent
 another fallback. Account email: `support@lazynext.com`. Check rename restrictions
 and update affected links/integrations when correcting existing handles.
-Snapchat `lazynextvideo` needs correction under this rule; no rename is yet verified.
+Snapchat is now `lazynext`; the founder completed the phone-app rename and the
+refreshed authenticated desktop account verifies it.
 
 ## Username correction review (2026-10-10)
 
@@ -15,10 +16,10 @@ Snapchat `lazynextvideo` needs correction under this rule; no rename is yet veri
   username settings and verified the saved value. Accounts Centre lists lazynext.
 - Threads: independently changed `lazynext.ai` to first-choice `lazynext`.
   Accounts Centre and reopened username settings both verify the saved value.
-- Snapchat: desktop Accounts has no username-change control. Official support
-  directs changes through app Settings → My Account → Username → Change Username;
-  changes are limited to once per year. Founder phone-app step requested, using
-  the five preferred names in order. Availability is not yet confirmed.
+- Snapchat: founder completed the phone-app change to first-choice `lazynext`.
+  Refreshed authenticated desktop Accounts confirms display name Lazynext and
+  username lazynext. No further rename needed. Official support limits changes
+  to once per year.
   Source: https://help.snapchat.com/hc/en-us/articles/7012349845140-How-do-I-change-my-Snapchat-username
 - No old Instagram/Threads profile URLs were found in repository content in a
   targeted search. Ayrshare may retain cached labels; rename does not itself
@@ -26,7 +27,8 @@ Snapchat `lazynextvideo` needs correction under this rule; no rename is yet veri
 - This is a partial account audit, not a claim that every account now follows
   the naming rule. Connected-network display names are not always usernames.
 - Ayrshare refreshed dashboard: Reddit label `lazynext`, Bluesky
-  `lazynext.bsky.social` (provider domain suffix), Snapchat `lazynextvideo`.
+  `lazynext.bsky.social` (provider domain suffix), Snapchat cached `lazynextvideo`
+  despite the source account's verified rename to `lazynext`.
   Instagram label still caches `lazynext.ai` despite the verified source rename;
   all ten previously linked networks remain marked Linked. Do not disconnect
   working accounts merely to refresh labels. Other labels are display names,
