@@ -19,7 +19,7 @@ account email: `support@lazynext.com`. Do not rename existing accounts blindly.
 | Pinterest | Latest unread mail acknowledges Standard-access resubmission | Inspect developer portal decision and app demo requirements |
 | Pastebin | Current welcome mail confirms lazynext account | Inspect profile/access; old signup-block claim is stale |
 | Linktree | Current welcome mail confirms account creation | Inspect profile completion; old signup-block claim is stale |
-| beehiiv | Email received 2026-10-10 09:54 UTC says identity verification unsuccessful; current API page offers restart | Founder identity retry; exact rejection cause not specified; key creation and wiring afterward |
+| beehiiv | Email received 2026-10-10 09:54 UTC says identity verification unsuccessful; exact cause not specified | Personal-ID retry declined by founder; investigate supported company-document alternative; API connection remains pending |
 | Gmail | All 36 unread messages returned by current query reviewed | No deletions, label changes, replies, or sends performed |
 | npm SDK | Registry lists @lazynext/accessibility-checker 1.0.0, published 2026-10-08; maintainer lazynext; registry archive SHA1 verified; all four published files exactly match repository | Publication verified complete; local npm login currently 401 and needed only for future releases |
 | LINE | Founder-issued token verified via bot/info HTTP 200 for lazynext @118xfmuh; conn:line saved durably; private local fallback saved; broadcast validation 200; explicitly approved test broadcast through Lazynext OS returned ok true, upstream 200 | End-to-end dispatch accepted; recipient receipt not independently observed |
@@ -80,10 +80,12 @@ connector. Platform HTTP 200, ok true, LINE upstream HTTP 200 with empty JSON
 body. This proves dispatch acceptance, not independently observed receipt.
 
 beehiiv identity review is no longer pending. Its rejection email lists generic
-possible reasons, without naming the actual cause. The retry prompt was opened
-and left at personal consent and identity capture. Mail was read without label
-changes or deletion. Founder should use a valid unexpired photo ID and clear
-original photos; no ID or selfie should be placed in project files or chat.
+possible reasons, without naming the actual cause. Founder has declined any
+further personal identity verification for company accounts. Do not reopen the
+retry or request personal ID/selfies. Investigate company-only verification if
+explicitly supported; do not upload company documents into a personal-ID flow.
+Mail was read without label changes or deletion. No ID or selfie belongs in
+project files or chat.
 
 Linktree public page inspection failed with ERR_SSL_PROTOCOL_ERROR; no TLS
 bypass was attempted. Pastebin public profile reached Cloudflare automatic
