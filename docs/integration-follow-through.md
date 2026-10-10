@@ -112,6 +112,20 @@ These entries still need a current inspection. They are not confirmed blocked.
 | Claimed unavailable paths | Medium Postiz, Snapchat organic API, Instagram standalone, Nostr REST, Quora/Hacker News/Product Hunt write APIs, WeChat, Weibo, Xiaohongshu, Lemon8; verify current official capabilities before declaring permanent impossibility |
 | Repository/account cleanup | Historical AGENTS ledger changes, DEV.to profile visibility, Instagram display name, Dribbble credential rotation; current git status has no pending AGENTS.md change |
 
+## Company-only verification research (2026-10-10)
+
+Firecrawl is now installed and was used to fetch beehiiv's official help pages
+live. Its identity guide (updated October 9, 2026) still requires an individual
+identity document for API access. Neither that guide nor its Stripe account-type
+guide documents a company-certificate replacement or exemption. This is a limit
+of the published guidance, not proof that support cannot offer an alternative.
+Keep beehiiv API integration pending under the founder's company-only preference.
+No new verification submission, support message, or payment was made.
+
+Sources:
+- https://www.beehiiv.com/support/article/12889886149655-how-to-confirm-your-account-with-stripe-identity-verification
+- https://www.beehiiv.com/support/article/30064926230679-using-stripe-with-beehiiv-account-types-explained
+
 ## Guardrails and evidence limits
 
 Do not claim all integrations complete from credential counts. Publishing,
