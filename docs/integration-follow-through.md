@@ -38,6 +38,24 @@ refreshed authenticated desktop account verifies it.
 
 ## Fresh evidence
 
+### Company profile follow-through (2026-10-11)
+
+- GitLab saved company website https://lazynext.com, organization Lazynext,
+  company bio, GitHub lazynextai and X @Lazynextai links. Verified both public
+  profile and authenticated API (HTTP 200); username remains lazynext.
+- Pinterest authenticated public profile confirms lazynext and company bio,
+  plus four existing Pins. This is evidence of existing published content,
+  not a newly authorized dispatch or proof of native Standard API approval.
+  Attempts to save an HTTPS website and contact email did not yield verified
+  persistence: public profile still links http://lazynext.com. Do not mark
+  these attempted edits complete. No new Pin created.
+- Linktree admin was retried and still returns ERR_SSL_PROTOCOL_ERROR.
+  No certificate/TLS bypass attempted.
+- Latest targeted review-mail search still contains Pinterest's October 9
+  review acknowledgement and beehiiv's generic verification denial; no newer
+  approval was found in those search results. Provider portals remain separate
+  evidence sources. No personal-ID retry or appeal message sent.
+
 ### Continued username review (2026-10-11)
 
 - GitLab changed from `lazynextai` to first-choice `lazynext`; account settings
