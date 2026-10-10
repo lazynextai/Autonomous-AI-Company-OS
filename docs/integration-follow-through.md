@@ -22,7 +22,7 @@ account email: `support@lazynext.com`. Do not rename existing accounts blindly.
 | beehiiv | Identity submission acknowledged by current API page: results processing; email outcome pending | Provider verification decision; API key creation and wiring afterward |
 | Gmail | All 36 unread messages returned by current query reviewed | No deletions, label changes, replies, or sends performed |
 | npm SDK | Registry lists @lazynext/accessibility-checker 1.0.0, published 2026-10-08; maintainer lazynext; registry archive SHA1 verified; all four published files exactly match repository | Publication verified complete; local npm login currently 401 and needed only for future releases |
-| LINE | Founder-issued token verified via bot/info HTTP 200 for lazynext @118xfmuh; conn:line saved durably; private local fallback saved; broadcast message validation HTTP 200 | Connection and payload validation complete; actual broadcast delivery not yet tested |
+| LINE | Founder-issued token verified via bot/info HTTP 200 for lazynext @118xfmuh; conn:line saved durably; private local fallback saved; broadcast validation 200; explicitly approved test broadcast through Lazynext OS returned ok true, upstream 200 | End-to-end dispatch accepted; recipient receipt not independently observed |
 
 GitLab verification: https://gitlab.com/-/snippets/6066554
 
@@ -75,7 +75,10 @@ Founder issued the long-lived token. Bot info confirmed the newly created
 account before conn:line was stored with ttl 0. Private local CONN_LINE fallback
 and current account identifiers were saved in the uncommitted environment file.
 No credential values are included in this document. Broadcast validation 200
-does not prove delivery; no broadcast was sent.
+does not prove delivery. After explicit founder approval, one broadcast with
+the exact text `Lazynext OS connection test.` was sent through the platform
+connector. Platform HTTP 200, ok true, LINE upstream HTTP 200 with empty JSON
+body. This proves dispatch acceptance, not independently observed receipt.
 
 beehiiv current API page acknowledges submitted identity information and says
 results are being processed. Do not ask the founder to repeat verification
