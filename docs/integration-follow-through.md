@@ -38,6 +38,30 @@ refreshed authenticated desktop account verifies it.
 
 ## Fresh evidence
 
+### Continued username review (2026-10-11)
+
+- GitLab changed from `lazynextai` to first-choice `lazynext`; account settings
+  confirmed "Username successfully changed" and the new current path. Existing
+  owned project is in the separate `lazynext1/platform` group, not the renamed
+  personal namespace. Local GITLAB_HANDLE updated after API confirmation.
+- YouTube authenticated channel `UCf76xZStSHc1EJHv0VfalaQ` shows `@lazynext`.
+- Pinterest authenticated profile settings link to `pinterest.com/lazynext`;
+  no username change needed. API Standard access remains a separate review.
+- Skool existing account email sign-in succeeded after saved password rejection.
+  Profile URL remains `skool.com/@lazynext-ai-7304`: the field is disabled and
+  requires 90 contributions, 30 followers, and 90 days of use before changing.
+  Do not fabricate engagement or buy activity to bypass this restriction.
+- Postiz inventory recovered (HTTP 200): 24 enabled connections. Records show
+  `lazynext` for WordPress, Mastodon, Hashnode, Dribbble, Tumblr, DEV.to, Whop,
+  Lemmy and Pinterest; Bluesky `lazynext.bsky.social`; YouTube `@lazynext`.
+  These are connection records, not fresh source-account verification.
+- Other recorded handles still need first-choice availability review: Kick,
+  Twitch, X and Moltbook use `lazynextai`; Telegram uses `lazynext_ai`;
+  Slack's integration profile is `lazynext_social` (verify whether this is a
+  bot/integration label rather than the company account username).
+- Instagram/Threads connection records cache the previous handles; source
+  account rename evidence above is authoritative. No additional post sent.
+
 | Item | Current evidence | Remaining action |
 | --- | --- | --- |
 | GitLab | Existing PAT authenticated as lazynextai; restored conn:gitlab; platform dispatch returned 201; public snippet 6066554 has the exact approved content | Verification complete for text snippets |
