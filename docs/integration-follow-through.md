@@ -61,9 +61,9 @@ requires a card and can transition to paid billing. Do not enroll or activate a
 subscription solely to bypass the Teams requirement.
 Source: https://learn.microsoft.com/en-us/startups/microsoft-for-startups/mfs-faqs
 
-Context7 and Firecrawl were found as available but uninstalled plugins; suggested
-for user installation. No callable Penpot capability was found. Working browser
-automation and web research remain available independently.
+Context7 and Firecrawl now expose callable tools. No callable Penpot capability
+was found. Browser automation remains available through the connected Chrome
+session, including supported Playwright controls.
 
 LINE login and SMS verification completed by founder. After explicit approval
 to accept account terms, Official Account creation succeeded: display name
@@ -125,6 +125,30 @@ No new verification submission, support message, or payment was made.
 Sources:
 - https://www.beehiiv.com/support/article/12889886149655-how-to-confirm-your-account-with-stripe-identity-verification
 - https://www.beehiiv.com/support/article/30064926230679-using-stripe-with-beehiiv-account-types-explained
+
+## Latest continuation (2026-10-10)
+
+- Fresh health checker run returned OK.
+- LINE bot/info again returned 200 for lazynext @118xfmuh. No additional
+  broadcast was sent.
+- Fresh VK users.get still returned API error 5 (invalid authorization).
+  The previously prohibited challenge route was not revisited or bypassed.
+- Fresh native connector catalog again returned 39/45 credentials, with the
+  same six missing credentials listed above.
+- Linktree admin navigation failed with ERR_SSL_PROTOCOL_ERROR. Account creation
+  remains supported by its welcome email; profile completion remains unverified.
+- beehiiv publication name was saved as Lazynext and its description as
+  "Updates from Lazynext — the Autonomous AI Company Operating System.";
+  general settings independently showed both saved values. Timezone was saved
+  as Kolkata. No personal verification was started. Its checklist remains 1/6;
+  name/description updates alone do not complete the branding checklist.
+- DEV support's October 7 response explicitly imposed a one-week suspension
+  for content-policy violations. It says a reinstatement request can be made
+  after that week, with an acknowledgement of its Terms and Code of Conduct.
+  The suspension period has not elapsed on October 10. No appeal was sent and
+  no attempt to publish around the suspension was made.
+- Latest matching mail still shows Pinterest Standard-access resubmission
+  acknowledgement, with no subsequent approval in the searched results.
 
 ## Guardrails and evidence limits
 
