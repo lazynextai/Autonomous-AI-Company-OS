@@ -67,10 +67,13 @@ automation and web research remain available independently.
 
 LINE login and SMS verification completed by founder. After explicit approval
 to accept account terms, Official Account creation succeeded: display name
-`lazynext`, basic ID `@118xfmuh`, India, Internet and Software. Messaging API
-settings currently show Disabled; approval requested for creating API access.
-No channel access token has been created or wired. Historical identifiers in
-the environment are not the newly verified account.
+`lazynext`, basic ID `@118xfmuh`, India, Internet and Software. After explicit
+API-access and API-terms approval, Messaging API activation succeeded.
+Provider `Lazynext` ID `2005622325`; channel ID `2011959429`.
+Long-lived channel access token remains unissued; the Issue button is open
+for founder credential creation, as required by browser handoff rules.
+No token has been wired. Historical identifiers in the environment are not
+the newly verified account.
 
 beehiiv current API page acknowledges submitted identity information and says
 results are being processed. Do not ask the founder to repeat verification
