@@ -156,8 +156,13 @@ Continuation checks: Snapchat's current web sign-in reaches a password screen
 for the company email; no saved Snapchat password is available locally. This
 does not establish whether an account exists. The page is ready for founder
 sign-in. Instagram login with its current saved credential reaches reCAPTCHA;
-profile normalization is awaiting that security check. No password reset,
-new account, or challenge workaround was attempted.
+the security check cleared and the authenticated Edit Profile screen confirms
+display name Lazynext and the existing company bio. Display-name normalization
+is therefore complete. No profile rewrite was needed. Snapchat has no existing
+account according to the founder; its signup form is prepared with Lazynext and
+username lazynext. Required birthday, new-password entry, terms acceptance and
+any subsequent verification remain with the account owner. No password reset,
+new account submission, or challenge workaround was attempted.
 
 Context7's beehiiv SDK documentation describes API-key-authenticated publication
 operations; the publication ID is an identifier, not a replacement credential.
