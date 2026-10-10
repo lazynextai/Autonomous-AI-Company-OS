@@ -10,6 +10,7 @@ import os
 import sys
 import time
 import urllib.request
+from urllib.parse import urlsplit
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -61,14 +62,36 @@ CORPUS_WARN = 8_000
 STATE_FILE = Path(".health_state.json")
 
 
+def _origin(url: str) -> tuple[str, str | None, int | None]:
+    parsed = urlsplit(url)
+    return parsed.scheme, parsed.hostname, parsed.port or (443 if parsed.scheme == "https" else 80)
+
+
+class _ScopedRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        redirected = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if redirected is not None and _origin(req.full_url) != _origin(newurl):
+            redirected.remove_header("Authorization")
+        return redirected
+
+
+def _open(req: urllib.request.Request):
+    # urllib otherwise forwards Authorization to a redirect's destination.
+    return urllib.request.build_opener(_ScopedRedirectHandler()).open(req, timeout=15)
+
+
 def check(url: str) -> bool:
     try:
         headers = {"User-Agent": "healthcheck/1.0"}
         token = os.environ.get("CLOUDFLARE_API_TOKEN")
-        if token:
+        platform = os.environ.get("CLOUDFLARE_API_URL", "")
+        platform_origins = {_origin("https://ai-company.lazynext.com")}
+        if platform:
+            platform_origins.add(_origin(platform))
+        if token and _origin(url) in platform_origins and urlsplit(url).scheme == "https":
             headers["Authorization"] = f"Bearer {token}"
         req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=15) as r:
+        with _open(req) as r:
             return r.status < 400
     except Exception:
         return False
@@ -77,7 +100,7 @@ def check(url: str) -> bool:
 def fetch_body(url: str) -> bytes | None:
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "healthcheck/1.0"})
-        with urllib.request.urlopen(req, timeout=15) as r:
+        with _open(req) as r:
             return r.read() if r.status < 400 else None
     except Exception:
         return None
@@ -98,7 +121,7 @@ def kv_age_ms(key: str) -> float | None:
             },
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=15) as r:
+        with _open(req) as r:
             v = json.loads(r.read()).get("value")
         if not v:
             return None
@@ -128,7 +151,7 @@ def corpus_size() -> int | None:
             },
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=15) as r:
+        with _open(req) as r:
             return int(json.loads(r.read())["results"][0]["n"])
     except Exception:
         return None

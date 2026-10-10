@@ -1,5 +1,27 @@
 # Lazynext — Agent Operating Notes
 
+## Founder account username preference (2026-10-10)
+
+For every existing and future Lazynext account, use the first available,
+provider-supported username in this exact order: `lazynext`, `lazynextai`,
+`lazynext.ai`, `lazynext-ai`, `lazynext_ai`. Skip unsupported formats;
+do not invent another fallback if all five are unavailable. Existing handles
+outside this order must be reviewed for correction, including Snapchat
+`lazynextvideo`. Check availability and provider rename restrictions before
+changing a handle; update affected profile links and integrations afterward.
+Do not report a rename as complete until verified. This supersedes earlier
+two-option naming preferences. Account email remains `support@lazynext.com`.
+
+## Founder verification preference (2026-10-10)
+
+The founder does not authorize personal identity documents, selfies, or personal
+identity verification for company accounts. Use company certificates/documents
+only when the provider explicitly supports company verification, with approval
+for the specific submission. Do not reopen personal-ID retries or substitute
+company documents into a personal-ID flow. Keep personal-verification-dependent
+integrations pending and investigate supported company-only alternatives.
+This preference supersedes historical notes asking the founder for photo ID.
+
 Autonomous AI company platform. Cloudflare-first: Workers AI brain, Workers +
 D1 + KV (`EPHEMERAL`) + Vectorize (`VECTORS`, index `company-knowledge`, 384d)
 + Browser Rendering (`/render`) + Containers (`CODE_EXEC`) + Queues

@@ -318,7 +318,7 @@ async def _vk(payload: dict, cred: str) -> dict:
     token, _, owner = cred.partition(":")
     if not owner:
         return {"ok": False, "error": "conn:vk must be '<access_token>:<owner_id>'"}
-    return await _post(
+    result = await _post(
         "https://api.vk.com/method/wall.post",
         data={
             "access_token": token, "owner_id": owner,
@@ -326,6 +326,17 @@ async def _vk(payload: dict, cred: str) -> dict:
             "from_group": 1 if owner.startswith("-") else 0, "v": "5.199",
         },
     )
+    failure = result.get("body", {}).get("error")
+    if failure:
+        result["ok"] = False
+        result["error"] = (
+            f"VK API error {failure.get('error_code', 'unknown')}: "
+            f"{failure.get('error_msg', 'request rejected')}"
+        )
+    elif isinstance(failure, dict):
+        result["ok"] = False
+        result["error"] = "VK API error unknown: request rejected"
+    return result
 
 
 # --- Chat / messaging communities ----------------------------------------
