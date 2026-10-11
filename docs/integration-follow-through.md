@@ -209,7 +209,7 @@ These entries still need a current inspection. They are not confirmed blocked.
 | Provider reviews | Reddit case 18570750; MeWe developer app; Lemmy dbzer0; SaaSHub; VS Marketplace domain; Partner Center case 2610070060003196; Glama; DEV.to; NuGet key expiry/rotation |
 | Account interaction | Farcaster signer; VK phone verification; Google Business verification; LinkedIn company-only alternative; TikTok, Viber signup; Telegram admin; Poe SMS; Blogger reauthentication; Hetzner address; Alibaba phone; Gumroad payout. Snapchat signup/profile/linking completed |
 | Business decisions | X funding, Meta funding, Hashnode Pro, mcp.so, Azure subscription, Teams organization; research current Microsoft startup benefits before promising a tenant |
-| Previously reported network failures | Slashdot, OpenHub, Mixcloud, Imgur, DeviantArt, Newgrounds, Dreamwidth, OpenVC, Gab, telegra.ph; CodePen and StackShare login/profile access verified October 11, alongside Postman login/API access; npm SDK publication is verified complete; Linktree and Pastebin now have creation evidence |
+| Previously reported network failures | Slashdot, Imgur, DeviantArt, Newgrounds, Dreamwidth, Gab, telegra.ph; OpenHub, CodePen and StackShare access/profile setup completed October 11; OpenVC loads but login is unresolved; Mixcloud login succeeded before a provider spam restriction; Postman login/API access verified; npm SDK publication is verified complete; Linktree and Pastebin now have creation evidence |
 | Claimed unavailable paths | Medium Postiz, Snapchat organic API, Instagram standalone, Nostr REST, Quora/Hacker News/Product Hunt write APIs, WeChat, Weibo, Xiaohongshu, Lemon8; verify current official capabilities before declaring permanent impossibility |
 | Repository/account cleanup | Historical AGENTS ledger changes, DEV.to profile visibility, Instagram display name, Dribbble credential rotation; current git status has no pending AGENTS.md change |
 
@@ -333,6 +333,22 @@ two-factor enrollment, the 30-day trial offer, private archives, and all mail.
   was set, media uploaded, new account created or restriction bypass attempted.
   Screenshot: `/tmp/lazynext-mixcloud-provider-block.png`. Provider resolution is
   pending; a support message has not been sent.
+- OpenHub: automatic security verification cleared normally. The founder
+  specifically approved GitHub OAuth read-only email/profile access. The
+  authorization created an account initially named `lazynextai`; Account Basics
+  accepted the first-choice username `lazynext`, company name, website, X handle,
+  affiliation and company bio. Final profile at `https://openhub.net/accounts/lazynext`
+  displays “Save successful!” and the saved details. Screenshot:
+  `/tmp/lazynext-openhub-profile-saved.png`. No API key, contribution claim or
+  project listing was created.
+- OpenVC: home and login form now load. The existing locally saved password
+  returned “Incorrect email or password”; password field was cleared for owner
+  login. The founder reported signing in, but the current Chrome tab still shows
+  the login error and empty password field. Authenticated access remains unverified.
+- Network follow-up: Newgrounds still fails with `ERR_SSL_PROTOCOL_ERROR`.
+  Dreamwidth home loads, but its linked free-account creation page returns
+  HTTP 403. Neither result proves that an account does not exist. No security
+  bypass or duplicate account submission was performed.
 
 - PR #2 merged successfully as `9eb8a43e7da4e628f6a19071cd346a8254997ac6`.
   Python, worker and dashboard CI checks all passed. Local main was advanced to
