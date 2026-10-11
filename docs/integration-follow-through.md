@@ -211,7 +211,7 @@ These entries still need a current inspection. They are not confirmed blocked.
 | Business decisions | X funding, Meta funding, Hashnode Pro, mcp.so, Azure subscription, Teams organization; research current Microsoft startup benefits before promising a tenant |
 | Previously reported network failures | Slashdot, Imgur, DeviantArt, Newgrounds, Dreamwidth, Gab, telegra.ph; OpenHub, CodePen and StackShare access/profile setup completed October 11; OpenVC loads but login is unresolved; Mixcloud login succeeded before a provider spam restriction; Postman login/API access verified; npm SDK publication is verified complete; Linktree and Pastebin now have creation evidence |
 | Claimed unavailable paths | Medium Postiz, Snapchat organic API, Instagram standalone, Nostr REST, Quora/Hacker News/Product Hunt write APIs, WeChat, Weibo, Xiaohongshu, Lemon8; verify current official capabilities before declaring permanent impossibility |
-| Repository/account cleanup | Historical AGENTS ledger changes, DEV.to profile visibility, Instagram display name, Dribbble credential rotation; current git status has no pending AGENTS.md change |
+| Repository/account cleanup | Historical AGENTS ledger changes, DEV.to profile visibility, Dribbble credential rotation; Meta profile name and username verified October 12; current git status has no pending AGENTS.md change |
 
 ## Company-only verification research (2026-10-10)
 
@@ -481,3 +481,8 @@ two-factor enrollment, the 30-day trial offer, private archives, and all mail.
   in Chrome with `ERR_SSL_PROTOCOL_ERROR`. No TLS bypass was attempted.
 - DeviantArt's retained signup tab was rechecked; birthday fields remain empty.
   Prior signup-term approval is retained; it does not supply the missing birthday.
+- Meta account-center profile `17841425318375471`: Name settings show
+  `Lazynext`, and Username settings show `lazynext` with “Username is valid.”
+  Both Done controls are disabled because no changes are needed. The earlier
+  display-name cleanup reminder is resolved for this inspected profile; no
+  additional rename or identity-verification submission was performed.
