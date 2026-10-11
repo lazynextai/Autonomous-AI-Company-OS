@@ -21,7 +21,8 @@ origin or the configured platform origin over HTTPS. Redirects to another
 origin strip Authorization, including redirects from the internal KV and query
 checks. Fourteen regression cases cover destination and redirect isolation.
 
-The change is local on `codex/healthcheck-token-scope`. No cloud deployment or
+The change was merged into main through PR #2 on October 11 after all CI checks
+passed. The local monitor uses the merged script. No cloud deployment or
 outbound announcement is required for this monitoring-script fix.
 
 ## Remaining recorded work
