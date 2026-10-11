@@ -307,6 +307,22 @@ two-factor enrollment, the 30-day trial offer, private archives, and all mail.
 
 ## October 11 — merged fixes and additional account profiles
 
+- PR #4 merged as `020b4fd` after Python, worker and dashboard CI passed.
+  It records CodePen, StackShare, Mixcloud, OpenHub and current access blockers.
+  A subsequent read-only health check passed all six endpoints, all five KV
+  liveness checks, product mirror parity and the dead-corpus warning threshold.
+- Reviewed and closed unmerged product PRs #108 and #109. #108 adds an import
+  of nonexistent `HTMLParser` from `src/scanner.js`, reproduced as a module
+  import failure; the proposed `src/worker.js` is not the deployed entry point
+  (`scripts/deploy.mjs` uses root `worker.js`), and its presence checks do not
+  establish accessibility violations. Remote main's scanner and deploy script
+  Git blob hashes match the inspected local mirror. #109 is a generic quality
+  proposal describing an AI scanning algorithm and proposed CI work rather than
+  the existing dependency-free scanner and implemented tests; existing CI and
+  infrastructure documents already cover those topics. Neither proposal was
+  merged or deployed. Green CI did not exercise #108's proposed import. This
+  resolves review disposition, not delivery of a new mobile-scanning feature.
+
 - PR #3 merged as `8b7876a5a0c8d7cd0da29afd734874a7dc932f29` after Python,
   worker and dashboard CI passed. It contains the account-profile record and
   complete private Postman collection described below.
