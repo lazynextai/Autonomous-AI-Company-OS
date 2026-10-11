@@ -331,6 +331,14 @@ two-factor enrollment, the 30-day trial offer, private archives, and all mail.
   because the form supplies HTTPS), X and GitHub fields. UI confirmed “Updated
   your user profile.” Screenshot: `/tmp/lazynext-postman-profile-saved.png`.
   No new API key, permission grant, public workspace or collection was created.
+  Subsequently prepared a personal workspace and the product API collection:
+  all 24 operations from the live public OpenAPI document, with no saved
+  credentials. API readback verifies operation names/methods/paths and variables;
+  workspace visibility is `personal`, and the browser displays the collection.
+  The existing team workspace and “My Collection” were preserved. Local export
+  and usage notes are in `ops/postman/`; screenshot is
+  `/tmp/lazynext-postman-api-workspace.png`. This completes private API preparation;
+  public API Network publication has not been performed.
 - Gumroad: existing login succeeded; `lazynext.gumroad.com` already has the
   Lazynext name, company bio and canonical website. Payout settings opened an
   India country dialog requiring a government-issued photo ID assertion before
