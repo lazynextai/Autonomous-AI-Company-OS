@@ -209,7 +209,7 @@ These entries still need a current inspection. They are not confirmed blocked.
 | Provider reviews | Reddit case 18570750; MeWe developer app; Lemmy dbzer0; SaaSHub; VS Marketplace domain; Partner Center case 2610070060003196; Glama; DEV.to; NuGet key expiry/rotation |
 | Account interaction | Farcaster signer; VK phone verification; Google Business verification; LinkedIn company-only alternative; TikTok, Viber signup; Telegram admin; Poe SMS; Blogger reauthentication; Hetzner address; Alibaba phone; Gumroad payout. Snapchat signup/profile/linking completed |
 | Business decisions | X funding, Meta funding, Hashnode Pro, mcp.so, Azure subscription, Teams organization; research current Microsoft startup benefits before promising a tenant |
-| Previously reported network failures | CodePen, Slashdot, OpenHub, StackShare, Mixcloud, Imgur, DeviantArt, Newgrounds, Dreamwidth, OpenVC, Gab, telegra.ph; Postman login and API access verified October 11; npm SDK publication is verified complete; Linktree and Pastebin now have creation evidence |
+| Previously reported network failures | Slashdot, OpenHub, Mixcloud, Imgur, DeviantArt, Newgrounds, Dreamwidth, OpenVC, Gab, telegra.ph; CodePen and StackShare login/profile access verified October 11, alongside Postman login/API access; npm SDK publication is verified complete; Linktree and Pastebin now have creation evidence |
 | Claimed unavailable paths | Medium Postiz, Snapchat organic API, Instagram standalone, Nostr REST, Quora/Hacker News/Product Hunt write APIs, WeChat, Weibo, Xiaohongshu, Lemon8; verify current official capabilities before declaring permanent impossibility |
 | Repository/account cleanup | Historical AGENTS ledger changes, DEV.to profile visibility, Instagram display name, Dribbble credential rotation; current git status has no pending AGENTS.md change |
 
@@ -306,6 +306,33 @@ authorized and dispatched. No other social post or email was sent. Preserve Dodo
 two-factor enrollment, the 30-day trial offer, private archives, and all mail.
 
 ## October 11 — merged fixes and additional account profiles
+
+- PR #3 merged as `8b7876a5a0c8d7cd0da29afd734874a7dc932f29` after Python,
+  worker and dashboard CI passed. It contains the account-profile record and
+  complete private Postman collection described below.
+- CodePen: existing Google login succeeded; username `lazynext` is confirmed.
+  Changed display name from LazynextAI to Lazynext, filled the empty company bio
+  and three links (company site, accessibility checker, current GitHub owner).
+  The refreshed public profile confirms all fields persisted. Screenshot:
+  `/tmp/lazynext-codepen-profile-saved.png`. No Pen, paid upgrade or API grant
+  was created.
+- StackShare: the October 5 welcome email confirms an existing account; Google
+  sign-in opened it successfully, so no duplicate signup was needed. Saved
+  the company role/title, company URL and OS bio; public profile confirms the
+  saved description. Screenshot: `/tmp/lazynext-stackshare-profile-saved.png`.
+  Its autoassigned username remains `support8902`, outside the founder's naming
+  order. The visible profile settings provide no username/name-change control;
+  correction remains pending. No tool listing, stack, post or API grant was made.
+- Mixcloud: existing company account login succeeded through its current email
+  code. The account was autoassigned `support6`; changing its profile URL to
+  `lazynext` returned “Profile URL updated.” Saved Lazynext display name,
+  company bio, India and verified company/product/social links; UI returned
+  “Your settings have been updated successfully.” The next navigation displayed
+  “Spam profile disabled” with a provider support link. Consequently, the final
+  public username/profile cannot be claimed live or publishing-ready. No password
+  was set, media uploaded, new account created or restriction bypass attempted.
+  Screenshot: `/tmp/lazynext-mixcloud-provider-block.png`. Provider resolution is
+  pending; a support message has not been sent.
 
 - PR #2 merged successfully as `9eb8a43e7da4e628f6a19071cd346a8254997ac6`.
   Python, worker and dashboard CI checks all passed. Local main was advanced to
