@@ -426,3 +426,35 @@ two-factor enrollment, the 30-day trial offer, private archives, and all mail.
   was created. The publication setup checklist still has unfinished items.
   A read-only GraphQL probe returned a non-JSON response; API publishing is not
   claimed verified from the successful browser profile changes.
+
+## Fresh access recheck — 2026-10-12
+
+- StackShare: authenticated settings still retain the saved company URL, role
+  and description. The visible profile form has no username-change control;
+  correction of `support8902` remains pending.
+- OpenVC: a fresh company homepage shows Log in. The previously reported owner
+  sign-in has not been verified in this browser; no further rejected-password
+  attempt or password reset was performed.
+- Linktree: `https://linktr.ee/admin` still fails with
+  `ERR_SSL_PROTOCOL_ERROR`. No security bypass was attempted.
+- Slashdot: the site now loads. Its linked registration page says new users
+  require administrator approval and asks prospective users to contact
+  `feedback@slashdot.org`. No account was created and no email was sent.
+- Imgur: the site and sign-in page now load. The existing company Google
+  account was selected in the normal email-only sign-in flow, but the resulting
+  Imgur homepage still offers Sign in and Sign up. Authentication and company
+  profile setup remain unverified; no duplicate registration or post was made.
+- Hashnode: a fresh Firecrawl read of the official documentation at
+  `https://apidocs.hashnode.com/` redirects to `https://gql-beta.hashnode.com/`
+  and exposes the publication query schema. This is documentation evidence,
+  not authenticated connector or publishing verification. The connector was
+  not switched to a beta endpoint on that evidence alone.
+- Subsequent official Hashnode API guidance confirms `gql-beta.hashnode.com`
+  is its production endpoint and requires Bearer PAT authentication:
+  [official API reference](https://github.com/Hashnode/gql-skill).
+  A read-only authenticated `me { username }` query returned HTTP 200 with
+  username `lazynext` and no GraphQL errors. Corrected the Python/worker fallback
+  endpoint and authorization header; GraphQL error arrays now fail dispatch
+  even when HTTP is 200. Regression checks cover Pro-plan rejection, successful
+  responses and the actual fallback request. No publish mutation was sent.
+  Pro-plan-dependent publishing remains pending.

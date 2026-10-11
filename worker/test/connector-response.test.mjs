@@ -49,3 +49,36 @@ test("HTTP rejection remains failed", async () => {
   assert.equal(result.ok, false);
   assert.equal(result.error, "Unavailable");
 });
+
+test("Hashnode HTTP 200 Pro-plan rejection is a failed dispatch", async () => {
+  const result = await dispatch("https://gql-beta.hashnode.com/", {
+    errors: [{ message: "Publication does not have an active Pro plan", extensions: { code: "FORBIDDEN" } }],
+    data: { publishPost: null },
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.error, /active Pro plan/);
+});
+
+test("Hashnode post response remains successful", async () => {
+  const result = await dispatch("https://gql-beta.hashnode.com/", {
+    data: { publishPost: { post: { id: "123", url: "https://lazynext.hashnode.dev/example" } } },
+  });
+  assert.equal(result.ok, true);
+});
+
+test("Hashnode PAT fallback sends the current endpoint and Bearer authentication", async () => {
+  const block = source.slice(source.indexOf('    case "hashnode": {'), source.indexOf('    case "medium": {'));
+  const lifted = ts.transpileModule(`async function send(cred, b, text) { switch ("hashnode") { ${block} } }`, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const calls = [];
+  const send = new Function("connPost", `${lifted}; return send;`)(async (url, init) => {
+    calls.push({ url, init });
+    return { ok: false, status: 401, body: {} };
+  });
+  await send("test-token:publication", {}, "Example");
+  assert.equal(calls.length, 2);
+  assert.equal(calls[1].url, "https://gql-beta.hashnode.com/");
+  assert.equal(calls[1].init.headers.authorization, "Bearer test-token");
+  assert.equal(JSON.parse(calls[1].init.body).variables.input.publicationId, "publication");
+});
