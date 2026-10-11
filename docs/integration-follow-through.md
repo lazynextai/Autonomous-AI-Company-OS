@@ -349,3 +349,21 @@ two-factor enrollment, the 30-day trial offer, private archives, and all mail.
 - Mastodon: the canonical public account `lazynext@mstdn.social` displays the
   Lazynext name, OS company bio and `https://lazynext.com/`. Seven existing posts
   are visible. No rename or additional publication was needed/performed.
+- Bluesky: authenticated as `lazynext.bsky.social`; its profile record had an
+  empty display name and no description. Saved the Lazynext name and company
+  bio with company/product links using a compare-and-swap update that preserves
+  existing avatar and other fields. API readback and refreshed public browser
+  profile confirm the result. Screenshot: `/tmp/lazynext-bluesky-profile-saved.png`.
+  The first-choice local username is retained with Bluesky's required domain suffix.
+- Hashnode: the browser checkpoint cleared normally and existing Google login
+  succeeded. Corrected the profile's old GitHub link to `lazynextai` and filled
+  website/X links. Public profile confirms all three. The signed-in dashboard
+  exposes existing publication `6ac1180493383ddaacaa87b6` at
+  `https://lazynext.hashnode.dev`, despite the public profile saying no publications.
+  Filled its empty description and eight verified social/company links; the
+  live publication shows them. Screenshots: `/tmp/lazynext-hashnode-profile-saved.png`
+  and `/tmp/lazynext-hashnode-publication-saved.png`. No article, paid upgrade,
+  additional publication, legal notice, analytics tracker or permission change
+  was created. The publication setup checklist still has unfinished items.
+  A read-only GraphQL probe returned a non-JSON response; API publishing is not
+  claimed verified from the successful browser profile changes.
