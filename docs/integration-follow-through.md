@@ -209,7 +209,7 @@ These entries still need a current inspection. They are not confirmed blocked.
 | Provider reviews | Reddit case 18570750; MeWe developer app; Lemmy dbzer0; SaaSHub; VS Marketplace domain; Partner Center case 2610070060003196; Glama; DEV.to; NuGet key expiry/rotation |
 | Account interaction | Farcaster signer; VK phone verification; Google Business verification; LinkedIn company-only alternative; TikTok, Viber signup; Telegram admin; Poe SMS; Blogger reauthentication; Hetzner address; Alibaba phone; Gumroad payout. Snapchat signup/profile/linking completed |
 | Business decisions | X funding, Meta funding, Hashnode Pro, mcp.so, Azure subscription, Teams organization; research current Microsoft startup benefits before promising a tenant |
-| Previously reported network failures | CodePen, Slashdot, OpenHub, Postman, StackShare, Mixcloud, Imgur, DeviantArt, Newgrounds, Dreamwidth, OpenVC, Gab, telegra.ph; npm SDK publication is verified complete; Linktree and Pastebin now have creation evidence |
+| Previously reported network failures | CodePen, Slashdot, OpenHub, StackShare, Mixcloud, Imgur, DeviantArt, Newgrounds, Dreamwidth, OpenVC, Gab, telegra.ph; Postman login and API access verified October 11; npm SDK publication is verified complete; Linktree and Pastebin now have creation evidence |
 | Claimed unavailable paths | Medium Postiz, Snapchat organic API, Instagram standalone, Nostr REST, Quora/Hacker News/Product Hunt write APIs, WeChat, Weibo, Xiaohongshu, Lemon8; verify current official capabilities before declaring permanent impossibility |
 | Repository/account cleanup | Historical AGENTS ledger changes, DEV.to profile visibility, Instagram display name, Dribbble credential rotation; current git status has no pending AGENTS.md change |
 
@@ -304,3 +304,66 @@ and provider decisions require their own evidence and appropriate authorization.
 The single GitLab snippet and one LINE test broadcast were explicitly
 authorized and dispatched. No other social post or email was sent. Preserve Dodo test mode,
 two-factor enrollment, the 30-day trial offer, private archives, and all mail.
+
+## October 11 — merged fixes and additional account profiles
+
+- PR #2 merged successfully as `9eb8a43e7da4e628f6a19071cd346a8254997ac6`.
+  Python, worker and dashboard CI checks all passed. Local main was advanced to
+  that merge. The health monitor reads the local fix; the VK worker fix was
+  already deployed as version `94384edb-b0ae-4abe-b300-d64d71690e58`.
+- Dribbble: existing password login succeeded; authenticated profile is
+  `lazynext`. Filled the empty bio with the company description and canonical
+  company/product URLs; UI confirmed “Profile updated successfully.” Saved
+  verified X, Instagram and GitHub links; UI confirmed account updated.
+  Dribbble says these social links are visible only for Designer Advertisers;
+  no paid upgrade was started. Four existing shots are visible, but no new
+  publication was performed. The profile retains its existing Limited Account
+  label. Screenshots: `/tmp/lazynext-dribbble-profile-saved.png` and
+  `/tmp/lazynext-dribbble-social-saved.png`.
+- Tumblr: existing password login succeeded; username `lazynext` is confirmed.
+  Replaced “Untitled” with “Lazynext” and filled the empty description with the
+  company purpose and company/product URLs. Saved settings show the new title
+  and description. Screenshot: `/tmp/lazynext-tumblr-profile-saved.png`.
+- Postman: the previous network-blocked entry no longer reflects current access.
+  Existing password login succeeded and opened the existing team. The saved
+  API key also returned HTTP 200 from `/me`, identifying username `lazynext`.
+  Public profile was already enabled. Filled empty bio, website (`lazynext.com`,
+  because the form supplies HTTPS), X and GitHub fields. UI confirmed “Updated
+  your user profile.” Screenshot: `/tmp/lazynext-postman-profile-saved.png`.
+  No new API key, permission grant, public workspace or collection was created.
+  Subsequently prepared a personal workspace and the product API collection:
+  all 24 operations from the live public OpenAPI document, with no saved
+  credentials. API readback verifies operation names/methods/paths and variables;
+  workspace visibility is `personal`, and the browser displays the collection.
+  The existing team workspace and “My Collection” were preserved. Local export
+  and usage notes are in `ops/postman/`; screenshot is
+  `/tmp/lazynext-postman-api-workspace.png`. This completes private API preparation;
+  public API Network publication has not been performed.
+- Gumroad: existing login succeeded; `lazynext.gumroad.com` already has the
+  Lazynext name, company bio and canonical website. Payout settings opened an
+  India country dialog requiring a government-issued photo ID assertion before
+  saving. No assertion, bank information or verification submission was made.
+  Official [payout guidance](https://gumroad.com/help/article/260-your-payout-settings-page)
+  also requires personal identification of a business representative, alongside
+  business registration documents. This does not satisfy company-only verification.
+- Mastodon: the canonical public account `lazynext@mstdn.social` displays the
+  Lazynext name, OS company bio and `https://lazynext.com/`. Seven existing posts
+  are visible. No rename or additional publication was needed/performed.
+- Bluesky: authenticated as `lazynext.bsky.social`; its profile record had an
+  empty display name and no description. Saved the Lazynext name and company
+  bio with company/product links using a compare-and-swap update that preserves
+  existing avatar and other fields. API readback and refreshed public browser
+  profile confirm the result. Screenshot: `/tmp/lazynext-bluesky-profile-saved.png`.
+  The first-choice local username is retained with Bluesky's required domain suffix.
+- Hashnode: the browser checkpoint cleared normally and existing Google login
+  succeeded. Corrected the profile's old GitHub link to `lazynextai` and filled
+  website/X links. Public profile confirms all three. The signed-in dashboard
+  exposes existing publication `6ac1180493383ddaacaa87b6` at
+  `https://lazynext.hashnode.dev`, despite the public profile saying no publications.
+  Filled its empty description and eight verified social/company links; the
+  live publication shows them. Screenshots: `/tmp/lazynext-hashnode-profile-saved.png`
+  and `/tmp/lazynext-hashnode-publication-saved.png`. No article, paid upgrade,
+  additional publication, legal notice, analytics tracker or permission change
+  was created. The publication setup checklist still has unfinished items.
+  A read-only GraphQL probe returned a non-JSON response; API publishing is not
+  claimed verified from the successful browser profile changes.
