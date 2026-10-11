@@ -469,3 +469,15 @@ two-factor enrollment, the 30-day trial offer, private archives, and all mail.
   signup terms and reported entering the birthday; the actual form still shows
   empty Month/Day/Year controls. Account creation remains unfinished. No birthday
   was invented or substituted; the signup tab is retained for owner completion.
+- Founder approved two specific provider-support messages on October 12. Sent
+  from `support@lazynext.com` via Gmail: StackShare username/display-name
+  correction to `team@stackshare.io` (message `1a12c958900a59ef`) and Mixcloud
+  restriction review/restoration to `support@mixcloud.com` (message
+  `1a12c958bd4e51a6`). Gmail returned SENT for both; this proves sending, not
+  provider acceptance or resolution. Exact text and verified contact sources
+  are preserved in `docs/provider-support-requests.md`. No attachments,
+  credentials, payment or personal identity information were sent.
+- Linktree's officially documented `/login` route and Pastebin home still fail
+  in Chrome with `ERR_SSL_PROTOCOL_ERROR`. No TLS bypass was attempted.
+- DeviantArt's retained signup tab was rechecked; birthday fields remain empty.
+  Prior signup-term approval is retained; it does not supply the missing birthday.
