@@ -7,6 +7,9 @@ account information only.
 
 - StackShare sent message/thread ID: `1a12c958900a59ef`.
 - Mixcloud sent message/thread ID: `1a12c958bd4e51a6`.
+- Mixcloud acknowledged receipt and issued support request `395792` on
+  October 12 (India time); acknowledgement message `1a12c96c39f4b4df`.
+  This is an automated receipt, not resolution of the profile restriction.
 
 ## StackShare
 
