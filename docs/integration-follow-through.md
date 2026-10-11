@@ -458,3 +458,14 @@ two-factor enrollment, the 30-day trial offer, private archives, and all mail.
   even when HTTP is 200. Regression checks cover Pro-plan rejection, successful
   responses and the actual fallback request. No publish mutation was sent.
   Pro-plan-dependent publishing remains pending.
+- Hashnode correction deployed as worker version
+  `1cfb7376-5091-4d20-ac7f-a7018a5f3de6`; container rollout was excluded because
+  this change affects worker code only. All six monitored HTTP surfaces passed
+  the post-deployment read-only check. Local verification: 87 Python tests
+  passed, five skipped; 51 worker tests passed.
+- DeviantArt: home and login now load. Founder approved the login terms;
+  company Google sign-in leads to a signup form requiring username and birthday.
+  `lazynext` is prepared, but availability is not yet confirmed. Founder approved
+  signup terms and reported entering the birthday; the actual form still shows
+  empty Month/Day/Year controls. Account creation remains unfinished. No birthday
+  was invented or substituted; the signup tab is retained for owner completion.
