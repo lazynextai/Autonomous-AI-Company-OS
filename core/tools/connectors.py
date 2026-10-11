@@ -549,9 +549,9 @@ async def _hashnode(payload: dict, cred: str) -> dict:
             post = pb.get("post") or {}
             return {**published, "body": {"post": {"id": post.get("id"), "url": post.get("url")}}}
         return published
-    return await _post(
-        "https://gql.hashnode.com/",
-        headers={"authorization": token},
+    result = await _post(
+        "https://gql-beta.hashnode.com/",
+        headers={"authorization": f"Bearer {token}", "x-hashnode-client": "lazynext-os"},
         json_body={
             "query": "mutation($input: PublishPostInput!) { publishPost(input: $input) { post { id url } } }",
             "variables": {
@@ -559,6 +559,13 @@ async def _hashnode(payload: dict, cred: str) -> dict:
             },
         },
     )
+
+    body = result.get("body")
+    if isinstance(body, dict) and body.get("errors"):
+        errors = body["errors"]
+        messages = [str(e.get("message", "request rejected")) for e in errors if isinstance(e, dict)]
+        return {**result, "ok": False, "error": "Hashnode API: " + ("; ".join(messages) or "request rejected")}
+    return result
 
 
 async def _medium(payload: dict, cred: str) -> dict:

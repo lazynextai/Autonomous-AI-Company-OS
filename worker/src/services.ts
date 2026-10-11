@@ -948,6 +948,10 @@ async function connPost(
     return { ok: false, status: r.status, body: data,
       error: `VK API error ${failure.error_code ?? "unknown"}: ${failure.error_msg ?? "request rejected"}` };
   }
+  if (new URL(url).hostname === "gql-beta.hashnode.com" && Array.isArray(data.errors) && data.errors.length) {
+    const messages = data.errors.map((e: { message?: string }) => e?.message ?? "request rejected");
+    return { ok: false, status: r.status, body: data, error: `Hashnode API: ${messages.join("; ")}` };
+  }
   return { ok: r.ok, status: r.status, body: data,
     error: r.ok ? undefined : String(data.message ?? data.error ?? r.status) };
 }
@@ -1528,7 +1532,7 @@ async function callConnector(
       // cred: "<cred>:<publication_id>" — <cred> is either the HttpOnly
       // `hashnode-session` cookie value (works free-tier — drives the
       // internal REST API the web editor uses) or a Developer PAT (needs
-      // a Pro publication; gql.hashnode.com 301s for free accounts).
+      // a Pro publication on the current official GraphQL API).
       // The session path is tried first; PATs fall through to GraphQL.
       const [token, pub = ""] = cred.split(":", 2);
       if (!pub) return { ok: false, status: 500, error: "conn:hashnode must be '<token>:<publication_id>'" };
@@ -1566,9 +1570,9 @@ async function callConnector(
         return published;
       }
       // Session path failed — treat <token> as a PAT on the (Pro-gated) gql API.
-      return connPost("https://gql.hashnode.com/", {
+      return connPost("https://gql-beta.hashnode.com/", {
         method: "POST",
-        headers: { authorization: token, "content-type": "application/json" },
+        headers: { authorization: `Bearer ${token}`, "content-type": "application/json", "x-hashnode-client": "lazynext-os" },
         body: JSON.stringify({
           query: "mutation($input: PublishPostInput!) { publishPost(input: $input) { post { id url } } }",
           variables: {
