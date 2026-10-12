@@ -486,3 +486,166 @@ two-factor enrollment, the 30-day trial offer, private archives, and all mail.
   Both Done controls are disabled because no changes are needed. The earlier
   display-name cleanup reminder is resolved for this inspected profile; no
   additional rename or identity-verification submission was performed.
+- Slashdot: founder explicitly approved the prepared company-registration
+  request. Sent from `support@lazynext.com` to `feedback@slashdot.org` on
+  October 12 (India time), subject “Company account registration request —
+  Lazynext.” Gmail returned SENT with message/thread ID `1a12ca6a66ea9524`.
+  The request describes the company, intended technical contributions and exact
+  username preference order. Administrator approval and account creation remain
+  pending; sending the request does not establish either.
+
+## Mail and platform continuation — 2026-10-12
+
+- Read all 87 unread messages returned by the final Gmail search, including
+  four additional records absent from the first 83-message result. No messages
+  were sent, deleted, archived, relabeled or marked read during this review.
+- Mixcloud's acknowledgement confirms support ticket 395792, not restoration.
+  Pinterest's newer acknowledgement confirms its resubmitted request remains
+  under review; the earlier denial is not the latest application state.
+  No StackShare or Slashdot reply was found among these unread messages.
+- Snapchat and Instagram confirmation emails corroborate the saved username
+  `lazynext`. Linktree onboarding confirms `linktr.ee/lazynext`; this proves the
+  assigned handle, not working admin access or completed profile setup.
+- beehiiv's failed identity-verification email supplies no company-document
+  exception. Personal verification remains declined; no retry was initiated.
+- Fresh read-only platform verification passed all six HTTP checks and all
+  five background-job timestamp checks. Both product rule manifests matched.
+  No deployment or alert email was necessary for these passing checks.
+- Chrome still reports ERR_SSL_PROTOCOL_ERROR for Linktree admin. DeviantArt's
+  retained signup displays the first default option in each birthday selector;
+  those defaults are not verified founder-supplied information. Signup has not
+  been submitted. The tab is retained for the required owner input.
+- Subsequent founder input supplied the required birthday. Entered that value
+  privately with username `lazynext` and submitted Join under the previously
+  approved signup terms. DeviantArt opened a human-verification puzzle; the
+  account is not yet verified created. The live tab is retained for completion.
+  No personal identity document was requested or submitted.
+- A fresh Firecrawl fetch of beehiiv's official identity-verification guide
+  (updated October 9) still ties API-key access to Stripe identity verification
+  and describes uploading a valid ID. It documents no company-certificate
+  exemption. Support may offer an alternative, but none has been verified.
+
+## DeviantArt signup continuation — 2026-10-12
+
+- Human verification cleared and account creation is verified by the signed-in
+  owner profile at https://www.deviantart.com/lazynext. Account email is
+  support@lazynext.com. Username `lazynext` satisfies the founder's first choice.
+- Completed onboarding intent and art-interest selections. Saved company
+  tagline “Autonomous AI Company OS” and the Lazynext website link; verified
+  both after navigating back to the profile.
+- Detected a mismatch between the submitted birthday and provider-saved value.
+  Corrected it through the normal account Update control using the founder's
+  supplied information; verified it after returning to the profile. No exact
+  personal birthday is stored in this operating record.
+- Biography saves were attempted through the rich-text editor and checked by
+  reopening/reloading. Text did not persist visibly; biography remains
+  unverified. No artwork, journal, comment, subscription or payment was made.
+- Avatar and cover branding remain unfinished. The verified account profile
+  is retained in Chrome. Other integration gates recorded above remain open.
+
+## Connector inventory and profile persistence — 2026-10-12
+
+- Read-only `/api/v1/connectors` inspection using the existing scoped public API
+  credential returned 45 catalog entries: 39 credential-present and six absent
+  (linkedin, tiktok, snapchat, teams, viber, beehiiv). Credential presence is not
+  dispatch verification. Snapchat remains separately linked through Ayrshare;
+  the native absence does not undo that completed integration. No credential
+  values were printed or stored in this record.
+- DeviantArt biography and six social URLs were retried through normal native
+  input. The form accepted correctly formatted URLs, but reopened fields were
+  blank after reload. These changes remain unverified; no publish was made.
+- Existing brand-icon upload failed because the Chrome extension lacks local
+  file access. Browser troubleshooting requires enabling “Allow access to file
+  URLs” in the extension details. That setting has not been confirmed changed.
+  Avatar and cover upload remain unfinished. No browser security setting was
+  changed by the agent.
+
+## Native file-picker recovery — 2026-10-12
+
+- Resolved the DeviantArt avatar upload blocker without changing extension
+  permissions. The normal macOS file picker accepted the existing dashboard
+  brand icon (`dashboard/public/icon-512.png`); confirmed the crop and verified
+  the Lazynext L avatar visibly after reloading. Avatar branding is complete.
+- Cover selection currently uses Gallery/Sta.sh with an Upload option. The
+  account has no uploaded gallery art; no unrelated artwork was selected.
+  Cover branding remains unfinished.
+- Retried biography entry using the native Chrome keyboard and Save control.
+  Text still did not appear after reload. Biography persistence remains
+  unresolved; no successful save is claimed.
+- Visual avatar proof saved locally at
+  `/tmp/lazynext-deviantart-brand-avatar.png`; verified profile retained in Chrome.
+
+## DeviantArt cover completion — 2026-10-12
+
+- Created a Lazynext company cover using the established dark and purple brand
+  colors. Uploaded through the normal macOS picker to Sta.sh, selected it in
+  the cover chooser and confirmed the positioning with Done.
+- Reloaded the live profile: the cover remains visible and the interface now
+  offers Remove Cover Image / Edit Cover Image. Cover branding is complete;
+  the previously verified company avatar remains visible as well.
+- Local cover asset: `/tmp/lazynext-deviantart-cover.png`. Saved live visual
+  proof: `/tmp/lazynext-deviantart-cover-live.png`. No gallery deviation,
+  artwork post, subscription or payment was created.
+- Reopened the detailed About-page biography editor: it still shows the empty
+  placeholder. No captured console warning or error explains the failed
+  persistence. Biography and social links remain unresolved; earlier Save
+  clicks are not evidence of completion.
+- External approvals, account login gates and personal-verification-dependent
+  providers remain pending as recorded above. No personal-ID retry was made.
+
+## Hashnode publication continuation — 2026-10-12
+
+- Saved SEO title `Lazynext — Autonomous AI Company Operating System` and a
+  company meta description covering AI agents, OS updates and the accessibility
+  checker. Provider confirmed successful save; both fields persisted after
+  reloading. The live publication now uses the saved page title.
+- Added two external navbar items: Lazynext → `https://lazynext.com` (priority
+  20), and Accessibility Checker → `https://checker.lazynext.com` (priority 10).
+  Provider confirmed successful save. Opened the live publication menu and
+  independently verified both labels and destinations.
+- Proof: `/tmp/lazynext-hashnode-seo-saved.png` and
+  `/tmp/lazynext-hashnode-navigation-saved.png`.
+- Publication image/logo, key pages and first article remain unfinished.
+  No analytics tracker, paid upgrade, new API access or article was created.
+  The provider's Pro-dependent API gate remains separate from these saved
+  publication settings.
+
+## Hashnode branding, About page and first publication — 2026-10-12
+
+- Replaced the default Hashnode logo with company wordmarks for light and dark
+  mode, uploaded the existing dashboard L icon as favicon, and saved Appearance
+  settings. The live dark-mode header visibly displays the new company wordmark.
+  Reusable wordmarks are preserved in `design/brand-assets/`.
+- Uploaded the existing `marketing/public/og.png` as the publication social
+  preview and saved SEO settings. The public page's `og:image` metadata points
+  to the uploaded Hashnode CDN image; title and description match the saved
+  company settings. No tracker or paid upgrade was enabled.
+- Published and independently verified the company information page at
+  https://lazynext.hashnode.dev/page/about. Its content describes the company
+  and accessibility checker and links the company, product, GitHub and support
+  email. Added an About menu item while preserving the two existing links.
+- Prepared the first guide using `products/accessibility-checker/docs/agent-protocols.md`.
+  Founder specifically approved publication and acceptance of the final
+  Code of Conduct agreement. Provider returned “Article published successfully!”;
+  the public homepage lists one post and the article body and links were verified:
+  https://lazynext.hashnode.dev/lazynext-accessibility-checker-rest-mcp-and-a2a.
+  Source copy: `docs/publication/hashnode-first-guide.md`.
+- Browser publication is now verified. This does not remove the separately
+  observed Pro-dependent native API rejection; no API publish mutation was sent.
+- Visual evidence: `/tmp/lazynext-hashnode-branding-live.png`,
+  `/tmp/lazynext-hashnode-about-live.png`, and
+  `/tmp/lazynext-hashnode-first-guide-live.png`.
+- Provider reviews, account login gates, DeviantArt biography/social-link
+  persistence and the declined personal-verification flows remain unresolved.
+- Final authenticated checklist shows 6 of 7 complete: general settings,
+  domain/subdomain, SEO, appearance/navbar, key pages and first post. The sole
+  pending item is third-party integrations. All tracking toggles remain off;
+  consent management is a Pro feature. No analytics account ID was invented,
+  visitor recorder enabled or paid upgrade started. Checklist proof:
+  `/tmp/lazynext-hashnode-setup-checklist.png`.
+- Read the three approved support-request threads again without changing mail.
+  StackShare has no response in its request thread; Mixcloud's request thread
+  has no restoration decision (its separately recorded receipt remains only an
+  acknowledgement). Slashdot has an automated acknowledgement dated October 11
+  UTC, but it does not approve registration or provide an account. This updates
+  the earlier statement that no Slashdot reply had been found.
