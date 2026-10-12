@@ -952,6 +952,11 @@ async function connPost(
     const messages = data.errors.map((e: { message?: string }) => e?.message ?? "request rejected");
     return { ok: false, status: r.status, body: data, error: `Hashnode API: ${messages.join("; ")}` };
   }
+  // Viber returns its API verdict in the body, including on HTTP 200 failures.
+  if (r.ok && new URL(url).hostname === "chatapi.viber.com" && data?.status !== 0) {
+    return { ok: false, status: r.status, body: data,
+      error: `Viber API error ${data?.status ?? "unknown"}: ${data?.status_message || "request rejected"}` };
+  }
   return { ok: r.ok, status: r.status, body: data,
     error: r.ok ? undefined : String(data.message ?? data.error ?? r.status) };
 }

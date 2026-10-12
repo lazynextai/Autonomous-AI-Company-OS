@@ -649,3 +649,28 @@ two-factor enrollment, the 30-day trial offer, private archives, and all mail.
   acknowledgement). Slashdot has an automated acknowledgement dated October 11
   UTC, but it does not approve registration or provide an account. This updates
   the earlier statement that no Slashdot reply had been found.
+
+## Viber response correction and onboarding gate — 2026-10-12
+
+- Official REST guidance defines numeric response-body `status: 0` as success;
+  nonzero status represents an API failure. The native Python and worker
+  connectors previously treated an HTTP-success response as completed without
+  inspecting that verdict. Both now reject nonzero or missing/malformed API
+  status while preserving the provider body and HTTP status. HTTP failures
+  remain failures even when the body contains status zero.
+- Meaningful regressions cover invalid authorization, an unsubscribed recipient,
+  missing status, boolean status, valid message acceptance, both send/broadcast
+  routes and HTTP failure. Full local `make test`: 98 Python passed, five skipped;
+  53 worker tests passed. No Viber message was sent.
+- Worker correction deployed as `58c4ab9b-5de4-469d-8f58-eed540d8128c` with
+  container rollout excluded. Post-deployment read-only verification passed
+  all six HTTP service checks and all five background-job timestamps.
+- Viber's current commercial guide lists EUR 115 per new bot per calendar
+  month plus delivered chatbot-initiated message charges, subject to negotiated
+  written terms. A missing native token should not be treated merely as a
+  phone-signup task. New-bot onboarding requires a separate contract/spending
+  decision; no paid account or agreement was created.
+- Official sources:
+  https://developers.viber.com/docs/api/rest-bot-api/#response
+  https://help.viber.com/hc/en-us/articles/15247629658525-Bot-commercial-model
+  https://help.viber.com/hc/en-us/articles/15383950711197-Rakuten-Viber-chatbot-commercial-model-FAQ

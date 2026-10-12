@@ -30,9 +30,10 @@ claims. Credentials and historical completion claims are not proof of publishing
 | DEV.to | Provider suspension imposed October 7 for one week; reinstatement request can follow the provider's stated process after that period. No restriction bypass. |
 | beehiiv / Gumroad payouts | Personal-ID flow conflicts with founder's company-only preference. Keep pending unless a company-only alternative is explicitly supported. |
 | Hashnode native API | Paid Pro publishing requirement; verified browser publishing does not authorize a paid upgrade. |
+| Viber native bot | Check any existing bot entitlement/token before creating a new one. Official new-bot terms list EUR 115/month plus initiated-message charges; no paid contract approved. Response-error handling is now fixed and deployed. |
 | Teams / Azure / X / Meta / mcp.so | Separate account, tenant or spending decisions as recorded in the full ledger. No paid subscription or funding activated. |
 | Other provider reviews | Reddit, MeWe, Lemmy dbzer0, SaaSHub, VS Marketplace, Partner Center and Glama decisions remain unverified/pending in the ledger. |
-| Other account interaction | Farcaster, LinkedIn, TikTok, Viber, Poe, Blogger, Hetzner and Alibaba still require the account-specific checks in the carried-forward inventory. |
+| Other account interaction | Farcaster, LinkedIn, TikTok, Poe, Blogger, Hetzner and Alibaba still require the account-specific checks in the carried-forward inventory. |
 | Other API capability questions | Remaining native restrictions and missing Postiz/Ayrshare links are listed in the full inventory; do not label them impossible without official capability evidence. |
 
 ## Operating preferences
