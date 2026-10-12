@@ -66,6 +66,24 @@ test("Hashnode post response remains successful", async () => {
   assert.equal(result.ok, true);
 });
 
+test("Viber HTTP 200 API rejections are failed dispatches", async () => {
+  for (const endpoint of ["send_message", "broadcast_message"]) {
+    for (const body of [{ status: 2, status_message: "invalidAuthToken" },
+      { status: 6, status_message: "receiverNotSubscribed" }, {}, { status: false }]) {
+      const result = await dispatch(`https://chatapi.viber.com/pa/${endpoint}`, body);
+      assert.equal(result.ok, false);
+      assert.equal(result.status, 200);
+      assert.match(result.error, /Viber API error/);
+    }
+  }
+});
+
+test("Viber numeric status zero succeeds without masking HTTP failure", async () => {
+  const body = { status: 0, message_token: 123 };
+  assert.equal((await dispatch("https://chatapi.viber.com/pa/send_message", body)).ok, true);
+  assert.equal((await dispatch("https://chatapi.viber.com/pa/send_message", body, 503)).ok, false);
+});
+
 test("Hashnode PAT fallback sends the current endpoint and Bearer authentication", async () => {
   const block = source.slice(source.indexOf('    case "hashnode": {'), source.indexOf('    case "medium": {'));
   const lifted = ts.transpileModule(`async function send(cred, b, text) { switch ("hashnode") { ${block} } }`, {

@@ -457,19 +457,32 @@ async def _viber(payload: dict, cred: str) -> dict:
     sender = {"name": payload.get("sender") or "Lazynext"}
     bl = payload.get("broadcast_list")
     if bl:
-        return await _post(
+        result = await _post(
             "https://chatapi.viber.com/pa/broadcast_message",
             headers={"x-viber-auth-token": cred},
             json_body={"broadcast_list": bl, "min_api_version": 7,
                        "sender": sender, "type": "text", "text": payload.get("text") or ""},
         )
-    return await _post(
-        "https://chatapi.viber.com/pa/send_message",
-        headers={"x-viber-auth-token": cred},
-        json_body={"receiver": payload.get("to") or "", "min_api_version": 7,
-                   "sender": sender, "type": "text", "text": payload.get("text") or "",
-                   "tracking_data": "lazynext"},
-    )
+    else:
+        result = await _post(
+            "https://chatapi.viber.com/pa/send_message",
+            headers={"x-viber-auth-token": cred},
+            json_body={"receiver": payload.get("to") or "", "min_api_version": 7,
+                       "sender": sender, "type": "text", "text": payload.get("text") or "",
+                       "tracking_data": "lazynext"},
+        )
+    # Viber's HTTP success is not its API verdict; only numeric status 0 succeeds.
+    body = result.get("body")
+    if result.get("ok") and (
+        not isinstance(body, dict) or type(body.get("status")) is not int
+        or body["status"] != 0
+    ):
+        detail = body if isinstance(body, dict) else {}
+        result = {**result, "ok": False, "error": (
+            f"Viber API error {detail.get('status', 'unknown')}: "
+            f"{detail.get('status_message') or 'request rejected'}"
+        )}
+    return result
 
 
 async def _line(payload: dict, cred: str) -> dict:
