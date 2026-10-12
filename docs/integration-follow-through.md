@@ -643,3 +643,9 @@ two-factor enrollment, the 30-day trial offer, private archives, and all mail.
   consent management is a Pro feature. No analytics account ID was invented,
   visitor recorder enabled or paid upgrade started. Checklist proof:
   `/tmp/lazynext-hashnode-setup-checklist.png`.
+- Read the three approved support-request threads again without changing mail.
+  StackShare has no response in its request thread; Mixcloud's request thread
+  has no restoration decision (its separately recorded receipt remains only an
+  acknowledgement). Slashdot has an automated acknowledgement dated October 11
+  UTC, but it does not approve registration or provide an account. This updates
+  the earlier statement that no Slashdot reply had been found.
