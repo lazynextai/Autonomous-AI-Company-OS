@@ -637,3 +637,9 @@ two-factor enrollment, the 30-day trial offer, private archives, and all mail.
   `/tmp/lazynext-hashnode-first-guide-live.png`.
 - Provider reviews, account login gates, DeviantArt biography/social-link
   persistence and the declined personal-verification flows remain unresolved.
+- Final authenticated checklist shows 6 of 7 complete: general settings,
+  domain/subdomain, SEO, appearance/navbar, key pages and first post. The sole
+  pending item is third-party integrations. All tracking toggles remain off;
+  consent management is a Pro feature. No analytics account ID was invented,
+  visitor recorder enabled or paid upgrade started. Checklist proof:
+  `/tmp/lazynext-hashnode-setup-checklist.png`.
