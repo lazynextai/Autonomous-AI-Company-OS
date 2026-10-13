@@ -1,10 +1,11 @@
 # Lazynext — Marketing & Outbound Strategy (v0)
 
 Status: actionable spec for the autonomous growth loop. Bounded by real
-constraints — Brevo-only email (sender reputation is finite), Dodo currently
-in test mode (paid conversion is pointless until live billing), zero ad spend
-by default, and the product has **no user accounts** (single-page app — no
-viral signup loops exist to exploit).
+constraints — Brevo-only email (sender reputation is finite), Dodo **permanent
+test mode** (founder decision 2026-09-29 — paid conversion is not the current
+funnel; do not scale paid outbound), zero ad spend by default, and the product
+has **no user accounts** (single-page app — no viral signup loops exist to exploit).
+Historical “until Dodo live flip” language in earlier revisions is stale.
 
 ## Funnel mechanics (what already exists)
 
@@ -21,9 +22,9 @@ scan (report:*) → lead capture (/lead, 10/day/IP) → nurture seq (3 emails: n
   `email_campaigns`; dashboard Marketing page fires it manually. Agent drafts,
   human sends — deliverability protection, keep it.
 
-## Phase 0 — now, pre-live-billing (free surfaces only)
+## Phase 0 — permanent test mode (free surfaces only)
 
-Do NOT scale outbound before live billing. Instead, build owned/earned
+Do NOT scale paid outbound — Dodo is permanently test-mode. Build owned/earned
 distribution that compounds:
 
 1. **GitHub Marketplace** — `action.yml` is shipped; list
@@ -42,7 +43,9 @@ distribution that compounds:
 5. **SEO** — lazynext.com is already a working landing; ensure the free-scan
    CTA is above the fold and `sitemap` links resolve (2.4.5 fix shipped this).
 
-## Phase 1 — post-Dodo-live (outbound pilot)
+## Phase 1 — if Dodo ever flipped live (outbound pilot) — intentionally excluded
+
+Live flip is **intentionally excluded** (founder decision). Documented only as archived procedure:
 
 Only after KYC + live creds + product/webhook/WELCOME20 recreated:
 
@@ -57,9 +60,10 @@ Only after KYC + live creds + product/webhook/WELCOME20 recreated:
 3. **Lead sources**: funnel leads (`lead:*`), CRM `crm_leads`, Product Hunt
   /GitHub traffic signups. Warm only.
 4. **Compliance**: commercial email needs a **physical postal address**
-   (CAN-SPAM/Brevo ToS) — currently BLOCKED (KV `config:company_address`
-   is null). No marketing sends until set. DKIM/SPF/DMARC (Brevo records)
-   must land first too — else delivery dies silently.
+   (CAN-SPAM/Brevo ToS) — now **populated** (`config:company_address` set to
+   UNITED GLOBAL VENTURES PRIVATE LIMITED Bengaluru address, 2026-09-28; validity
+   not reassessed). DKIM/SPF/DMARC (Brevo records) verified `verified:true`
+   on 2026-09-28. See `docs/audit-2026-10-13/REPORT.md` §6.9.
 
 ## Metrics (query, don't guess)
 

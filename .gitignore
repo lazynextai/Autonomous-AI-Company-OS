@@ -68,3 +68,8 @@ ops/mcp-registry/dns-key.pem
 .medium_state.json
 .twilio_cred.txt
 .buf_key.txt
+
+# Private searchable archive (0700) - never commit
+Lazynext-OS-Devin-Import-2026-10-09/
+.recheck-*.db*
+.browse_session

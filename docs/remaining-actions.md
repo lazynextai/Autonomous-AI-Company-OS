@@ -1,6 +1,6 @@
 # Remaining actions
 
-Current continuation: 2026-10-12. Detailed evidence and older observations are
+Current audit: 2026-10-13. Detailed evidence and older observations are
 in `integration-follow-through.md`; later entries supersede earlier unfinished
 claims. Credentials and historical completion claims are not proof of publishing.
 
@@ -20,9 +20,9 @@ claims. Credentials and historical completion claims are not proof of publishing
 | --- | --- |
 | DeviantArt biography/social links | Resolve provider form persistence; repeated normal saves have not survived reopening/reload. Avatar and cover are complete. |
 | StackShare handle | Provider correction of `support8902`; approved support request sent, no response in its thread. |
-| Mixcloud | Provider restoration of restricted profile; ticket 395792 is an acknowledgement, not restoration. |
+| Mixcloud | October 12 support reply says the business placeholder profile was removed and business listings are not supported. Restoration was not granted; a genuine audio-content use would require a separate decision. |
 | Slashdot | Administrator approval of registration request; automatic reply is not approval. |
-| Pinterest native API | Decision on Standard-access resubmission; existing account and content are separate from API approval. |
+| Pinterest native API | Standard access APPROVED by October 12 email. Verify the app portal, usable token/scopes and intended board; publication remains separately unverified. |
 | VK | Owner reauthorization through the supported account flow; API token returns error 5. Restricted challenge route must not be bypassed. |
 | Kick / Twitch / OpenVC | Successful owner login in the supported browser/account flow. Recorded password/browser failures remain unresolved. |
 | Telegram | Owner authentication for definitive channel-name availability and required channel administration. Bot and channel already exist. |
@@ -47,3 +47,16 @@ send is authorized.
 
 This is a continuation index, not a claim that every carried-forward integration
 has been freshly inspected or that every credential-present provider can publish.
+
+## October 13 technical reconciliation
+
+- Six open product PRs (#102–#107) need disposition; they are not delivered features.
+- Current task records include 35 escalations; reconcile against already shipped
+  capabilities instead of automatically retrying all of them.
+- Five incidents remain marked open (three DNS-resolution descriptions and two
+  blank descriptions). Healthy endpoints do not automatically close these records.
+- Stale docs need reconciliation: Clarity is present on the live marketing site,
+  R2 is used, remote D1 restore was recorded verified, company address setting is
+  populated, and Dodo remains permanently test-mode by founder choice.
+- Full history, current evidence and expanded remaining inventory:
+  [October 13 audit](audit-2026-10-13/REPORT.md).

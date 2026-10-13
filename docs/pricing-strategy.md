@@ -1,6 +1,6 @@
 # Lazynext Pricing Strategy
 
-Status: decided 2026-09-30 · Billing stays Dodo **test-mode** until live flip (KYC).
+Status: decided 2026-09-30 · Billing stays Dodo **permanent test mode** (founder decision 2026-09-29 — no live flip/KYC). `WELCOME20` discount is live in test mode (`type:percentage` basis-points `2000` = 20%). Trial extension `config:trial_offer=30` is ON (durable, ttl:0).
 
 ## The business
 

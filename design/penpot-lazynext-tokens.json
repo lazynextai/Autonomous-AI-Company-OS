@@ -1,0 +1,23 @@
+{
+  "penpot": {
+    "note": "Generated for Penpot MCP — Autonomous AI Company OS Brutalist Design System",
+    "source": "Lazynext — Autonomous AI Company Operating System / design/",
+    "mcp": "penpot MCP (temporarily disabled due to upstream pnpm build issue — tokens are Penpot-importable JSON)",
+    "brutalist": true,
+    "colors": {
+      "primary": "#8B5CF6",
+      "accent": "#4338CA",
+      "background": "#0A0A0B",
+      "surface": "#1A1A1E",
+      "text": "#F5F5F5",
+      "muted": "#6B7280",
+      "success": "#10B981",
+      "border": "#A78BFA"
+    },
+    "typography": {
+      "display": "Space Grotesk / JetBrains Mono — brutalist, high contrast",
+      "scale": ["12px","14px","16px","20px","24px","32px","48px"]
+    },
+    "components": ["agent-card","task-queue","knowledge-graph","billing-funnel","monitor-timeline","scan-report"]
+  }
+}

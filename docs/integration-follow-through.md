@@ -674,3 +674,23 @@ two-factor enrollment, the 30-day trial offer, private archives, and all mail.
   https://developers.viber.com/docs/api/rest-bot-api/#response
   https://help.viber.com/hc/en-us/articles/15247629658525-Bot-commercial-model
   https://help.viber.com/hc/en-us/articles/15383950711197-Rakuten-Viber-chatbot-commercial-model-FAQ
+
+## Research audit and provider decisions — 2026-10-13
+
+- Pinterest message `1a12f4e24db972a8`, dated October 12 08:50 UTC, explicitly
+  approves Standard access for Lazynext Social. Earlier pending-review statements
+  are superseded. No new token, scope grant or test Pin was created in this audit.
+- Mixcloud reply `1a1308f049e7ca25`, dated October 12 14:40 UTC, says the business
+  listing/placeholder profile was removed and that business listings are not
+  supported. It does not grant restoration. No replacement account was created.
+- Fresh read-only checks pass all six monitored services and five job timestamps;
+  exactly one supervised local fleet is running. Catalog remains 45/39 with the
+  same six absent native credentials. Platform OpenAPI has 93 paths; product
+  OpenAPI has 21 paths and the rules manifest contains 75 entries.
+- Current records: 1,088 completed, 1,775 failed and 35 escalated tasks, with no
+  pending/in-progress rows in this snapshot. Five incidents are marked open;
+  completed task rows are not independently verified deliverable counts.
+- Product PRs #102–#107 remain open. No PR was closed or merged in this audit.
+- Beginning-to-current report, evidence limits and remaining work are in
+  `docs/audit-2026-10-13/REPORT.md`; complete 586-commit index is alongside it.
+  Mail and remote application state were not modified.

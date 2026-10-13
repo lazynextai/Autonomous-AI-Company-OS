@@ -21,7 +21,7 @@ The company's first product is a WCAG accessibility scanner (`products/accessibi
 
 - **Scan → report → upgrade loop**: free tier 3 scans/day per site; full reports with per-rule findings; report pages carry the upgrade CTA into checkout
 - **75-rule manifest** (`GET /rules`): WCAG 2.x criteria + best-practice checks, including *interactive* rendered-scan checks — real Tab/Shift+Tab keyboard-trap traces, Escape probes, click-opened dialog traps, target-size, focus-obscured, and non-text-contrast detection
-- **Billing**: Dodo Payments (test mode pending incorporation) — Pro subscription, 14-day trial (extendable via `config:trial_offer`), `WELCOME20` discount, webhook-verified entitlement, SignWell legal signing on activation
+- **Billing**: Dodo Payments — **permanent test mode** (founder decision 2026-09-29; no live KYC/webhook migration) — Pro subscription, 14-day trial (extendable via `config:trial_offer`, currently 30 days ON), `WELCOME20` discount (basis-points `2000` = 20%), webhook-verified entitlement, SignWell legal signing on activation (template unset, mechanism exists)
 - **Agent surfaces**: `POST /mcp` (JSON-RPC tools `scan_url`/`scan_html`/`get_report`/`list_rules`), `POST /a2a` (`tasks/send`/`tasks/get`), `GET /.well-known/agent.json`, `GET /widget.js` (Shadow-DOM embed) — all sharing the same quota-enforced scan pipeline
 - **SDKs**: `sdk/js` (`@lazynext/accessibility-checker`), `sdk/go`, `sdk/python` (with `python -m` CLI: scan/site/report/csv/rules/badge/card)
 - **Email**: Brevo sequences + waitlist confirms (HMAC-verified unsubscribe) + engagement tracking feeding CRM campaigns
@@ -77,7 +77,7 @@ All state access goes through a single Cloudflare Worker (`worker/`) that fronts
 
 ### Public API + MCP (Gateway)
 
-External consumers use `lzk_*` API keys (issued via `/api/v1/keys` with the admin token) — scoped (`read`/`write`), rate-limited per minute via KV, hashed in D1 (`api_keys` table, migration 003).
+External consumers use `lzk_*` API keys (issued via `/api/v1/keys` with the admin token) — scoped (`read`/`write`/`admin`), rate-limited per minute via KV, hashed in D1 (`api_keys` table, migration 003). Platform OpenAPI is 93 paths; product OpenAPI is 21 paths (Postman collection has 24 operations — operation count, not path count). See `docs/audit-2026-10-13/REPORT.md` §5.
 
 - **REST**: `GET /api/v1/health` (public), `GET /api/v1/status`, `GET /api/v1/briefings[/{id}]`, `GET /api/v1/tasks`, `POST /api/v1/tasks` (write), `POST /api/v1/knowledge/search`, `GET /api/v1/agents`
 - **MCP**: `POST /mcp` — streamable HTTP transport, spec **2026-07-28** (negotiates older versions). Tools: `company_status`, `list_briefings`, `get_briefing`, `list_tasks`, `list_agents`, `search_knowledge`, `create_task` (write), `publish_message` (write). Resources: `lazynext://briefing/{id}`.
@@ -105,7 +105,7 @@ Operational surfaces behind the admin token (not in the public OpenAPI spec — 
 - **Store** — `GET|POST /api/v1/store/products`, `GET|POST /api/v1/store/orders` — internal product/order ledger
 - **Marketing** — `GET|POST /api/v1/marketing/contacts[/{id}]`, `GET|POST /api/v1/marketing/campaigns`, `GET /api/v1/marketing/stats` — contacts, campaign records, and engagement rollups (`totals`/`by_tag`/`recent`) fed by the Brevo webhook (12 events incl. delivered/opened/click/suppression)
 - **Signatures** — `POST /api/v1/signwell/send`, `GET /api/v1/signwell/documents`, `GET /api/v1/signwell/events`, `POST /api/v1/signwell/webhook/{token}` — SignWell document send/status/webhook; subscription activation auto-sends `config:signwell_template` when set
-- **Connectors** — `GET|POST /api/v1/connectors[/{id}]` — registry + dispatch for the 44-entry connector library (41 live write paths + honest fail-fast stubs; social, chat, blog, git, telco): x, linkedin, meta, facebook, instagram, threads, bluesky, mastodon, reddit, pinterest, vk, youtube, tiktok, gmb, discord, slack, telegram, matrix, teams, mattermost, zulip, viber, line, devto, hashnode, medium, wordpress, github, gitlab, tumblr, ghost, beehiiv, lemmy, listmonk, ayrshare, postiz, buffer, twilio, whatsapp, brevo, signwell + generic `webhook`. Credentials live in KV `conn:{id}` (403-guarded over HTTP); `core/tools/connectors.py` mirrors the matrix locally
+- **Connectors** — `GET|POST /api/v1/connectors[/{id}]` — registry + dispatch for the 45-entry connector library (39 credential-present, 6 absent: linkedin, tiktok, snapchat, teams, viber, beehiiv; see docs/connectors.md): x, linkedin, meta, facebook, instagram, threads, bluesky, mastodon, reddit, pinterest, vk, youtube, tiktok, gmb, discord, slack, telegram, matrix, teams, mattermost, zulip, viber, line, devto, hashnode, medium, wordpress, github, gitlab, tumblr, ghost, beehiiv, lemmy, listmonk, ayrshare, postiz, buffer, twilio, whatsapp, brevo, signwell + generic `webhook`. Credentials live in KV `conn:{id}` (403-guarded over HTTP); `core/tools/connectors.py` mirrors the matrix locally. Snapshot 2026-10-13; product PRs #102–107 open pending review.
 
 ### Message Bus (D1-backed Streams)
 
