@@ -67,7 +67,7 @@ OS plan enforcement is soft today (plan label written to `plan` KV key;
 dashboard displays it) — tiers are marketing-forward until real customers
 exist. That's honest: don't build hard gates for users we don't have.
 
-## Implementation (all test-mode until live flip)
+## Implementation (all test-mode — permanent test-mode per founder 2026-09-29)
 
 - New Dodo products via `/api/v1/billing/products` (internal route):
   Pro-annual, Agency-monthly, Agency-annual, Company-monthly, Company-annual.
@@ -78,5 +78,5 @@ exist. That's honest: don't build hard gates for users we don't have.
   `report_views.js` renders brandless when `plan === 'agency'`.
 - index.html pricing section gains the Agency card (sync-page regenerates
   `src/page.js`); JSON-LD `offers` updated.
-- Live flip checklist unchanged: KYC → live key/base → recreate all
-  products live → webhook → WELCOME20.
+- Live flip checklist archived (intentionally excluded): KYC → live key/base → recreate all
+  products live → webhook → WELCOME20 — do not execute.

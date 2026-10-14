@@ -1,9 +1,10 @@
 # Connector coverage audit
 
 Audited 2026-09-28 against the "every social media platform" requirement;
-provider-API drift audit 2026-10-07 (see bottom). The Connector library
+provider-API drift audit 2026-10-07 (see bottom). Reconciled 2026-10-13:
+catalog is **45 entries, 39 credential-present** (6 absent: linkedin, tiktok, snapchat, teams, viber, beehiiv) per `docs/audit-2026-10-13/REPORT.md` §5 / `remaining-work-ledger` Order 1. The Connector library
 (Settings → Connector library, `CONNECTOR_IDS` in `worker/src/services.ts`)
-carries 44 entries, each with a real per-platform dispatch
+carries 45 entries, each with a real per-platform dispatch
 (`callConnector` → `connPost`), not just credential storage.
 
 ## Self-hosted OAuth connect (replaces hosted aggregators)
@@ -186,15 +187,11 @@ Every adapter's request shape checked against current provider docs:
   0.18/0.19 bridge), Listmonk `send_later`, Twilio, YouTube resumable upload,
   GMB `localPosts`, Postiz public v1, Buffer `createPost`.
 
-## Status (live-credentialed sweep, 2026-10-08)
+## Status (live-credentialed sweep, 2026-10-13)
 
-37 `conn:*` keys are stored in KV — `ayrshare`, `bluesky`, `brevo`, `buffer`,
-`devto`, `discord`, `facebook`, `ghost`, `github`, `gitlab`, `gmb`, `hashnode`,
-`instagram`, `lemmy`, `letmepost`, `listmonk`, `mastodon`, `matrix`, `medium`,
-`meta`, `nostr`, `pinterest`, `postiz`, `reddit`, `signwell`, `slack`,
-`telegram`, `threads`, `tumblr`, `twilio`, `vk`, `webhook`, `whatsapp`,
-`wordpress`, `x`, `youtube`, `zulip` (plus `conn:github`/`conn:signwell`/
-`conn:brevo` env fallbacks).
+45-entry catalog, **39 credential-present, 6 absent** (linkedin, tiktok, snapchat, teams, viber, beehiiv) per audit 2026-10-13. Prior dated 37-count (2026-10-08) superseded — see `docs/audit-2026-10-13/REPORT.md` §5 + ledger 5.12.
+
+37 `conn:*` keys earlier — historical count; current authoritative is 39 present above.
 
 Any `conn:*` set to the literal value `ayrshare` routes through the linked
 Ayrshare profile (`conn:ayrshare` key) instead of native creds — this is how
