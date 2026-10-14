@@ -1,0 +1,46 @@
+{
+  "audit_date": "2026-10-13",
+  "interpretation": "Stored open incident records; actual current severity/root cause needs triage. No status changed.",
+  "incidents": [
+    {
+      "id": "bug_0_1790764610.642881",
+      "description": "[Errno 8] nodename nor servname provided, or not known",
+      "severity": "CRITICAL",
+      "component": "runtime",
+      "status": "open",
+      "reported_at": "2026-09-30T10:36:50.604257Z"
+    },
+    {
+      "id": "bug_1_1790764675.601682",
+      "description": "[Errno 8] nodename nor servname provided, or not known",
+      "severity": "CRITICAL",
+      "component": "runtime",
+      "status": "open",
+      "reported_at": "2026-09-30T10:37:55.451923Z"
+    },
+    {
+      "id": "bug_2_1791442363.114491",
+      "description": "[Errno 8] nodename nor servname provided, or not known",
+      "severity": "CRITICAL",
+      "component": "runtime",
+      "status": "open",
+      "reported_at": "2026-10-08T06:52:43.064974Z"
+    },
+    {
+      "id": "bug_3_1791578474.868295",
+      "description": "",
+      "severity": "CRITICAL",
+      "component": "runtime",
+      "status": "open",
+      "reported_at": "2026-10-09T20:41:13.942924Z"
+    },
+    {
+      "id": "bug_4_1791766501.217215",
+      "description": "",
+      "severity": "CRITICAL",
+      "component": "runtime",
+      "status": "open",
+      "reported_at": "2026-10-12T00:55:00.613917Z"
+    }
+  ]
+}

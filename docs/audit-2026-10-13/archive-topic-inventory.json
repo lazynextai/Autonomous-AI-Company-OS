@@ -1,0 +1,14 @@
+{
+  "method": "Nonexclusive keyword matches across all stored message nodes; counts include branches and repeats, not unique accomplishments. No transcript text copied.",
+  "nodes": 183639,
+  "topics": {
+    "architecture": 34257,
+    "design": 10993,
+    "billing": 16867,
+    "recovery": 21563,
+    "agents": 12796,
+    "social": 32903,
+    "email": 15970,
+    "product": 25836
+  }
+}

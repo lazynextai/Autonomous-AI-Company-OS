@@ -1,0 +1,587 @@
+commit,author_date,subject
+4dec395da4df49b275851a51d3e69698fa3eed17,2026-02-20T08:40:37-05:00,V1
+a6e049987adb717f0a13e792de2d56311d2bc24b,2026-02-20T08:42:06-05:00,Delete .github/workflows/autonomous-ci-cd.yml
+7fca0289a8b90cf8d02be26e1be0a9678fa47a5c,2026-02-20T14:48:04-05:00,V1 bugs fix
+2ad38d7fc52d33c724fd61bd74664a582875a294,2026-02-20T14:48:24-05:00,Merge branch 'main' of https://github.com/ujjwalredd/Autonomous-AI-Company-Operating-System into main
+191aa74b8ee1ad4db74c5c1de41f724d13b5d8b0,2026-09-21T01:31:26+05:30,Migrate to Atlas Cloud + Cloudflare serverless stack
+412765dea8a58cb60def282c22d7836754c99b58,2026-09-21T01:40:32+05:30,Add micro-SaaS market research to knowledge base
+eb0e9c3364b9e18bce2e6da636c62ae5743bcfa4,2026-09-21T03:00:35+05:30,Fix Makefile python resolution and test runner
+935444f415ffeec9078670eae3a68118e7007b15,2026-09-21T03:29:39+05:30,Add ops tooling and fix two pipeline bugs
+07d8e944e9f58ff828e60d049c629d6ed0c1ee7a,2026-09-21T04:06:21+05:30,"Add public API gateway, REST surface, and MCP server (spec 2026-07-28)"
+f4e11edb6a258603c4016d946aa66c1cd97db68b,2026-09-21T04:26:10+05:30,Rebrand platform as Lazynext: The Autonomous AI Company OS
+c3527d099e0b9362584f86b4d92316aff8c07f35,2026-09-21T04:27:48+05:30,Use dash in platform name: Lazynext - The Autonomous AI Company OS
+4bc474eb49223a43506c53d6d3c3f2b23077dd57,2026-09-21T04:48:24+05:30,"Add PWA dashboard, lazynext CLI, outbound webhooks, OpenAPI docs"
+b789126ccb04823afc58f78cb3d6505689962d7f,2026-09-21T04:50:03+05:30,"Document webhooks, docs page, CLI, and PWA in README"
+478a50a92c7a2a56681e8f96a0eba9238f1651df,2026-09-21T05:11:25+05:30,Add Lazynext design system SVG exports from Penpot
+9a1512580833720b03620efd0261df6d94bfbac2,2026-09-21T05:18:50+05:30,Wire Penpot design system into agent knowledge + favicon 204
+c5127f6e03745fe658ea912491e2abbe11e5b8a8,2026-09-21T05:49:25+05:30,Complete Lazynext design suite — 24 screens + full design system
+006534b3da2eda514a20ed91765ae99621404d62,2026-09-21T06:01:44+05:30,Complete design suite — 37 screens across every surface
+a7c6ec56cc6e21b79b9a111e38a928fbe4512dac,2026-09-21T06:16:15+05:30,"Complete design suite — 43 screens, brand + UI states + assets"
+0cd94ba6ff88a92f057793bc1665e57f0daf12ba,2026-09-21T06:24:42+05:30,"Complete design suite — 54 screens, modals, palette, sitemap"
+af800d60288869a648c844ad4e75344f6be665c0,2026-09-21T06:37:00+05:30,"Design suite complete — 67 boards, every surface covered"
+fa651022783b0cb7c1133e014e32e804507c297a,2026-09-21T06:45:50+05:30,"Design suite complete — 81 boards, every surface + admin + docs"
+159864bc700a40c6300970b97134c62a40eaddeb,2026-09-21T06:56:21+05:30,"Design suite complete — 94 boards, deep screens + 11 components"
+72a2bde3ca329cca6cc571a7f7ad4d1d704474e9,2026-09-21T07:04:58+05:30,"Design suite complete — 104 boards, final gaps filled"
+dcd579dd6ed67d308477532e7e1629ed1ba52684,2026-09-21T07:10:34+05:30,"Design system complete — 113 boards, 14 components, tokens.json"
+c8697a5a788d6a556e7cc67c0c690cd2146524a5,2026-09-21T07:17:25+05:30,"Design suite final — 122 boards, 18 components"
+ef81818645e522c5d6c7c12d151d249f9adc01b0,2026-09-21T07:21:55+05:30,"Design suite final — 128 boards, transparency surfaces + ad"
+3202ce812f743175c49fd3035a5bd976ca6a9453,2026-09-21T08:18:27+05:30,Design suite — cover board + final component specimens
+5681b09e51c2600a22369bb2ba690cf0251d1f9e,2026-09-21T08:40:34+05:30,Design suite — interactive prototype + user flow map
+69277b581f167afc3b3a05717eea663d993a6dce,2026-09-21T08:44:18+05:30,"Design suite final — splash, voice & tone, email components"
+bdcccc8e7a35b77facd9d7974142d1daa32f8f64,2026-09-21T09:16:08+05:30,Penpot to reality — rebuild live dashboard to the design system
+616c188e4b3be5135d94debd4ffb4fbfc21bdfe9,2026-09-21T09:37:44+05:30,Marketing site — landing page from Penpot design
+41f445bae3080a1ad61dc8b914c51af9f012f0c0,2026-09-21T09:45:58+05:30,Attach lazynext.com apex to marketing site
+797941ce15b8d4f7f088c7bfa2d0d6cd23a72138,2026-09-21T10:04:20+05:30,"Penpot to reality — status + docs pages, branded email shell"
+bb792cd275a0de319d4c1714e6a7f43695e74895,2026-09-21T10:14:27+05:30,"Penpot to reality — auth gate, 404, changelog, legal"
+5c9f85de3fc7be3273252d21cd80b798cf9ca173,2026-09-21T10:50:38+05:30,Penpot to reality — responsive dashboard + pricing page
+b1ff1003ebbce8260153476e26df994f633e754e,2026-09-21T11:01:00+05:30,Penpot to reality — command palette + setup checklist
+97c866afd222b01ce3b4c572544b5a8877912d32,2026-09-21T11:53:21+05:30,Penpot to reality — analytics + task detail
+95536098fc28984a5dfe418febe1303f5c312ed9,2026-09-21T13:21:34+05:30,Penpot to reality — products page
+f6a4b9898010e3f681b15e2df4e549ae183b4e8c,2026-09-21T13:24:25+05:30,Resend verified — emails send from hello@lazynext.com
+3669e65ca99121663715d0fc725998425612118d,2026-09-21T13:27:30+05:30,Email sender -> support@lazynext.com (real mailbox)
+56b679c55ea175ae30a722edb9cd4f7373ddfc33,2026-09-21T13:34:36+05:30,Penpot to reality — notifications + search pages
+0751b65aee0293f70b0b8c1e2bab02e0e905e275,2026-09-21T13:43:35+05:30,Penpot to reality — deployments + code pages
+a74d8108f7795d5846b84b5f389440cb0d3d6fc9,2026-09-21T13:50:04+05:30,Penpot to reality — agent detail page
+67cee8a6e6167a4761c5c542500325695f2a45ba,2026-09-21T13:58:41+05:30,Penpot to reality — light theme
+5c0893958a2ecef1d362fd7172823037995940bd,2026-09-21T14:53:23+05:30,Penpot to reality — conversations page
+6ec446f7ef4583ab7a7813a91600ba3584d997ec,2026-09-21T14:58:18+05:30,Penpot to reality — feature flags
+895d2e674fa26619d66cd9405e12f054c753560e,2026-09-21T15:02:19+05:30,Penpot to reality — logs console
+e18ec2ee6a9e7f5aed1e9875a554dec3c53b03f4,2026-09-21T15:12:01+05:30,Penpot to reality — onboarding modal + toasts
+9af252d4a50f2eaa997e7e6241c2f8f2e4d2b748,2026-09-21T15:16:34+05:30,Penpot to reality — assign task modal (functional)
+37fa4f9883474bdcd43531d435cc78f1af66b19a,2026-09-21T15:25:28+05:30,Penpot to reality — API key create/revoke (functional)
+30c64b175927cf2ba17430fa608bafa1cf4618d6,2026-09-21T15:30:57+05:30,Penpot to reality — webhook management (functional)
+ff96674e5950b8509dcc5b475ac76dcfda06f540,2026-09-21T15:37:32+05:30,Penpot to reality — deploy confirm modal (functional)
+561917440949320dcdb86f5f60f6e546043d180f,2026-09-21T15:44:06+05:30,Penpot to reality — error boundary + loading skeleton
+10592b93c4e43bdc6635d49a75c6f6e19d095b62,2026-09-21T15:48:48+05:30,Penpot to reality — approvals page (functional)
+285d204f49cbece0e63df4706b4b7647b70ae968,2026-09-21T15:54:27+05:30,Penpot to reality — shortcuts modal + density toggle
+c832179a2cba1de67ffe20be233457c0606162e9,2026-09-21T15:58:16+05:30,Penpot to reality — audit page
+3dc09c2054c1bacdc279afb68464f788317c25ef,2026-09-21T16:02:22+05:30,Penpot to reality — logout
+41c132ccdb287e90c659b687cff9da9d087bb68b,2026-09-21T16:05:59+05:30,Penpot to reality — PWA install prompt
+46d20df66d2c0a0e952cefd41708cbe3dd3b046a,2026-09-21T16:19:32+05:30,Demo data + publish/deployments fixes
+a0bf46708d5a841e33a7ea59aefdc300c32a50d2,2026-09-21T16:28:33+05:30,Penpot to reality — message composer (functional)
+7e40fcd41d572069c9c42e360d7f1d6892d8d101,2026-09-21T16:33:37+05:30,Penpot to reality — notification read state
+ac283440dd940929aab98377171888ff55668749,2026-09-21T16:43:46+05:30,Penpot to reality — sandbox + team + billing (real)
+167e265f0865102b416ea5c3120c0a303a9ecf10,2026-09-21T16:49:42+05:30,Penpot to reality — repo detail page
+a08c269e1ff299a13df5e6645e5fbd97b7151481,2026-09-21T17:35:25+05:30,Penpot to reality — stand-in brain + sandbox file browser
+1fd5810d4b86bcfabdda5cc4e575db95fcf204d1,2026-09-21T17:53:10+05:30,Penpot to reality — task queue control + audit export
+02df4b81491847f6af0e751e0fd8e0b18567a639,2026-09-21T18:00:52+05:30,Penpot to reality — add knowledge
+43884d8084340e6d23b94e93c892a5c357076000,2026-09-21T18:06:38+05:30,Penpot to reality — danger zone (clear demo data)
+a792edaa1ee259c2caa6d9a7b099b63e952f4088,2026-09-21T18:17:42+05:30,Penpot to reality — live terminal + real shipped product
+d14a4d188c01cbd2e6c1c7f9926e34328ce33ce4,2026-09-21T18:25:19+05:30,Penpot to reality — approval history + maintenance mode
+ceb2056b8873980aba2c0d9f19b8f2d374ce497c,2026-09-21T18:30:27+05:30,Penpot to reality — unread badge
+870a082c23a7835963b9c8df7a25967bef2129e0,2026-09-21T18:35:48+05:30,Penpot to reality — agent memory surface
+5bba1570cd86a93788c6ef337bcc107553870ee8,2026-09-21T18:40:24+05:30,Penpot to reality — feed channel filters
+474a2e71018041d7d4ead7948f3c666d0130e10a,2026-09-21T18:45:15+05:30,Penpot to reality — command palette actions
+dd49cd4aa8ffa51e432a136a83b5144d0cd54438,2026-09-21T18:49:40+05:30,Penpot to reality — show/hide passphrase
+09c884b7ed53e05e9da0bfc3058bc5e33f7ebebd,2026-09-21T19:06:20+05:30,Penpot to reality — continuous agent loop
+bce56ea291ecfd2be263dabfaad0ddd67ad9da05,2026-09-21T19:14:51+05:30,Penpot to reality — orchestrator runs on stand-in brain
+cd993c05f1451b26500c79334ac29b10b88886d1,2026-09-21T19:26:11+05:30,Penpot to reality — live changelog
+8bf1b7934365f37755538d6864a161b43f42a9d7,2026-09-21T19:30:46+05:30,Penpot to reality — real status checks
+3c16024118a6a9454510bdbd762c118689754f2c,2026-09-21T20:05:13+05:30,"Penpot to reality — webhook test, data export, kanban, comments, playground"
+4402a0274a3347547f52467bdb910d2703494308,2026-09-21T21:37:27+05:30,Penpot to reality — the last designed items
+e717719d70fd608d146a98dfd02dfb32ef31fd81,2026-09-22T12:26:27+05:30,Penpot to reality — the last 6 designed items
+5ea86fd685f4f5809b1840aeb67c396480134db3,2026-09-22T12:37:33+05:30,Penpot to reality — the covered/N-A items that could be real
+54abaa26af41bcdbffeefeb762f88cb0781062d1,2026-09-22T13:18:03+05:30,"Penpot to reality — auth + account boards, real email send"
+3171e5bfcbe2905fe480ee45bd7c23b1423037e6,2026-09-22T13:19:08+05:30,Fix: /forgot is public — bypasses the session gate
+277ff78947cd3ea98ec16c27d0491f3463b4e821,2026-09-22T13:35:40+05:30,"Penpot to reality — the final boards, all real"
+c4f698bd92445c17f76620ab87fc21bccd464e9a,2026-09-22T13:54:15+05:30,Real TOTP 2FA — the last buildable board
+1e897a6b68744d96a35b138c45cc751da0312e54,2026-09-22T14:05:25+05:30,"Multi-user auth — the last N/A boards, made real"
+b57adcc379e9818d5678882ac948479b3365024d,2026-09-22T14:28:12+05:30,Formats up to date — drift fixed
+311bcef871fe47fd35883e10da7510ba11d43fff,2026-09-22T15:13:15+05:30,All remaining access formats — 8 new surfaces
+debae77d74d5aa90eab9500d2a42d9250ff1d110,2026-09-22T16:22:00+05:30,Route A2A + widget writes through publishToBus
+0fce752df320a64ff23176b02d53401f303a2024,2026-09-22T16:30:00+05:30,Close real gaps from the format audit
+d847f7936433a7508d919451f528f8b2fa0846c5,2026-09-22T18:03:59+05:30,Dodo Payments billing — real checkout + webhook
+51a9e549d4ad5cd447e0b40a80a71eb8b7788f56,2026-09-22T18:23:24+05:30,Web search connector — Google CSE + Brave fallback
+607f55099033a9aa39ae62333c36b3bb91e746e5,2026-09-22T20:30:14+05:30,Add Serper.dev as primary web-search provider
+2de280043d9560b120519d2bf8400ab488ddf341,2026-09-22T20:47:16+05:30,Make Serper the sole web-search provider
+a0c3e91f8cfbf056a18fc1dda07c1876db653763,2026-09-22T21:01:00+05:30,Fix web-research ingest into knowledge_chunks
+8cd08b4ae4b6cf9ed6c5f3627474c1a9d0e500f0,2026-09-22T21:12:24+05:30,Route agent web research through Serper
+4e99773d826bf890972b0147e42b7ca4ea10c1ca,2026-09-22T21:43:07+05:30,Wire Firecrawl into agent research
+ac380109d809c738ab0b35b8a098a8866e15d287,2026-09-22T22:15:06+05:30,Add Microsoft Teams + Google Chat webhook support
+1e5cc9af91a09fe10dd7aa9d4341c77d803b510a,2026-09-22T22:41:32+05:30,Replace Firecrawl scraping with Cloudflare Browser Rendering
+8d730f9a5c00d8164fc4d2a67145ab660f33178e,2026-09-23T00:56:51+05:30,Replace E2B with Cloudflare container sandbox
+8eacc5de6fb3912e9fca1e2a2cc4a10b8b05eb13,2026-09-23T01:01:54+05:30,Make Cloudflare Workers AI the primary brain
+7d6a8d519ee03faa219e2628372c21b2df166502,2026-09-23T01:15:13+05:30,Remove Atlas from chat path — Workers AI is the sole brain
+fec7b882353056731cfc3dbf16272f4e50f2fe25,2026-09-23T01:22:44+05:30,Remove Atlas Cloud entirely — fully Cloudflare-native brain
+5c209da971021c51d2cf64dcabcdce59c492a665,2026-09-23T01:27:30+05:30,Complete Atlas removal — purge all Atlas/DeepSeek references
+f31f0f8d3e7202d3360b624f7b942eba5ecfcf3b,2026-09-23T01:30:18+05:30,Rename atlas_client to workers_ai_client — zero Atlas traces
+4a070e75fb24f82036ffd950bc75b0473a96036b,2026-09-23T01:37:57+05:30,Remove E2B entirely — Cloudflare container is the sole executor
+f17e623d65c41c4be8d181e094d7250de8d8e0e8,2026-09-23T01:51:47+05:30,Wire Dodo Payments live — checkout + webhook verified
+37ce4ff4a0cfde5722ce68e4b48c22110ad854c4,2026-09-23T02:04:15+05:30,"Dodo billing complete — 3 products, full webhook lifecycle, real signature verify"
+a631953f679d59d1fa7e84c054dd4dab7f7aaaf0,2026-09-23T02:31:33+05:30,Connector library — 17 situational services wired in Settings
+7663554b030106702e9fcf5382d5aab44b785fd2,2026-09-23T02:38:25+05:30,Connector dispatcher — agents can call all 17 situational services
+ec3d2717e2d5e8574662e3e6d28b2e4824ea1ac7,2026-09-23T03:10:26+05:30,Knowledge base now self-sources — drop OpenLibrary + arXiv
+7b2b7027a5567d4dd2fcb179a9e74bdbda4562d5,2026-09-23T03:19:56+05:30,"Remove Firecrawl, DuckDuckGo, OpenLibrary, arXiv entirely"
+b94b7a660b5788608385c072a3016767dcbc0c39,2026-09-23T03:42:22+05:30,Final sweep — remove every Firecrawl/DuckDuckGo/OpenLibrary/arXiv trace
+3c04443f2b40b1026db59b0b442254b5a1669954,2026-09-23T03:47:06+05:30,Remove residual E2B references in worker
+505d82977bc3a104c875442549a170a057bff902,2026-09-23T04:01:36+05:30,"Remove Stripe connector — redundant, Dodo handles billing"
+23acacc79c1dd165f9b13ebe23d3169785c67e85,2026-09-23T04:05:23+05:30,Remove Stripe entirely — Dodo is the only payment path
+a07592bbd07ba0c26844017fbe81532fe8071bf9,2026-09-23T04:22:48+05:30,"Build native CRM, support, scheduling & storefront on Cloudflare"
+99fd203606ce9b91fc625bb8cc9f80fe670a8102,2026-09-23T04:27:08+05:30,Remove last E2B remnant - dashboard sandbox on Cloudflare container
+973ca0c45fd560e3a0c5690c6787db86b9f614fa,2026-09-23T04:32:23+05:30,Add dashboard UI for the native services
+08fdc2a88dbcdb952a9c5fd1c1ced575b7288a6f,2026-09-23T04:47:22+05:30,Fix dashboard writes to native services (auth)
+3c7dbc4deaea002638bc83e619b679e4411c72b2,2026-09-23T05:09:57+05:30,Fix Code page GitHub org lookup (user not org)
+410285f7850a66ad75c0433605fe645d8dd2525b,2026-09-23T05:34:00+05:30,Build native email marketing + e-sign on Cloudflare
+f24769f7a06af6d9090cc0bf96beb605a5f9523e,2026-09-23T05:51:22+05:30,Fix logs page webhook_deliveries query; unignore app logs route
+19ca0ec6d3a8a3b3ee699e4503a7008b32b6e2f6,2026-09-23T06:10:32+05:30,Add PandaDoc connector for legal-grade e-signatures
+8f20a0bfa233015f9917a205ae940abba7c36639,2026-09-23T06:24:21+05:30,Replace PandaDoc with DocuSeal as the permanent signing connector
+a220f74aab2bbf7aa8cef2da155a930084442423,2026-09-23T06:33:42+05:30,Add Inkless as free hosted legal e-sign connector
+321c600d456ff68d80cee3bcc9584d57edf781ff,2026-09-23T06:49:51+05:30,"Make Inkless the only signing path, remove native e-sign"
+6c21d48327da76a0076621eae488c779cd5861c4,2026-09-23T06:53:11+05:30,Accept url:api_key format for the Inkless connector
+b69a624e4e4dae0fe2dbdf91992f479e08013723,2026-09-23T07:02:52+05:30,Restore Signatures page powered by Inkless
+e7c35816abbcb5b360103194aff0abcef95905bb,2026-09-23T14:53:33+05:30,Add Inkless webhook receiver and auto-registration
+77f1ce8152fdd3bf1b8c9f0c426ff8c08f6309a4,2026-09-23T16:09:22+05:30,Replace Resend with Brevo as the only email provider
+58f8ba835cd0ae3cb004199377f284d5824f925d,2026-09-23T17:03:26+05:30,Replace Inkless with SignWell as the only signing provider
+1600ddb5e186556fcaaef4f4460de28f8b1ce95c,2026-09-23T17:40:56+05:30,Make the cron agent loop actually autonomous
+120c57efbf0eccb9e74eae4f250ec8c687283f7a,2026-09-23T18:37:22+05:30,Make the agent tick execute tasks into GitHub
+bb158b3b9be6d8e7e16d59faa2cf6fd6f5093c97,2026-09-23T19:00:28+05:30,Verify agent artifacts before they reach the repo
+f59dce8598c77fb6697e48042668f723c106418f,2026-09-23T19:15:05+05:30,Run agent artifacts in the container before committing
+add0f088569b692f94b700803dd0f66411c86012,2026-09-23T19:46:31+05:30,Execute artifacts with real dependencies before committing
+86a24736e087339bb43218abbcc1b208b6badd93,2026-09-23T20:14:47+05:30,"Build a coherent product, deploy it, and test it"
+19527dc7116081110a9be10ca79c476e14786751,2026-09-23T20:27:17+05:30,Harden the task loop and aim it at a working product
+3909fca77a80d7cfbc9ea729daa774eade08bbad,2026-09-23T21:35:11+05:30,Let the company deploy its product as a real Worker
+5a150568c11c03d06c64645d0136812ebc8e2317,2026-09-23T22:00:20+05:30,Ship the repo's real scanner inside the deployed Worker
+4046a2c7c0610cb9dbbdbdcb3ad93d5945a898d7,2026-09-23T22:21:22+05:30,Render pages before scanning them
+9e8720f9778ad81c1e4882e6385773351cd4eed7,2026-09-23T22:44:43+05:30,"billing + deeper WCAG: Dodo products route, license issuance, keyboard traps"
+a5b3f831e103de00d961a9c96ea74baa83626fa7,2026-09-23T22:55:09+05:30,"leads, webhooks, live-mode switch for billing"
+ea3791040034517907f28daaf92a0c4293a125b5,2026-09-23T23:25:31+05:30,lead conversion sequence via Brevo + env-driven Dodo host
+cd2d9f823f99a7c6b8ae548894656a131b9e65db,2026-09-24T01:03:41+05:30,stop fenced artifacts + task regen churn from breaking the site
+35b2ae08b7fdabed5274d5c56d4c5ead85d9e61a,2026-09-24T01:16:59+05:30,webhook idempotency: dedupe by webhook-id
+beeda509c4f2d33b1ae0b39c6b871683252a3a26,2026-09-24T01:49:46+05:30,"Harden queue, git auth and billing edge cases found in audit"
+cda3bceea5af7b1e20af4a13613b0c1afd0a6fe1,2026-09-24T02:24:38+05:30,Open PRs for agent branches and ignore the knowledge cache
+824e911c67aa6909873e810d114088c2fc63013f,2026-09-24T02:30:00+05:30,Dedup workflow-fix tasks across all statuses
+0909f97000c7eaa34e26c22a82c314d338d86399,2026-09-24T02:37:36+05:30,Stop duplicate fleets and workflow-fix task floods
+3cb2cf2530d5428bf28b6be22aff78fb06d227f5,2026-09-24T02:46:39+05:30,Guard test verification and local protected files
+4420effc1c5d854131c61680a64719fff72b4222,2026-09-24T02:56:56+05:30,"One branch per task, dedupe paraphrased tasks"
+d52aef5931c6f90d0fc5e74dc66b0c6359ecb9dc,2026-09-24T02:58:35+05:30,"Review findings are deliverables, not task failures"
+9a7b3de90f48f689d9ea6df803eb4aa868d28bad,2026-09-24T03:05:10+05:30,Gate local commits on node --test
+51684a33ce39383c30f90de890e0919622fa44ce,2026-09-24T03:08:48+05:30,Fix test gate invocation and revert failed writes
+8a53c7a8325d199c70c7762ee1ff70e002334522,2026-09-24T03:12:07+05:30,Add task-fit review to local writer
+4ee1416fbeced3cc29f5c8456913bf36dec647b5,2026-09-24T03:19:13+05:30,Let devops write .github/ through the gated PR path
+eb985afcb4d67c0984c5bcc3caa8186f93a8cf7a,2026-09-24T03:22:57+05:30,Stop paraphrased task regeneration in the cloud loop
+42b8611b43208f23bd63e809076d3566c4abc2f7,2026-09-24T03:28:04+05:30,Log exception type for bus read failures
+2dcd516037c8c9aed1b72c0b613fa999b1a6f25a,2026-09-24T03:35:27+05:30,Add agent operating notes
+d909c26e9031b19fbb60d9d23372dc5cb2dd9b5c,2026-09-24T03:40:40+05:30,Run write hooks before task completion is recorded
+81f45946e55955ebb89ac3c9378abcb9756ab07f,2026-09-24T03:44:53+05:30,Tag MCP create_task payloads as TaskMessage
+629f5be495cbc6bae59853a2b680593493977f03,2026-09-24T03:58:11+05:30,Document product worker deploy path + latest fixes
+3ad55fe95646b23f0cdaab48e813bd32be18a268,2026-09-24T04:15:39+05:30,Sweep stale in_progress task claims to failed each tick
+6195601410206d5851c6af1d43f6b0a43fd07284,2026-09-24T04:27:27+05:30,Add free-trial support to Dodo billing + trial-expiry reminders
+1f07de5cd61707a95b98ca3648949b02ef8bff8e,2026-09-24T04:28:41+05:30,Document free-trial billing flow + /query UA/params gotchas
+8cafaca5d0004ae88ef0fae8dff07f7b6fee9812,2026-09-24T04:32:42+05:30,Fall back to repo-wide file set in code_review_agent
+9cb4e0bd240ed489e053e5a6008c3bcf3ea6a408,2026-09-24T04:43:47+05:30,Bound task generation to product scope
+fca6e59655db740a2d3a57478a706429aa09694d,2026-09-24T04:48:11+05:30,Add /api/v1/billing/cancel - subscription self-service
+9efddb70b925e086643523f7b3fe3f0ecd51aef4,2026-09-24T04:55:03+05:30,Veto gate-rejected deliverables so tasks can't phantom-complete
+a4a7465405c15d965de8947c05ee228597f688dc,2026-09-24T04:59:04+05:30,"Derive global plan from active-subscription set, not last event"
+731a1ad54e33b52fb516ae91c52b693034247fd0,2026-09-24T05:17:41+05:30,Surface subscriptions in dashboard; fix /kv/put 60s TTL trap
+d08e957c4d8027eda8f7729b09abb2922ff847ae,2026-09-24T05:19:37+05:30,Document remote + pgrep traps in AGENTS.md
+b706ba6c1651ea4b8f28e64587c319a57609af1c,2026-09-24T05:28:24+05:30,Record stale branch cleanup in AGENTS.md
+c0ce5be7ed21226c6a4a6385fa9116561f71a1c8,2026-09-24T05:35:34+05:30,Document KV edge-cache verification trap
+16710d5802ee19d66d37f2761d9f7002ab458e0e,2026-09-24T05:37:49+05:30,Add environment.yaml — Devin blueprint mirroring verified setup
+810731a05ffb87937fc6733647beedd77b3ec378,2026-09-24T05:55:03+05:30,Skip QA alerts for gate-rejected deliverables
+e123d859e273417cdddbfa4a70333eee36aa1fe7,2026-09-24T05:59:02+05:30,Widen QA-alert skip to all deliverable vetoes
+f0ce2c98fe05a345879e4360f2b5425aa96057b2,2026-09-24T06:27:06+05:30,AGENTS.md: document accessibility-checker-api twin script + 1042 meaning
+05f11c2084f3b29e91b6209a8b3b74bcf48ee3fe,2026-09-24T06:55:52+05:30,Daily mon: rescan sweep + internal /kv/list route
+ff89b49d45ee03a5391f3450dbfdb8d0f030fa17,2026-09-24T07:05:59+05:30,AGENTS.md: document site-scan/monitor wiring + dual script names
+291ae0fbf51d8e47e0534635f81e93a1d1c7a72d,2026-09-24T07:34:42+05:30,Monitor rescan via A11Y service binding + sweep breadcrumb
+02c0f5163a9f8eb40fd337c3e880f04de9de1543,2026-09-24T08:08:49+05:30,marketing: add shipped-products proof section
+f2765ec0fc38deb2a928f12f135e81edc7dc20fe,2026-09-24T08:24:18+05:30,"Fix dashboard authz: owner-gate internal APIs, sign member sessions"
+ee69a57d866bc7155b40e99e8b6878b861c34a4f,2026-09-24T08:33:39+05:30,Rate-limit auth endpoints + record stored-XSS fix
+83382d61312d60216c8edbbfd92166b219c62164,2026-09-24T09:04:34+05:30,Sync billing downgrade on cancel + daily reconciliation
+b05728983c69c43f892a153f2c1ec00052cd96b6,2026-09-24T13:35:56+05:30,Teach the task generator its own constraints
+05eb29e7308a96a3ff52116f2951bbb77f579e56,2026-09-24T13:40:52+05:30,Feed the artifact reviewer the repo's real export surface
+d78d9091b7c0e238abf3bbc72ff7ddc42835b17b,2026-09-24T13:41:03+05:30,Ledger: phantom-import review gap
+d2bcc61f04328f8b23b2052a2a5b65071f722639,2026-09-24T13:53:13+05:30,Stamp a cron heartbeat so dead ticks are observable
+e879d9874e0d5cf75bd580112a423866bae64732,2026-09-24T14:08:05+05:30,Document cross-page checks (3.2.3/3.2.4) in site-scan wiring note
+a1c915d6725be8a0d8e0005fe65828c3d388eeaf,2026-09-24T14:40:03+05:30,Fix lazynext.com's own accessibility violations — site now scores 100
+63a77befbb4b2af693f15815a65639bb78e1ee91,2026-09-24T14:40:33+05:30,Document corrected cross-page check semantics
+5437bb07559af89a36ce7aabe5cf188e1f77aabe,2026-09-24T15:02:48+05:30,Marketing: cite the product UI's 100/100 self-scan in proof section
+082b58f3523e31d6563643e5a4677efeae141cbf,2026-09-24T15:11:36+05:30,Skip QA-alert remediation for transient infra errors
+d18fc3583f3dc9aea9b7e36410397d3d3990c51e,2026-09-24T15:11:46+05:30,Ledger: transient-infra QA-alert skip
+74b890860dc9614466348485d9e4841d90080e74,2026-09-24T15:26:57+05:30,OpenAPI spec: document the remaining public routes
+51ea71fc897be7bb53841abe5703c126b4e02868,2026-09-24T15:31:16+05:30,"marketing: add robots.txt, sitemap.xml, llms.txt, favicon.svg"
+058d6cfda4f3b66af579bc213b926f8b6614b284,2026-09-24T15:40:34+05:30,"kv/get: accept ?key= query param — GET reads silently returned null (footgun: key-less get() -> null, looked like mass data loss)"
+ddad5ce8cffda350e52d15e9fb362f01be19dae3,2026-09-24T15:41:48+05:30,kv/get: GET branch before the POST-only guard — prior commit's searchParams fallback was unreachable (method gate 404'd GETs first)
+52adfbb0655e77a378988482da14817d8478baf5,2026-09-24T15:42:07+05:30,AGENTS.md: /kv/get GET support + the null-vs-404 misdiagnosis trap
+bede1074142635491e2dda5ac00537c815fe1949,2026-09-24T15:46:27+05:30,billing: GET /api/v1/billing/webhooks — verify live webhook registration state (silent drops = dead billing)
+6a3396b9a1261af15fdb3c7bc7d529874465f5ab,2026-09-24T15:52:35+05:30,billing: webhook signing secret auto-persists to KV on registration
+a4ba8ba33ac2a6c442657a1a6311d74afb1292c7,2026-09-24T16:06:24+05:30,docs: keyboard-trap statics coverage in AGENTS.md
+d7be9c80564d4e85c3b64c7ec6d27e066f8a73ec,2026-09-24T16:19:42+05:30,marketing: fix AA contrast failures + add skip-nav on all pages
+de444ce16bc84bc19248a8b35a48add4db364f3f,2026-09-24T16:24:12+05:30,Status page monitors the product + security.txt for the marketing site
+4c5b72d33e28c8cd9137aa120ae7f14e6945d4d7,2026-09-24T16:34:29+05:30,Point marketing + status page at checker.lazynext.com
+d843d2cecffc4a8d541b052624ed8d48e16e2fba,2026-09-24T16:34:51+05:30,Document branded product domain and embedded-UI deploy path
+329e380aecc8e107fe4662354d819a6af0b76e4b,2026-09-24T16:37:32+05:30,Prune unbounded D1 tables in the daily sweep
+13c4829e71ea9243edb7af932591e14866129d26,2026-09-24T16:44:30+05:30,Point checkout return_url at the branded product domain
+db1061c7dc9d48008b1539612785d3903cfddbbd,2026-09-24T16:50:23+05:30,AGENTS.md: note binary (base64) embeds in the product static bundle
+82f650f66e67d2f0ba407b86837b4f09cc5a848b,2026-09-24T17:19:28+05:30,Document scan cache-buster + primed-sweep one-tick lag
+d619904f7750a0c895517c9a7d6c0d959113c037,2026-09-24T17:35:38+05:30,Make the funnel discount real + fix post-branding drift and lapsed-license monitors
+4d2660760bc7b90d5cbacb429267b29c0d7f8014,2026-09-24T18:22:39+05:30,AGENTS.md: record the 11-part product worker bundle for Upload API deploys
+6e00615f9effe9f3469643600f817596f1d147cb,2026-09-24T18:42:34+05:30,Deepen rendered keyboard-trace; document focuscycle + validator
+8ac9291a8cc38f27e26d7e7f58e71ab28e196924,2026-09-24T19:10:42+05:30,Commit rendered 2.5.8/2.4.11 trace + fix marketing site findings
+17f0e8d48a0073c0db3d0e1168dfaa2bd8fefa9c,2026-09-24T19:26:37+05:30,operate(): bound task generation to shipped-capability list
+6126ed132f7bdceaa1d872b3dc99209e2d123ed6,2026-09-24T19:55:02+05:30,Rendered WCAG frontier extraction + marketing-site dogfooding fixes
+af7530ba414c75cd02f344288be61ae3ec31fbe2,2026-09-24T20:23:31+05:30,Render pass samples text-decoration + prose-context flag per link
+7f3a45927110c57098eda4e54d20d80ce29aad94,2026-09-24T20:40:51+05:30,legal: add Accessibility Checker data-handling section
+6972c7be84a9670a9c0c0480a50a77e51f835f2d,2026-09-24T21:24:11+05:30,docs: record the GitHub Action surface + the task class it closes
+c438a3717e699946761f610e765c3d627e445a24,2026-09-24T21:40:23+05:30,docs: self-scan canary + the grep -c/bash -e trap it caught
+48a718aca8944bb0379921b833b226c4993994fe,2026-09-24T23:16:45+05:30,agents: bound local task generation to shipped/scope/managed-files
+ad5c962a80c5f215407befb539941966cb28de9e,2026-09-24T23:18:21+05:30,docs: ledger entry — local CEO/CTO generation was the churn engine
+dfc4b86763ebd04c2b9195959c0be3929fa4031b,2026-09-24T23:37:15+05:30,agents: bound task generation on product architecture facts
+603a7e44e363e5b71a2178da3d2bb314f82754bc,2026-09-24T23:43:05+05:30,docs: ledger entry for architectural task-generation bound
+0f6b58d3ee7ddc9520df7f3221ff4a4a10985bc1,2026-09-25T00:12:53+05:30,status: point a11y API check at branded domain
+a149cbffe03d164f73e55d3f225194ecedbb536f,2026-09-25T00:59:09+05:30,feat: /pdf route — render any URL to PDF via Browser Rendering
+f4642d2ddf0c530467283232052dbca6e85c4dfb,2026-09-25T01:01:24+05:30,"agents: bound task generation — report exports shipped, no document scanning"
+8e96d99f429c7ec99be4bfe9ad4368f32f8e424c,2026-09-25T01:06:20+05:30,"docs: AGENTS known-states — report exports, /lead cap, robots exclusions"
+6e075de247ee5fb607f7df31899f333e308fdfef,2026-09-25T03:05:02+05:30,"fix: dead-letter task surfaces — A2A keyed + real queue, widget real replies"
+1f6a299bbe53b168c4efe30dca9603e726772eed,2026-09-25T03:26:49+05:30,fix: paginate all KV list() calls — silent truncation past 1000 keys
+bdb6ef13b90ec29c3b4d2e0a6a614b2ef2778d97,2026-09-25T03:27:09+05:30,docs: AGENTS — KV list pagination trap (use listAll)
+12474257c227ed1168ec140bcfca3b500065c874,2026-09-25T03:34:26+05:30,feat: scheduled D1 backups + DR doc + .env.example sync
+7323d128918022bd4ecd90f8be1befec916715cb,2026-09-25T03:35:22+05:30,fix: backup workflow needs Node 22 (wrangler >= v22.0.0 requirement)
+0720420cec24ae70897be568af68670307385aa3,2026-09-25T03:48:04+05:30,"feat: conversion funnel endpoint + dashboard card, sales draft campaigns"
+1cab27f43bb075786dd1687c6a832c594f6e31dc,2026-09-25T04:03:04+05:30,fix: deterministic phantom-import gate on both write paths
+d70be37cb425bf7ad4125081fc5496b4e5441399,2026-09-25T04:03:24+05:30,docs: AGENTS — phantom-import gate failure class
+8def1fa241400dc399383c4249a73270c135171c,2026-09-25T04:23:54+05:30,fix: periodic_work hook — interval cycles were dead code while busy
+060e41d28664877961afd2e32ad302b2c45438a3,2026-09-25T11:37:44+05:30,fix: deterministic infeasible-task kill-list at both task insert points
+ac2b394c5f843b9c1fafebff3887d96ecb1c8353,2026-09-25T13:13:00+05:30,"fix: spec-level veto tasks die as failed, not escalated"
+dcb35c00cce3ebd496452d854859bef990067a7c,2026-09-25T14:15:21+05:30,feat: persistent dead-corpus dedup — terminal veto rows never respawn
+cc306a2c1f7ff15f3cb349efee2edfd3ad51d717,2026-09-25T14:29:46+05:30,docs: record doc-drift phantom-task failure class — research docs rewritten speculatively spawned tasks for shipped WCAG work; accuracy contract now lives in the doc header pointing at /rules manifest
+8a2a9bd696ff33a8ea7ce0e48340790da16e67c9,2026-09-25T14:43:06+05:30,fix: kill python-stack deliverable specs at insert
+3638cc97db11908fa6e54aa32e841941733c7578,2026-09-25T14:43:43+05:30,docs: record python-stack dead class + launchdeck caveat in kill-list ledger
+28bc626235dceac2e4fb42ceaa378f6dd1afe120,2026-09-25T15:14:37+05:30,render census: emit undersizedAAA (24-43px band) for WCAG 2.5.5
+b699bfc4f58b459a19df156b858f5e3b91ed1d06,2026-09-25T16:33:22+05:30,docs: wrangler-deploy trap on product worker — strips PLATFORM binding + secret
+373971d62a972736026f7d7edd3977cc040c01ad,2026-09-25T17:25:47+05:30,render pass: Shift+Tab backtrace + trigger-click dialog probes
+800c3640fb536911b750c46e67d16fc34d880094,2026-09-25T17:47:45+05:30,"AGENTS: record verified surfaces — TOTP E2E, email-3 hop, store CRUD, new statics"
+cdc5c497649b75b3d472e11d21761812c073ecfa,2026-09-25T17:50:46+05:30,Cloud writer: branch+PR instead of direct-to-main commits
+853ae41880cc40c2ca55f626567134194ea532bd,2026-09-25T18:26:12+05:30,AGENTS: document cron:last_tick dead-man heartbeat key
+39c9325e9136882fee0f8e4735af243b481b1e96,2026-09-25T18:37:57+05:30,Marketing-email unsubscribe (CAN-SPAM/GDPR/RFC 8058)
+bcea52d89e4ea0da81d8210099e528aac9a56c86,2026-09-25T19:05:56+05:30,Brevo inbound webhook + bulk classification + footer address plumbing
+9b98044ab184827ce302ade38394081b40235071,2026-09-25T19:24:19+05:30,Fix Brevo webhook event-name mismatch (registration enum vs payload values)
+eb9e0296799c3f6f16233fb097f0979973f121a5,2026-09-25T19:32:27+05:30,Marketing/outbound strategy v0 — phased plan bound to real surfaces
+c7f1ac050a489467236bbdd41228d9bad6269306,2026-09-25T20:12:40+05:30,perf: cut /render latency ~5x via merged probes + early exits + session reuse
+046df5d21aa2267fdab01ad47455fc04e9097f32,2026-09-25T20:31:04+05:30,perf: gate deep probes after established trap signature
+e67905f89b5eaa403dc0abc8a8ec2f022ab5df03,2026-09-25T21:51:36+05:30,fix: suppress trial/monitor sends to unsubscribed addresses; render probe tuning
+02365e8a1665a5bb7e8c8ca4c7ae0d0028196f88,2026-09-25T21:52:15+05:30,docs: record product deploy footgun + new abuse limits + suppression scope
+14738f980ee2875257506eb3a06804163175d804,2026-09-25T22:27:49+05:30,"fix: gate infeasible-task patterns on deliverable, not bare nouns"
+465444ccae97bf96fbd79e71cf41483899ea70fe,2026-09-25T22:29:16+05:30,docs: note deliverable-gating on the infeasible kill-list
+3fe0b53d493d1f0e84bc1ef6c8af65ad30d83c18,2026-09-25T22:52:04+05:30,docs: product agent surfaces (MCP/A2A/widget/PWA-SW + in-repo SDKs) are live
+7d17e4d41c9ef5ff0c2793321fe79925b5af583c,2026-09-25T23:33:04+05:30,ops: PWA/HEAD/a2a-tasks notes after e24aa20 product fixes
+9d9ff02fc3dd829503ba7d074fe0ac3f4ba41d04,2026-09-25T23:56:33+05:30,ops: sw.js scope-relative shell lesson after 13bb523 mirror fix
+2645f610461ec8034bb1b607814eb20d8077a6fa,2026-09-26T00:06:27+05:30,"ops: axe-gap closure note — 61 rules, parity-test literal-extraction trap"
+02ab744746e338f292d28ef863257150cc505191,2026-09-26T00:24:47+05:30,feat(render): corner-sampling occlusion probe — feeds product wcag-2.4.12 (Focus Not Obscured Enhanced)
+64c981c3bd67cc79613ecfa9d43f93605cbc3abb,2026-09-26T00:38:09+05:30,Ops: fleet KeepAlive supervision + verified restore drill
+02eeb06f0c2280c734b63ba905af918e2f93aa8e,2026-09-26T01:32:25+05:30,ops: audit all /query + /batch writes to episodic_events scope=query_audit
+7d550dcb278b0e532461f69e718d3a31ce67a463,2026-09-26T01:43:36+05:30,ops: auto-sync shipped_features from merged PRs + marketing favicon.ico
+4ebffcb9d0ce7690eddb5e744d6b43cdabdc2221,2026-09-26T02:18:56+05:30,ops: shipped_features sync from main commits + dashboard favicon
+0d5349e9cec7a3bf09e6612169ef4ae83f01aff7,2026-09-26T02:33:26+05:30,"dashboard: robots.txt disallow-all — authed app, nothing indexable"
+9ab0415858befccfa473144ce8c69485af237272,2026-09-26T02:44:59+05:30,Add Organization+WebSite JSON-LD to marketing index
+7845681b00f1cc4652d301a4e4a70644004cf680,2026-09-26T02:49:36+05:30,Extend infeasible-task filter: 5 new dead classes from today's fleet wave
+f5b9f41d373be272bc57642eacfe6983379f96fc,2026-09-26T02:51:16+05:30,Filter: deeper-coverage task family (3rd respawn today)
+c697d13d415c87aa39fcba1f6c08d63c6a9fe017,2026-09-26T03:52:43+05:30,Gate phantom completions + retarget infer_filename off ghost app/ stack
+1ad32af98e4b55c06b3c12c37fa95e572d300696,2026-09-26T03:54:08+05:30,Docs: phantom-completion gate in fleet safety gates
+b50a1e2267da843941686951d40d79b9211fbaf0,2026-09-26T04:18:11+05:30,Tests: regression coverage for phantom-artifact-claim gate
+e1ff734bb28be51f0d47ccaa7d707ce9027b5145,2026-09-26T04:29:36+05:30,Waitlist signups enroll as leads — shared enrollLead() intake
+e49695121af756c07dd6cb24def4d76b3eb389cd,2026-09-26T04:32:54+05:30,enrollLead mirrors into email_contacts — campaign audience was empty
+791b4838f3e624ca5ccf48908751795d47bee35d,2026-09-26T05:00:55+05:30,Retry sees failure output + stemmed task dedup
+f11aca9da5439b438d508ee7d6e53a283d2fc81d,2026-09-26T05:03:54+05:30,Restore [[containers]] stanza — /exec was 500ing
+f2ef2adf3b32334931e93571bd0578c66335b7b0,2026-09-26T05:10:53+05:30,Fix test gate silently disabled under launchd PATH
+3266fd9b2ccc16bb741b0c6d79d0414a22cdec53,2026-09-26T05:11:12+05:30,Docs: launchd PATH trap + bin_resolver requirement
+4d382a209232dbeedb1bb547b5c291c1963db12c,2026-09-26T05:38:14+05:30,"Stop dead-task resurrection: requeue excludes dead corpus, kill honors attempts"
+286e3648b66a85d40cdd62e2c646dfbb42f91622,2026-09-26T05:55:05+05:30,Restore api.lazynext.com + document stale-DNS failure signature
+11a07ec98a757b632d8b6ab2dea60cffff726f17,2026-09-26T15:17:22+05:30,Add api.lazynext.com to status-page probes
+1929116f9496f4fdacac7c82806e3c8773f3eecd,2026-09-26T16:07:11+05:30,Dead-corpus: include phantom_completion; kill launchdeck tasks at insert
+4e8049ccd9fbebb97a52263e477240b1a2f60f70,2026-09-26T16:09:33+05:30,Docs: launchdeck scaffold fenced at insert; phantom_completion in dead corpus
+4212f3b8de225c9e7b89663fade8ceb5f7ce26f5,2026-09-26T17:34:21+05:30,billing: multi-sub license correctness + webhook delete route
+541e99df07ff92f034676c95511bc48ade2dae28,2026-09-26T17:34:33+05:30,"docs: subs:active {p,e} format + webhook delete route in AGENTS.md"
+67bf463f5b627c0853c595a89b8c013d22d2d7f9,2026-09-26T17:38:28+05:30,ops: status-redirect worker — status.lazynext.com 301s to /status
+22bdd6e3b8c957dd863606e6d7e1db96c1451a75,2026-09-26T17:40:34+05:30,docs: app./status. surface bindings in AGENTS.md
+9eabf69f58cdb6d39a8e2d9bc8ede37f09174ca0,2026-09-26T17:45:00+05:30,kill-list: close the deeper_*_coverage escape hatch
+26df60daaec5d99e8990b6d5d7e5ef46dc853581,2026-09-26T18:18:35+05:30,"docs: record Dodo test-mode deferral, R2 non-item, Brevo DNS verified state"
+51fca170ff5a2c0cc319979a33bdbfa5e0d51496,2026-09-26T18:51:32+05:30,connectors: worker-side invocation surface + marketing social posting
+476c9e452b6f3cf11ea793bb4790f6074ba9e8ba,2026-09-26T19:11:50+05:30,"connectors: harden dispatch — admin scope, truthful status, real fixes"
+0c7ea0fb7b542faae4263c0971994b53b939ff97,2026-09-26T19:15:54+05:30,sales: qualify the serper-sourced CRM seed
+a1bd335da53b4154a979fc1e530cc3ad42ee9434,2026-09-26T19:39:25+05:30,sales: disqualify competitors during lead qualification
+ae7a1cf4d287d09ab67715658a80cafc004b3464,2026-09-26T20:04:50+05:30,ops: SECURITY.md + AGENTS.md coverage updates — 74-rule manifest
+af5555465addbd9ad228d05cb86d7e090e513f4b,2026-09-26T23:21:42+05:30,ops: AGENTS.md — benchmark known-state + verified D1 remote-restore recipe
+4e877759df2f680420eeab79760474e9872559c9,2026-09-26T23:32:08+05:30,ops: AGENTS.md — benchmark dedups per host; widget parity note
+16d44f4c46ef5d4efef2c499bda9f8907392c348,2026-09-27T00:37:06+05:30,fleet: doc-gutting guard — retained-line check on existing-file overwrites
+d6fc0b60e3a63018735086891404df345e9491b7,2026-09-27T00:53:25+05:30,fleet: close last doc-gutting path + formal guard tests
+9e01f693a423d342c5124089b5c2d296abdf5dc4,2026-09-27T00:54:11+05:30,docs: gate #11 covers bootstrap scaffold skip + worker guard tests
+37e2093793af14b25253540e0063dcb402c7bc32,2026-09-27T01:25:27+05:30,fleet: license_keep exemption + restore dogfood monitor canary
+a6b12d3c11753326ae08883872160e760a9509cf,2026-09-27T03:29:39+05:30,ops: mirror-drift + product-domain checks in health_check
+406ef24536c0eccd0afc46056028109a9c1f0eef,2026-09-27T03:52:18+05:30,fix: follow GitHub API redirects + repoint refs to Lazynext-AI
+d6fb8a0c986059930736facf5d665b845d1a29c2,2026-09-27T03:56:47+05:30,docs: org-transfer redirect trap in AGENTS.md
+026517ff73fafd4e81f8058d06add22647c18132,2026-09-27T04:15:51+05:30,docs: repoint Pages-mirror ops note to lazynext-ai.github.io
+26419fe46d7797a112827f57a97d380e39bbf7c3,2026-09-27T15:02:06+05:30,docs: marketing.lazynext.com revived + repo-homepage transfer trap
+61128be8cb8162608263eebb06ed74a56832b3f4,2026-09-27T15:06:27+05:30,design: repoint org name in mockups to Lazynext-AI
+daa0c314fcecfa5b40ce5ab7112b3db5005c3e13,2026-09-27T15:22:12+05:30,docs: product manifest now 75 rules (wcag-3.2.7 shipped)
+9fc43406bd7c58126aa27539e5109fde1adfa05d,2026-09-27T16:07:49+05:30,"fix: phantom gate — bare /pull/ URLs are claims, not evidence"
+393875a42be879f2b2e9fe73dea98fcb69006d29,2026-09-27T17:18:06+05:30,fix: dedup before kill-list — dead-corpus respawn loop closed
+ad8f1592c1e8d18ab0da90eb3e24b7ba49265a02,2026-09-27T17:32:17+05:30,fix: dead corpus covers operator closed:/resolved: markers
+c34d40111facb9ededd8045e6714cf99debb6ac7,2026-09-27T18:44:02+05:30,docs: sync rule count to 75 in health-check comment
+5d9642ef272cfd2197aa8c86bf9e89fa96d3a5a3,2026-09-27T19:57:30+05:30,"feat: signwell activation hook, health KV watchdog, PR-open error surfacing"
+afcbc34795b245455ae969aeb984309db0178556,2026-09-27T19:58:43+05:30,style: hoist time import in health_check
+5c1d1ddf196f98ac44d3d2cd7b6ebe30d5c1df37,2026-09-27T20:24:55+05:30,fix: cloud ghOpenPr surfaces PR-open failures like the local fleet
+e7b04a3e3337d6732829d55df4f68c447ea04b50,2026-09-27T21:40:49+05:30,docs: ruleset parity note covers bp-* ids — wcag-3.2.7 relabeled
+69c44c6b74123b3560c45aa6ef3ba5d8e34194cf,2026-09-27T22:35:52+05:30,fix: pass ttl through dashboard kvPut — 2FA keys expired at the 60s floor
+c723e4f3e559846c63086a1af1b6a63e77c832fd,2026-09-27T22:37:01+05:30,docs: note monorepo remote split — pushes go to the lazynext org mirror
+801f9e3bb3f074cf044f0f7e0b424fbf37202e68,2026-09-27T22:55:54+05:30,docs: openapi.json + /rules HTML catalog in product surface notes
+24214630e249d4821cfcf2f52168a55c585308d3,2026-09-27T23:24:15+05:30,"feat(render): shadow DOM coverage — serialize open roots, pierce in probes"
+09265ff61ed5874afdea32db12aa9a40939d6dc7,2026-09-28T00:52:14+05:30,docs: weighted-v1 scoring model note (product 68ebb70)
+20c056622f04ee71e49747a7e6e0b56e610e972f,2026-09-28T02:37:11+05:30,feat(render): census-tracking Tab budget + wrapped-inline occlusion fix
+f06345cc576e294d957130370036d5386dc60eec,2026-09-28T02:37:34+05:30,docs: deep-focus fixtures in the trap-fixture inventory
+1f8eab27ac26d1229d9f9621a9bc178e59f601d8,2026-09-28T02:47:11+05:30,docs+test: close adaptive-budget drift — stale 24-press refs + occlusion guard
+2d06a188f3f7db6cac0152be9521bd0bad65d9e7,2026-09-28T03:06:31+05:30,docs: report .json export in the report-exports note (product c59ce1b)
+6b74447acae9eda84195cbac344c9b829b4ce984,2026-09-28T04:50:50+05:30,scripts: enrich_crm_contacts.py — fill missing crm_leads emails
+69b189c60cd55f1eab9207f9466a6dcb32cdf730,2026-09-28T05:13:20+05:30,"scripts: enrich_crm_contacts.py --deep pass — wider paths, mailbox snippets, Wayback"
+33c5d5781721424b34ecf588bdc5467601336ab1,2026-09-28T05:13:20+05:30,worker: split daily maintenance out of advanceLeadSequence
+8f150f6244f17808ea43b1ab5d4426f67b4c6f3e,2026-09-28T05:22:17+05:30,ops: healthcheck watches maint:last_run; AGENTS.md documents the gate split
+cd0c8d42cb98cfe3cdf2de9c2793db760e6c13a4,2026-09-28T05:35:51+05:30,fleet: raise dead-corpus read cap 2000 -> 10000 in both mirrors
+cb9e41d79455c87cdda017f97e53f1575eb275de,2026-09-28T05:39:17+05:30,docs: gh CLI resolves to ujjwalredd fork — --repo flag required
+81c47a86492ba71563c7aa6b78b614101a6be412,2026-09-28T05:51:03+05:30,ops: watch dead-corpus size + pin the 10000 cap across both mirrors
+4ae4b047e68f37a5770c0b3f4bcf101a064bbcdc,2026-09-28T06:05:25+05:30,"fleet: kill-class anchor dedup — one tombstone per dead class, not per paraphrase"
+e8f08c73199ec285d91b5d0ce60a5ea0fc72f0b6,2026-09-28T06:25:23+05:30,ops: scope failed-workflow queries to the default branch
+dbcd065d30e26f98a162eabc0cce3a2d23a5db11,2026-09-28T08:11:02+05:30,ops: revive launchdeck.lazynext.com — redirect worker kills the last 522
+654a93d08b425f2bb45f712373fd91fbda36b50c,2026-09-28T08:33:18+05:30,"docs: repoint origin to org repo, note launchdeck repo archived"
+60b26498f23692a5a741b75138c2bb595b33f793,2026-09-28T09:42:01+05:30,connectors: add 10 social/chat platforms to the connector library
+c0ceeb08ed9b6cf6246b51c97f665f52d07a1e1a,2026-09-28T09:58:49+05:30,"docs: Brevo domain authenticated — DNS records live, Resend residue purged"
+179996a36e41320d8f9d149033c0dc54dee9a5bf,2026-09-28T10:23:30+05:30,"docs: audit pass — api/v1 path footgun, bounced-lead cleanup, PR #99 closed"
+390ae443c79d657d61698f2ca103f6ef0db6f2ba,2026-09-28T10:42:58+05:30,connectors: 8 more destinations — dev publishing + matrix + webhook bridge
+115ec686c63cc75dfdeb00041b1734322c0d9ccc,2026-09-28T10:48:12+05:30,"docs: sweep #102 — engagement stats → CRM, cfk_ purge, 25-connector library"
+c7fc28a00b961fef92266d37d6f7ccfb7d6c6a72,2026-09-28T11:05:45+05:30,connectors: 12 more destinations — bridges cover the no-direct-API platforms
+28c878041743079c48f4e2a5ff91401edc19166d,2026-09-28T11:06:40+05:30,"docs: AGENTS.md connector section -> 37-entry library, new cred formats"
+6e02abcd5ac96649a2b44b4cd7f2e7801a8340e4,2026-09-28T13:18:25+05:30,inbound email -> support tickets: Brevo inbound-parse webhook route
+4af4c2b1ebdf8f4a137327bd8bf742c981a0c98e,2026-09-28T13:19:17+05:30,docs: inbound-email pipeline notes — DNS steps to activate
+d816eae77d6c4f418bb4fcf8bcba89cfa1a6ddb0,2026-09-28T13:26:20+05:30,fix(auth): owner lockout when 2FA flag set — check d.totp before r.ok
+d0f249c1e6f1d363a059f6f76093f90c2aa04319,2026-09-28T13:54:43+05:30,"docs: inbound email pipeline fully live — reply.lazynext.com verified+authenticated at Brevo, webhook 2208042, config:inbound_addr set, real email E2E created ticket id 5"
+83c63e6d922f4c3b188eb6820bb719f923536412,2026-09-28T13:59:52+05:30,fix(qa): auto-resolve incidents a passing suite disproves
+70fbdbd9e6751fd953cd1195491c321d8f87afb4,2026-09-28T14:52:25+05:30,fix(briefing): open_bugs filter — resolved entries leaked into briefs
+70857b4e5790d7b1819a733427126ad91d450be4,2026-09-28T14:58:37+05:30,feat(support): POST /tickets/:id/reply — outbound leg of the email loop
+c6ad820eb4b1f2f130b8229b2cf45b87e630a5cc,2026-09-28T14:58:59+05:30,"docs: outbound ticket reply route (/tickets/:id/reply, admin scope)"
+9da5ebaeb5d9aa4ffec691773bae88c4256ae4e8,2026-09-28T15:26:18+05:30,feat(marketing): engagement tracking — Brevo event tags + email_events + /marketing/stats
+06b7495ae8dd81e8b18a38d67fd6e46ed785b7ab,2026-09-28T15:29:26+05:30,docs: connector coverage audit — every platform with a real write API is reachable
+a7987471ac0318dfdcc17ee5409c5a07f7a41ba8,2026-09-28T15:59:45+05:30,fix(oauth): JSON /oauth/token bodies no longer die as unsupported_grant_type
+3f8916b8beeb983816971338fef51a9862bc1c81,2026-09-28T16:34:06+05:30,docs(readme): document internal service families (crm/support/booking/store/marketing/signwell/connectors)
+88f87bb81a3d4485755035a1a4c8a5c44b2d597a,2026-09-28T17:30:40+05:30,docs(agents): dodo live flip deferred indefinitely per user 2026-09-28
+cb5a294c5c2fdacef198275ddcca3e1a845e2223,2026-09-28T18:18:27+05:30,feat(connectors): self-hosted OAuth connect layer — replaces hosted aggregators
+83ee09d8695797708ca1786bcad5cadcfa34eed1,2026-09-28T18:20:59+05:30,fix(connect-oauth): validate Authorization headers — bare Bearer was a bypass
+4dfb98a4de66b3a318726745524cb997dd7fc67b,2026-09-28T18:25:54+05:30,Pin OAuth redirect_uri to canonical ai-company.lazynext.com
+867ffe1361b3fb0f0abe9f884bd0de33c97081d4,2026-09-28T18:50:51+05:30,fix(connectors): provider-API drift audit — 8 adapters updated
+efe4611e0002aa9c065a4f400db989a842a95b0f,2026-09-28T19:53:45+05:30,fix(briefings): persist weekly gate + wire live funnel metrics
+66184ab204892b3644ce9508eb676d5847845f41,2026-09-28T19:57:26+05:30,fix(marketing): 44px link targets on nav/footer/CTA (own-site wcag-2.5.5)
+e405f8c56ed2bdf3ba96709b19d06b554abbe90e,2026-09-28T20:38:26+05:30,feat(sales): auto-promote Brevo clickers to engaged + crm_engaged funnel
+86e8acfcf119dc82fd49886852ac2f733d2134a5,2026-09-28T20:58:32+05:30,feat(marketing): campaign segments — engaged-lead targeting
+88f8400c12bad36ef20230057b4d3f82e0531570,2026-09-28T20:59:55+05:30,"docs: engagement pipeline, campaign segments, no-review connector quick-start"
+cc23cc73e58073a19342bfa8c90c9b1a6d99a875,2026-09-28T21:05:53+05:30,fix(marketing): flatten index copy for wcag-3.1.5 reading level
+733f708bb9d7e802e2e73e6b876b86b6e17f4add,2026-09-28T21:54:30+05:30,"docs(readme): describe the actual platform — live surfaces, product, billing"
+7f83a692b504f64c522c4154a3798d0a0eded8d0,2026-09-29T00:09:07+05:30,feat(connectors): github falls back to repo commits when PAT lacks gist scope
+2548a69aa30b5f8ea9b9b02b4a79488f75f91bfa,2026-09-29T00:25:27+05:30,docs(agents): record permanent Dodo test-mode decision
+20ce5a3e3850e1f095953a543ebeb2724147375c,2026-09-29T01:22:43+05:30,"docs(agents): cfk_ revoked, campaigns 6/7 sent, verify webhook fan-out"
+4d90b5f969997e104b7fc02771c425b05d767354,2026-09-29T02:08:05+05:30,docs(agents): wcag-3.1.2 provable-mismatch model — inherited lang + multi-script marks
+4c26f102b32527bddf94e728f505b89bde968c60,2026-09-29T02:36:55+05:30,docs(agents): benchmark corpus is live — percentile rendering verified
+c3a68a5fba720ea2f494337b0edbc680f2b12d3a,2026-09-29T03:11:18+05:30,"feat(search,social): Serper-free search fallback + native social scheduler"
+b12610d984b741b9e0d5493d20f53ca789d9c670,2026-09-29T04:17:55+05:30,docs(agents): revive 24 retired-infra hosts — stale-522 batch bound to launchdeck-redirect
+304e5561e1115293f94fe6cb346c60c2eb9673b8,2026-09-29T18:23:33+05:30,"feat(platform): mobile-first scans, KV media library, native e-sign"
+f7870d327755958a88df352da217e6511d887c45,2026-09-29T18:52:13+05:30,fix(dashboard): signatures page crash — SignWell event objects rendered as React children
+99e6b4f2896d3864ebff8e22fd8d5d9248d0c8da,2026-09-29T19:31:46+05:30,feat(render): pointer-region census — cursor:pointer outside focusables
+8c966ced4ebe7ce0f222a37b44a945c9c4d9c691,2026-09-29T19:32:35+05:30,docs(agents): census-gated 2.1.1 — pointerOnly render field
+e4a1387adae0d5eb48d955513ce004db36e28ac6,2026-09-29T20:45:53+05:30,docs(api): full route-table coverage in platform OpenAPI spec
+137381bd4fad0389ed4a81fb328b92f9f1757343,2026-09-29T21:19:44+05:30,feat(social): Cloudflare Queues dispatch for scheduled posts
+16af92d1030bb4024044521ff070139ffc6ba266,2026-09-29T21:20:39+05:30,docs(agents): social scheduler — Queue-backed delivery semantics
+9c2f0882299b0d73ddef735feee541ac17bdc955,2026-09-29T21:43:06+05:30,docs(infra): external-dependency classification — the Cloudflare boundary
+03fabe4f2d604ebb9779bc5e6856c8fb76b828aa,2026-09-29T22:25:54+05:30,docs(env): document CLOUDFLARE_DNS_TOKEN in .env.example
+aec92bfd4862f727ba5584b666f3cf38b0b5f56e,2026-09-29T22:57:38+05:30,"feat(media): R2-backed media storage — video uploads up to 64MB, KV fallback"
+804b03a2ca52ede4c3ed74e39779ccc73b80178a,2026-09-29T23:25:40+05:30,"feat(connectors): letmepost — 45th connector, reviewed-app-of-record bridge"
+15d3b69521f60b829be4fe856e254d8c1ccc5923,2026-09-30T00:17:09+05:30,feat(search): $0 metasearch cascade — searxng/Bing/Brave between Serper and DDG
+78a1e359f8f3026620dee6bc802c89ab891529ba,2026-09-30T01:04:18+05:30,feat(billing): annual billing support + product introspection routes
+fa9680e5fe9924bde5ae64551797e68c41038157,2026-09-30T01:17:19+05:30,feat(ops): postiz-stack — Postiz as a fat Cloudflare Container
+321d9fb7a63120f1ee234d7cb0647d42c939a677,2026-09-30T01:20:16+05:30,docs(marketing): first-wave campaign content — instant-channel briefs
+4a86f4ab8c1c72410190da28ed119ba358cd2119,2026-09-30T03:09:41+05:30,"ops(postiz): all-in-one CF container — in-container Postgres, R2 backup, standard-4"
+3ef3deff6ca745bc1f9b3b045ddcb45ae695780c,2026-09-30T08:35:38+05:30,ops(postiz): banded image layers + GHA build — fight the CF pull window
+3823b3ac5266c991cd0729b5ee17663d56b1fd7f,2026-09-30T08:40:44+05:30,ci(postiz): fix docker login invocation
+8bc4377add99a74aa0e8c83eef41953e8e5e5d1b,2026-09-30T09:03:55+05:30,ci(postiz): stream image push via buildx registry output
+f8c8f5143fe59b5bbc5506acd7ee2fac5e2cba2d,2026-09-30T09:35:04+05:30,ci(postiz): npm ci before deploy for worker deps
+b91e28e6a70840271e0ce220320b7102be8a7371,2026-09-30T09:45:14+05:30,ops(postiz): harden pg bootstrap for micro-VM runtimes
+185800aa8b82493f5da8011077b94881bd59415b,2026-09-30T10:15:58+05:30,ci(postiz): drop provenance/sbom — CF registry rejects manifest lists
+8552c86388bf0fa7806b99e29aac9dfcf2ed35a9,2026-09-30T11:56:58+05:30,ops(postiz): WORKING on CF containers — banded layers + nginx-first + pg socket dir
+d6cd7e4198749eb91114825fb3bffd154c2fee88,2026-09-30T16:01:51+05:30,ops(postiz): pin the verified-working digest
+93db836bac250a7fe8c93ba6876fc75ab9f7a62e,2026-09-30T18:06:27+05:30,ops(postiz): provider env passthrough + full channel matrix doc
+5151de4ffc1ab895721c64a67fc634c01870a137,2026-09-30T18:22:29+05:30,ops(postiz): document the programmatic channel-connect recipe
+f2e098c68e9be0ba15f308fe78ce5323bcf8f4fd,2026-09-30T19:26:48+05:30,ops(postiz): nostr publish fix + pin patched digest
+458cc6fc6cc72d2a4e084c2ea8ed5fd583fba949,2026-09-30T20:09:11+05:30,docs(postiz): nostr channel live + instance-swap caveat
+6d1cb724b1ba562a94e6b55977b1b2f5e5023c75,2026-09-30T22:49:25+05:30,ops(postiz): 36-provider env passthrough + session findings
+1d1cd37d66921d1fa2c8335e1f51ffc5ae10f198,2026-10-01T04:09:20+05:30,ops: self-hosted Ghost + WordPress blogs on Cloudflare Containers
+2878ce23e9a780126977f682bdf0746d96d76218,2026-10-01T04:51:54+05:30,channels: support@ signups (mastodon/gitlab/tumblr) + updated walls matrix
+c274fe746e037bf7b7e2d24aba86aaa9f805844c,2026-10-01T16:17:31+05:30,"postiz: patch tumblr OAuth scopes (+basic), connect mastodon/devto/tumblr"
+167f8af17d11634846c470a1bd0003379a99068a,2026-10-01T16:36:30+05:30,"postiz: E2E publish verified on mastodon, tumblr, devto"
+d8fc222783604b16beafcd26d81c9836235e6594,2026-10-01T17:42:09+05:30,"channels: identity sweep — docker/dribbble/whop created, dribbble OAuth app wired"
+e75678b4669ff4ecb3c7df52f7f242d0f2068a8d,2026-10-01T18:30:54+05:30,"channels: verification pass — gitlab/tumblr/mstdn confirmed, hcaptcha accessibility unlock"
+609bb522236509aa536fc069472434794aeff236,2026-10-01T21:51:32+05:30,postiz: conn:postiz '*' fan-out — one dispatch to every connected channel
+71969589e1363f0bb6ebd324ca2ee45db22e3f4c,2026-10-01T21:58:56+05:30,channels: dribbble OAuth connected; SaaS sweep normalized (gitlab/grafana/penpot/docuseal/firecrawl/openai/medium)
+c4983adcbc5a37b673a898989b2e73654fbaedac,2026-10-01T23:14:00+05:30,"channels: bluesky connected (app password) + E2E published; reddit u/lazynext created, OAuth app gated"
+e6888db99f1df400a1a45d68882a7b9b9ae5ad2e,2026-10-01T23:43:04+05:30,"channels: bluesky+reddit+github inventory — telegram/vk app-gated, discord captcha loops"
+db4d5776c8e8d00b4604c03d086248bb5a8eff0c,2026-10-02T00:35:43+05:30,channels: whop OAuth app + business minted; github app registered (no provider in this build)
+71fa6f6460bc2666e0420ec7b02f6f5e410cec53,2026-10-02T02:34:20+05:30,"postiz: connect Whop — forward WHOP_CLIENT_SECRET, pin patched image"
+a99e8db57fab14deb2b6dd28502399b39cb89c54,2026-10-02T02:42:24+05:30,"postiz connector: whop company+experience defaults, local '*' fan-out"
+a76d0e9599f5e294617822aed881c5fc0c84c826,2026-10-02T02:43:54+05:30,channels: whop connected E2E; moltbook key-loss noted
+509b7808b1c9f862375c3b54408ffcbd208e32e6,2026-10-02T07:28:54+05:30,postiz: recover on PostizStack2 + /data2 volume; slack channel default
+f7354904b77a2e6994d4a6dc701468aad06f927b,2026-10-02T08:17:26+05:30,postiz connector: fix wordpress publish — warm-up ping + REST route slug
+98abfd850be3d4287e0a06962911da738f27fb8b,2026-10-02T08:24:12+05:30,channels: audit sweep — verify SO/PH/Peerlist/Substack live; substack profile completed
+9c809a8b47dd4474bc6d42c228692ae6235ec22d,2026-10-02T08:49:51+05:30,channels: gitlab google-linked @lazynextai; instagram handle found; reddit/telegram states
+3958e0c2b1571f51589beae557b2052bd8f5cbe4,2026-10-02T08:55:44+05:30,channels: mewe live (lazynext_ai); gmb address-gated
+d538e315e00f30cacae621c2f2ba933fb73b2b8f,2026-10-02T08:59:38+05:30,"channels: hackernews lazynext confirmed ours (created 2026-10-01, in-window)"
+f693a4907df127cbfce159dca0935102ddcf81b9,2026-10-02T09:08:10+05:30,pypi lazynext enrolled + npm signup blocked by GitHub IP challenge
+c287195667b1351fac76a98bb853bc94cbc80330,2026-10-02T09:37:44+05:30,"registries: jsr @lazynext, hf+codeberg+rubygems lazynext, bitbucket ws, crates+openrouter via OAuth"
+bca4d6207fead5b953d8d1561eeef341b0d19d4c,2026-10-02T17:52:36+05:30,accounts: kaggle+vimeo+soundcloud lazynext claimed; replit pending WhatsApp; blogger user-gated
+d13140d50dd2baef8c9f16231163390ef863c8cf,2026-10-02T18:09:25+05:30,accounts: replit @lazynext phone-verified via WhatsApp
+96048c0c6e192f0585f611b2eb8573ba56e01657,2026-10-02T18:22:28+05:30,accounts: behance lazynext claimed (Adobe ID); indiehackers session-blocked
+b0746f017db64938b368c369ebab0f5e3de8067c,2026-10-02T18:36:33+05:30,accounts: vercel lazynext team + postman lazynext verified
+7e6d46e611c110c439306e7f764aa84213c9a1fe,2026-10-02T19:09:09+05:30,"accounts: substack+dev.to+docker+netlify+render+supabase+railway+stackblitz verified/claimed, gumroad email tombstoned"
+16ee94278d64f22b77c9c5fcd2303b3eb6d4d80b,2026-10-02T19:14:07+05:30,accounts: expo.dev lazynext claimed via google oauth
+10a28dce1af31ef674ab1e717592004253acfca5,2026-10-02T19:37:58+05:30,"accounts: expo+deno+convex+neon+upstash+fly+sanity+turso+clerk+zapier+hashnode claimed, appwrite+codesandbox blocked"
+db8701326b0675a9d3bfb52d67cd1d001e712658,2026-10-02T19:56:00+05:30,accounts: val.town @lazynext claimed via github oauth
+626ff3be9ee21cc33c192036f29befafbb0a28b5,2026-10-02T20:32:37+05:30,accounts: 9 ai-inference + mcp-registry claims (groq..glama)
+237343c425b9e8973110c0b374bc3c83a1bf43d7,2026-10-02T20:40:57+05:30,mcp: publish accessibility-checker to official registry + smithery
+8cbbc22e45dea25af324af7c8987aab22e5e05d4,2026-10-02T21:03:54+05:30,"accounts: odysee + dailymotion claimed, poe sms-gated"
+5e3d1c67e3da5bb6cf12cd8363784573080c3b8e,2026-10-02T21:11:24+05:30,"accounts: uneed @lazynext live; mcp.so paywalled, pulsemcp paused, opentools sales-gated, mcp.run enterprise"
+f43f6b15751e34a370a8f06678bcd2db79b954a5,2026-10-02T21:36:35+05:30,"accounts: youtube @lazynext handle set, betalist+sourceforge+itch+packagist+rapidapi claimed, saashub+dribbble gated"
+aba819bca06b1f92ec496884a7466975881fd89a,2026-10-02T21:44:39+05:30,"accounts: futurepedia + devhunt claimed, slashdot 403-gated"
+0aa2bcfb675882fefa0b517ed1ebf94e58528440,2026-10-02T22:06:24+05:30,accounts: TAAFT/toolify/AMO/open-vsx/open-launch/microlaunch claimed
+4dcd74b1ef4d67255304d2069cc4d981c6c5935f,2026-10-02T22:09:05+05:30,accounts: dailymotion email verified
+0623d67f62dd880a9d6f57c4634b20378e997a70,2026-10-02T22:23:55+05:30,accounts: startupfame @lazynext claimed; devpost live; f6s paused; wellfound cf-blocked
+3031e0ef37094dbaa84f418b4d96f57dfa0c9ea7,2026-10-02T22:40:20+05:30,accounts: trustpilot biz live; g2 partial (403 vendor); appsumo lazynext claimed
+0fd8e3fe878fa2ccc04827d23105db5b36649f97,2026-10-02T23:06:07+05:30,accounts: wordpress.org lazynext live; jetbrains via github oauth
+dbeeb57e2b7877d72d40b182c2ab6978d28165b1,2026-10-02T23:16:34+05:30,accounts: kongregate lazynext live; hetzner verified; gumroad support-gated
+6bf77bf1017dc0c597ab270b55a65ebdfe3b8015,2026-10-02T23:24:16+05:30,"accounts: pypi lazynext recovered (reset+totp), session live"
+6a4aa7c3c2756d467d84812806ea7f15c1fb4c98,2026-10-02T23:34:26+05:30,accounts: snapcraft/ubuntu-one lazynext live; alibaba slider-gated
+fc6d00ba71dea6fa20875b6ed4747a5f121fdf81,2026-10-02T23:58:46+05:30,accounts: support emails sent (gumroad/f6s/replicate/dev.to); kick kasada-gated; npm still ip-blocked
+09884d65916d2609fa84cd7563a42272306d1fac,2026-10-03T00:04:01+05:30,accounts: HF space lazynext/accessibility-checker live (static demo -> checker.lazynext.com/scan)
+ca6907b991bc56f930d0ea0734cf224b0506e5f9,2026-10-03T00:11:09+05:30,accounts: gumroad lazynext live (support freed email); replicate renamed to lazynextai via in-product flow
+a4b3370ef757a50fffba48be2a9c08db5301697d,2026-10-03T00:14:06+05:30,accounts: launchigniter lazynext live (github oauth + iss-strip workaround)
+b3a145f938327a2fb41018dfc6bebaca9a5cf4dd,2026-10-03T00:23:06+05:30,accounts: disqus lazynext live + verified (recaptcha token was the miss)
+14c9578982d977bf6428d3f438bc3bb0247fac93,2026-10-03T00:26:30+05:30,Claim @lazynext on IndieHackers via Google OAuth
+0141073ee4db775f9c3bd87d7bcfe7773f130686,2026-10-03T00:31:32+05:30,Claim lazynext on CodeSandbox via Google OAuth
+fffc4d97f3ac6aa9db951e51f7ed1cc0920a437a,2026-10-03T00:36:24+05:30,Claim Lazynext on Appwrite via Google OAuth
+7cb481320cd6e02c48eefd838ae3af592387d492,2026-10-03T00:47:52+05:30,Claim company/lazynext on Wellfound via Google OAuth
+49a10f7afc315e753e617771ee512576e4bd6351,2026-10-03T00:49:36+05:30,Kick: Kasada block persists after cooldown; lazynext confirmed squatted
+60e3699fda9e011930af4e0256225ebe7e283df8,2026-10-03T15:34:42+05:30,Postiz: record 2026-10-03 container recovery (502 -> soft restart)
+037e448bfc0777fb5015f4325c185469f5f33623,2026-10-03T17:00:27+05:30,Ledger: 2026-10-03 recovery + verification sweep results
+6dba17642211f8fee9331aa7c8dc0ac5ac828dc3,2026-10-03T20:23:18+05:30,Ledger: mstdn approved; mastodon migrated @lazynextco->@lazynext + E2E
+0f9b0a7cfc1ff69c2d8e602db1c4938c28205c41,2026-10-03T20:30:31+05:30,Ledger: hashnode channel connected; publishing Pro-gated
+c02ea3827c799ea65d388057b733366cc37994fa,2026-10-03T20:32:26+05:30,Ledger: medium — no API tokens (postiz channel blocked); mastodon syndication wired
+339d9936f6d983ba6a5cf1e439ea817eaf77e737,2026-10-03T21:08:28+05:30,Fix task dedup for path-like descriptions + Postiz normalization ledger
+07c83a7dc3a8657701a4684d7840f84eec91bf70,2026-10-04T04:34:52+05:30,Postiz: Twitch channel connected (lazynextai via Lazynext Social app)
+4ccacfaad68da0c0b7d0a811d203831ae06cc915,2026-10-04T05:02:40+05:30,"Postiz: Pinterest channel connected (lazynext, trial access active)"
+9817b5da191b49b26763b4a434e5e7d9b99d5830,2026-10-04T05:33:04+05:30,Postiz: Kick channel connected (lazynextai via LazynextSocial app)
+8296bcd862feeb98c741b219684b9d37e29d9738,2026-10-04T07:15:22+05:30,"docs(postiz): 2026-10-04 sweep — postman key, lemmy application, devto dead channel"
+2825056855db0fd74cb3ca1c26b523bbd5dabfb8,2026-10-04T20:14:13+05:30,"Postiz: support@ admin migration, provider defaults, kick exclusion, listmonk pre-warm + ops/listmonk stack"
+80f2065762661a22e3450a45c78f4d2d20382d6e,2026-10-04T21:30:24+05:30,Postiz: KickDto patched + publishing — kick unexcluded from fan-out
+c40c6e7fe125d313b45de7d32168910b75487ce9,2026-10-04T23:36:55+05:30,"ops(postiz): Discord account+server live, Google app password minted, MSA at final PX hold"
+8f97c50c8df14390f89d11c54419be1fd19e96a1,2026-10-05T00:01:05+05:30,"ops(postiz): sweep — Telegram at 2FA gate, Pinterest code-29 decoded, inbox sweep"
+d427d45790bf7c4a9bbecf1e23f860c68260d6a2,2026-10-05T00:52:02+05:30,"ops(postiz): Telegram connected — @lazynext_ai channel, @LazynextBot admin post-only"
+5b26e65fb6a77e65b6f633fcb1d5e8f92d5ab204,2026-10-05T06:54:59+05:30,"ops(postiz): Resend email live — EMAIL_PROVIDER selector, forgot-password E2E delivered"
+0077836d8a9cadc65a4e05b2f871afacdff64aae,2026-10-05T16:55:20+05:30,"ops(postiz): YouTube connected, Discord app staged, Telegram 2SV verified"
+f3d79533e0fb8d386e134493ebfb1397b953492f,2026-10-05T18:33:34+05:30,"ops(postiz): Discord connected — channel 18, e2e published"
+0a39cda9c098072274e53bfae3623601eea8d0bd,2026-10-05T19:08:43+05:30,"ops(postiz): F6S resolved + registered, Replicate rename ticket, listmonk domain bound"
+66baaa49d6cab4accad8d0fef4be0675b95ef270,2026-10-05T20:53:29+05:30,"ops(postiz): Moltbook channel 19, Listmonk recredentialed + list 1→3, CHANNELS sync"
+86f1074e642243a1f412d341b5208c4ed74288b4,2026-10-05T22:00:42+05:30,ops(postiz): CHANNELS.md — LinkedIn live + Medium ticket + staging notes
+f98d0aaf05b818704185bf9e7825d0f5969870c2,2026-10-05T22:23:37+05:30,ops(postiz): Moltbook claimed — X @Lazynextai verification complete
+64b963ab118f6a27d09b0d329c74599ad5c06cc9,2026-10-05T23:24:48+05:30,"ops(postiz): X channel 20 connected — dev console, OAuth1, X_URL fix"
+4ddc142dc83972a1c121587aa3b652617f1f38a8,2026-10-05T23:52:42+05:30,ops(postiz): AlternativeTo live end-to-end; Microsoft MSA hard-blocked
+2b79a2da474cb58d25c0602735a3babf9100eb3e,2026-10-06T00:49:29+05:30,ops(postiz): SaaSHub account + product submission complete
+731b46bc3cd8cfb5878f19a0b350fa58e50143bf,2026-10-06T00:55:22+05:30,chore: remove stray create-form.png screenshot from repo root
+b1bcf8b2a751fef736208d81758f2ef32bc87969,2026-10-06T01:24:26+05:30,ops: F6S company page live at f6s.com/lazynext; Wellfound profile complete + verified
+ad7e749183a2db53f49a34f93cf5c777d8453bf0,2026-10-06T01:43:20+05:30,"ops(postiz): verification sweep — 20 channels enabled, X profile complete, automation queue exhausted"
+fb83f6613a16b6590cd6c45062a0d541e2461dd7,2026-10-06T02:24:47+05:30,"ops: verification sweep 2 — Moltbook claimed+Active, SaaSHub listing submitted, Medium/CodePen confirmed, Poe+StackShare created"
+be7dce340aab9d40a06bc7151e2390ca9d86ac70,2026-10-06T02:54:02+05:30,"docs(postiz): X dev-console verify — app 33504170 Pay-Per-Use, no free tier"
+eb8425bb4c8e444404bee9193e6409988bae210c,2026-10-06T03:35:12+05:30,"ops: verification sweep 3 — 5 emails verified (SaaSHub/Wellfound/Tumblr/Disqus/Moltbook), 2 containers rescued"
+252700731ef7cb8d85162ec7f15da2c97ea88d3d,2026-10-06T04:59:57+05:30,ops: SaaSHub listing fully enriched — pricing/platforms/features/logo/screenshot/Q&A
+49109586660c11cfa4f3b94bd722906fbeeb651c,2026-10-06T19:43:59+05:30,"ops: claims sweep tier-1/2 results, staged-cred audit, credential rotations"
+6c8c1441c3772a9bfb668577c180c7fb2f4309bf,2026-10-06T19:51:48+05:30,ops: owner-rotated Moltbook key installed; X handle verdict; Microsoft probe
+61db8410d798a8e02e35b3c720a448aa847c6703,2026-10-06T21:22:34+05:30,"ops: Bing WMT verified (XML method) + ledger — MSA hardened, NuGet verified, Azure/ADO/VSM gated"
+c826f0c6b66d568145ffa173ce7b8e859844de92,2026-10-06T22:49:48+05:30,"ops: pass-3 ledger — GMB created, Ko-fi live, Postiz provider verdicts, Lemmy pending"
+c8940f5e4c94f50d509ba3fe43f0a0546f354ca1,2026-10-06T23:28:47+05:30,"ops: pass-4 ledger — Postiz live-verified, tab audit, MS/Alibaba/Serper resolved"
+ab8096d5b5390916d238ff7cb7ecd8a05566d9b2,2026-10-06T23:56:37+05:30,"ops: pass-5 ledger — Alibaba recovered, Postiz identity verified, blog live"
+d9297fee6539cda7515881e2edd8f95392b4a701,2026-10-07T00:03:42+05:30,"ops: ledger — Azure fully staged to PAN gate, GMB video-only confirmed"
+125a50ef5d78249f7dd830f0350ae80a11a9390c,2026-10-07T00:45:40+05:30,"ops: pass-6 ledger — listmonk SMTP live via Brevo, GMB duplicate flag found"
+6bb866cae29e5a5a55814e839324471799824d7a,2026-10-07T01:18:27+05:30,ops: ledger — postiz->listmonk->brevo E2E verified; residual mail IDs resolved
+781c3bf7c72bbbca21c0b913adffc8444cdffc1d,2026-10-07T02:08:33+05:30,ops: blog cold-start warming page; youtube+tumblr media E2E verified; medium confirmed dead
+3cd82a880fc1686d44114c2085ab641cf1555874,2026-10-07T02:47:20+05:30,"ops: 2026-10-06 account re-audit — MSA canonical, GMB appeal staged, Lemmy landscape mapped"
+5842833f83a669c7fa8a72815c6bd9b0f871aad0,2026-10-07T04:26:14+05:30,ops: clarity tag live on lazynext.com; substack publication provisioned; audit ledger synced
+e7c243543ce2185622f3c76e64b82c8dcc150e5b,2026-10-07T04:56:34+05:30,ops: lemmy.cafe channel connected (21/35); fleet re-verified; Azure DevOps found subscription-gated
+fac7ca339d1a42cedf3fd6c75a3800660583b4e3,2026-10-07T05:16:00+05:30,ops: lemmy E2E published to lemmy.cafe; post-settings schema + queue-wedge note
+8d7ff47c27eacb60e907d9ca6ff3450d576aa896,2026-10-07T05:20:01+05:30,feat(worker): lemmy default community for postiz fan-out — !lazynext@lemmy.cafe
+9b86cf90ae93f194c4daf8ecb8821d1a25c1e933,2026-10-07T12:06:21+05:30,"ops: 2026-10-07 audit — cloudflare rename ticket kept alive, partner center vetting decoded, fleet re-verified"
+02537b13d58ec1247c7b2087aec325d89069d8d4,2026-10-07T15:08:59+05:30,fix(seo): Search Console 404s + canonical/redirect hygiene
+5a6186d31544e30e8f6d43bc8b99b4c898e529f4,2026-10-07T15:14:51+05:30,ops: reddit dev registration submitted — root cause of app silent-drop found
+7b675b1ce712540c9bf65f8c323e22a5ed0dfdf1,2026-10-07T16:57:55+05:30,"ops: azure staged at card step, nuget verified, alibaba appeal staged"
+215ff66ff8c2c2cbf748991e8905875c4d19c5a8,2026-10-07T17:41:14+05:30,ops: alibaba appeal SUBMITTED (00652HZ3ZX) + reddit recaptcha path proven + lemmy verified
+5516b50ea8763bd04c47b66ebc94c7e810f3e1d5,2026-10-07T21:48:44+05:30,ops: facebook+instagram channels CONNECTED — Page↔IG link + Business Meta app
+0111d086ed1826969a40ecb6579abdd409481b64,2026-10-07T22:11:43+05:30,ops: facebook+instagram E2E publish verified — 23 channels live
+e7a2cbbb5e40a8e3fa141e1bf310275ebf21ae8f,2026-10-07T23:15:16+05:30,ops: threads channel CONNECTED + E2E PUBLISHED — Lazynext Threads Meta app
+0bd8ca22709126be5e3c8cd886ed39ac523a02cd,2026-10-08T00:51:45+05:30,ops: MS support ticket filed (2610070060003196) + listmonk SMTP verified live + reply.lazynext.com CNAME reverted
+dcc178b13d9deb95e94e99f30bfab7cba9b067ab,2026-10-08T00:56:27+05:30,ops: azure re-staged at card step; linkedin restriction surfaced (govt ID gate)
+410e9ef8d10ce13a7439f195a6c4ff156dd78937,2026-10-08T01:53:02+05:30,"ops: provider sweep — reddit resubmitted, mewe beta applied, wrapcast/vk/tiktok re-verified"
+708e24bba456f43c8c27219eb149f9a5fd12bc39,2026-10-08T02:27:44+05:30,ops: gmb CONNECTED (25/35) via YouTube-client fallback + Business Profile APIs
+e1fd533771fdd06f85b758e904a511080a5a9610,2026-10-08T04:14:47+05:30,"ops: sweep 2 ledger — GMB v4 correction, DEV.to suspension answer, hcaptcha re-arm"
+a6b94520cde90c819fd9b3d1d8940af9ddf44c47,2026-10-08T13:57:13+05:30,"ops: sweep 3 ledger — GBP doc-channel form staged, LinkedIn path resolved, payment verdicts"
+d540b4ca8e859b9bef8df59326ee380c4ab39997,2026-10-08T15:08:55+05:30,docs(channels): npm publish + GBP case 9-9603000042230 + VK/Warpcast next-steps
+8b7e21a8d84cf8cd76052a14e690b9377125745e,2026-10-08T15:22:54+05:30,"docs(channels): DEV.to + GBP replies sent, VK QR handoff, X code noted"
+007844e6b0f83cebdb1aafa7af92e61c0f013000,2026-10-08T15:53:33+05:30,Ledger: VK business guest profile created; app pending flash-call
+f78bb7928c014ef6ddb92796ff2a26fd9cf0b9b9,2026-10-08T16:09:20+05:30,"Ledger: GBP case-2 reply sent, Neynar creds pushed, VK flood-limited"
+d18fdfce8c31c1a949344500bd6da34a6d318acf,2026-10-08T17:02:27+05:30,fix(connectors): telegram cred split on last colon + wire 7 direct conns
+822517c6359ff51a2541548dcd7311ef109fcccc,2026-10-08T19:02:08+05:30,feat(connectors): google refresh-token creds + 8 more direct conn:* live
+23a01b0fc4dfc1be719b5faf34f8a44d796c5265,2026-10-08T21:43:04+05:30,feat(connectors): nostr relay-WS publish (worker + python parity) — 23 conns live
+5cfe9500ca84313ed66c1c2f0b23a4ba0535a18b,2026-10-08T23:35:39+05:30,feat(connectors): slack bot-token + whatsapp/meta wired — 26 conns live
+8c69075d96b784eea9ed04cffd41b2d7136af1fd,2026-10-09T00:03:26+05:30,docs(connectors): whatsapp recipient verified — real send confirmed
+3860f1bc203b5cbb8f415a9bd558431c0bffdf9a,2026-10-09T01:28:49+05:30,feat(connectors): letmepost API wired — 5-platform fan-out via reviewed app
+c11ce02c1af02012559f6b69cd9faf4379c21ea8,2026-10-09T01:42:25+05:30,docs(connectors): buffer live — support inbox unlocked via IMAP
+bb3aa402ebc6e1b5b1c7d151ecb94755ac7643ad,2026-10-09T01:44:10+05:30,docs(connectors): linkedin restriction found; mattermost parked
+59ee105cdc8b5cb488e7915ef7db09317aa0cc8e,2026-10-09T02:14:44+05:30,feat(connectors): conn:medium + conn:twilio live
+f1a412c7357fccc6f20017d7a304668db011e39e,2026-10-09T02:44:33+05:30,feat(connectors): conn:x OAuth1 quad + honest ledger (34 credentialed)
+fec9379f25b874a2dd932fd3a4fc3cc3beaca822,2026-10-09T03:39:40+05:30,"feat(connectors): /browse BR session driver + conn:ayrshare live, conn:hashnode edge-verified"
+751ff0499a47edf013d07d9042f8e67a74e9732a,2026-10-09T04:05:36+05:30,feat(connectors): 'ayrshare' cred routes conn:reddit/pinterest/gmb via approved app
+fcb39c26e85c2ca7fd6336cd8944faf1d70e3e9f,2026-10-09T04:23:44+05:30,fix(connectors): discord-aware webhook body + listmonk via custom domain
+ecc02f56d8a4795e8919b74e5c2a381c340f81c6,2026-10-09T04:34:51+05:30,"ops: peerlist profile live (>40%, interactive) + ayrshare bluesky linked"
+95ebefd435961f4acde7f3f68613a55f50db0f64,2026-10-09T04:57:14+05:30,"ops: ghost+tumblr recovered, youtube re-linked, 14 connectors verified live"
+4fda6cbe61c4fb0a342b0bc9a595fab407e78e03,2026-10-09T06:30:54+05:30,feat(connectors): self-hosted Mattermost on CF Containers + /browse hold action
+271e47fac9f065aba49058bc3ee9bc89944cfb8a,2026-10-09T15:06:56+05:30,docs(agents): LINE live e2e + beehiiv staged + mattermost container notes
+636de9afc8ba6a95dfa36eb5e419c3f8200971c1,2026-10-09T23:37:53+05:30,Scope health-check credentials and record verified integration backlog
+0991fc855024d0962af24f0362f4028492087b82,2026-10-09T23:38:53+05:30,Record live beehiiv identity gate and LINE evidence limits
+27c88b79f9b52fc416bf616a40a97881cd4dadc3,2026-10-10T00:20:38+05:30,Record current LINE login and VK browser restriction
+cec6bf2d22718469e5c8feb278aab018ecdcddaa,2026-10-10T00:24:02+05:30,Reject VK API error envelopes in cloud and local dispatch
+6cf3e567ebaeaef210b1f2b31666a282cbd37d94,2026-10-10T00:25:03+05:30,Record deployed VK fix and current integration requirements
+6404ca7a5936a956cfd48643272e0e7810adc2d8,2026-10-10T03:06:06+05:30,Verify npm SDK publication against registry archive
+5846358e3a8ac88151e53410ef397366aa5c2a1f,2026-10-10T15:26:21+05:30,Record LINE SMS gate and submitted beehiiv verification
+013225ad9085dce775e4c3f5a42a634044b400de,2026-10-10T15:29:09+05:30,Record verified LINE Official Account creation
+57862ac8e20525793cd09e9d4ea6b151b857d78f,2026-10-10T15:30:59+05:30,Record LINE Messaging API activation and token handoff
+d7734ea967c5161a71033fc127979479299f065a,2026-10-10T15:32:56+05:30,Record verified LINE connection without sending a broadcast
+b6c7fede7dd2aa6c3cf7e02cf4b923dbd1b104a3,2026-10-10T15:35:02+05:30,Record accepted founder-approved LINE test broadcast
+41e7dcadf030a102f641e0c369b483137ffd2232,2026-10-10T15:38:52+05:30,Update fresh catalog and beehiiv rejection evidence
+f1448c561305b04fe948473a7a1f1867a228589d,2026-10-10T15:50:42+05:30,Respect founder company-only verification preference
+65d8cbbda19fddf448b99f16f0ce1193a8c4da8c,2026-10-10T15:55:15+05:30,docs: record beehiiv company-only verification research
+adc5beb3fcd96207359c5027d45301eb77540ed5,2026-10-10T15:59:32+05:30,docs: record fresh integration checks and beehiiv branding
+a5bb4dc617a4b863aeb32435836a488366238991,2026-10-10T16:08:42+05:30,docs: record account handoffs and full validation
+451d589cf5251c34b967e4f755c8395f118d1d52,2026-10-10T22:55:39+05:30,docs: verify Instagram branding and prepare Snapchat signup
+4a4951ff26cbf951bab7f288d8d30a51b5499958,2026-10-10T23:09:51+05:30,docs: record Snapchat authorization and desktop profile setup
+f706638b40956eb28574ef319fcbc4551908e784,2026-10-10T23:13:57+05:30,docs: verify Snapchat Public Profile and Ayrshare connection
+3e6f1610cdfd6db020ffb08b65aa24a8b8d6722d,2026-10-10T23:28:03+05:30,docs: save ordered username policy and verify Meta handle corrections
+06840649bf76d995079d39d20e1f8879c405fec5,2026-10-10T23:46:08+05:30,docs: verify founder Snapchat rename to lazynext
+4bac5bdfc9098a66187e1f76ce8352527df59236,2026-10-11T04:57:35+05:30,docs: verify GitLab rename and extend account username review
+ba3a99fd1163e79d12322f2392daa9ecf7ef82a1,2026-10-11T04:58:45+05:30,docs: verify X fallback handle and record streaming login blockers
+1f4da6fdd576daf06b269015b0ed25e0ab595222,2026-10-11T05:03:33+05:30,docs: verify Moltbook fallback and Telegram channel identity
+63d75aa8d7975c82a28af8c3cfcf1ca49e18fc8f,2026-10-11T05:05:09+05:30,docs: verify GitHub fallback and refresh project completion records
+34e4047215f788ca52fd32b30d9d17ae022d8836,2026-10-11T05:07:50+05:30,docs: verify company profile updates and remaining provider limits
+9eb8a43e7da4e628f6a19071cd346a8254997ac6,2026-10-11T05:12:55+05:30,Merge pull request #2 from lazynextai/codex/healthcheck-token-scope
+fe0f760d5501d5baa542790540cd51f780d2a66f,2026-10-11T15:34:46+05:30,Record completed company profiles and current verification limits
+fd50552333ef5bd34e9c4a2279c396801fa2c757,2026-10-11T15:38:17+05:30,Prepare private Postman collection for all product API operations
+0709a87648397323ef17c9274f7405b6e699d450,2026-10-11T15:41:37+05:30,Complete Bluesky branding and Hashnode publication links
+8b7876a5a0c8d7cd0da29afd734874a7dc932f29,2026-10-11T15:44:29+05:30,Merge pull request #3 from lazynextai/codex/account-profile-completion
+474c3d580056fff5a339b756564f96e809d967b7,2026-10-11T15:50:14+05:30,Record CodePen StackShare and Mixcloud follow-through
+80003b534908dfb2b831e7c466c01a64ca21c2fb,2026-10-11T15:53:59+05:30,Record approved OpenHub setup and current access blockers
+020b4fdba7992375ae9710b382b351f149c8c502,2026-10-11T20:37:54+05:30,Merge pull request #4 from lazynextai/codex/profile-record-follow-through
+6ecfd2fda797777ade871658b8808d56ff385cc6,2026-10-11T20:39:11+05:30,Record product proposal review and verified platform health
+b4e1ce48c7a80b08f2401f5efaf261acc4fe5f2c,2026-10-11T20:39:50+05:30,Correct operating notes to verified LINE SMTP and merged monitor state
+e53a18e07d82232931cad8af21d29c22d8ba6ed1,2026-10-11T20:41:53+05:30,Merge pull request #5 from lazynextai/codex/product-proposal-review
+1a98a9061d734209a7b3368f885e6d22723370d4,2026-10-12T01:33:58+05:30,Fix Hashnode API authentication and false-success responses (#6)
+1e83e93880282227004ef4bbede1b3a36a0b5756,2026-10-12T01:44:08+05:30,Record provider support and close verified naming reminder (#7)
+1a9bf03a635ebe4d1d4a439821c7aafe3b5c90ca,2026-10-12T20:03:16+05:30,Complete Hashnode publication setup and record verified integrations (#8)
+b787da6b9462224698cee9e4cba568af39d66f98,2026-10-12T20:09:51+05:30,Reject Viber API failure responses despite HTTP success (#9)
