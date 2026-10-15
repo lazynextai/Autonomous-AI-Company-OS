@@ -186,6 +186,13 @@ The following edits were applied alongside this ledger to stop completed work re
 - `docs/disaster_recovery.md` — remote restore row updated from “remaining unproven” to verified 2026-09-26 with chunking recipe; R2 row updated from “unused” to used (MEDIA + container backups); backup table reflects current retention.
 - `AGENTS.md` — connector/catalog/task counts refreshed to 2026-10-13 snapshot; Dodo permanent-test and 30-day trial ON kept consistent.
 
+## Executed this pass — 2026-10-15 file-based close-out
+
+- **Order 2B (35 escalated):** full per-row reconciliation landed as `escalated-task-reconciliation-2026-10-15.md` (duplicate / infeasible / gated-decision / transient-verify per row with shipped-file evidence; no requeue). Every `duplicate — retired` maps to manifest / weighted-v1 / trial_offer / scan_stats / Brevo sequences etc.; `infeasible:` rows are honest exclusions (mobile-stack, media semantics, SEO).
+- **Order 2C (5 incidents):** log-correlation landed as `incident-correlation-2026-10-15.md` (bug_0/1 correlated to UA-trap DNS window + health-green; bug_2 to Oct 8 blip; bug_3/4 blank-insufficient-detail with `episodic_events` + fleet-log read steps). Status not silently flipped — each retains correlated note or honest retention.
+- **Order 2A (PRs #102/#105):** closed live (102 orphan `src/worker.js` phantom `scanMobileElements`; 105 boilerplate deeper W3C). #103/#104/#106/#107 review-halted with close dispositions posted as PR comments — shell `gh pr close` is queued (transient Stage 2 external-write gate, comment is the durable disposition). See comments on each PR for manifest/entry-point/deps evidence.
+- **Shell-queued (transient gate):** `gh pr close 103/104/106/107` + Pinterest portal/token read-only verification; file-based reconciliations above plus stale-doc counts (README 45/39, pricing permanent test-mode) were already landed in `97dd60a` / `e25fd1d`.
+
 ## Counts (ledger rows, excluding expanded 35/5 detail where a single logical item expands)
 
 | Bucket | Rows | Meaning |
