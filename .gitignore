@@ -73,3 +73,4 @@ ops/mcp-registry/dns-key.pem
 Lazynext-OS-Devin-Import-2026-10-09/
 .recheck-*.db*
 .browse_session
+.browse.py
