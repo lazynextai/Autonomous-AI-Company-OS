@@ -25,15 +25,32 @@ export async function workerFetch(path: string, body: unknown, method = "POST", 
   }
   const init = {
     method,
-    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${token}`,
+      "User-Agent": "Lazynext-Dashboard/1.0",
+    },
     body: body === undefined ? undefined : JSON.stringify(body),
   };
+  let res: Response;
   const svc = env.COMPANY_API as { fetch: typeof fetch } | undefined;
-  const res = svc?.fetch
-    ? await svc.fetch(`${url.replace(/\/$/, "")}${path}`, init)
-    : await fetch(`${url.replace(/\/$/, "")}${path}`, { ...init, cache: "no-store" });
-  const data = await res.json();
-  return NextResponse.json(data, { status: res.status });
+  if (svc?.fetch) {
+    try {
+      res = await svc.fetch(`${url.replace(/\/$/, "")}${path}`, init);
+    } catch {
+      res = await fetch(`${url.replace(/\/$/, "")}${path}`, { ...init, cache: "no-store" });
+    }
+  } else {
+    res = await fetch(`${url.replace(/\/$/, "")}${path}`, { ...init, cache: "no-store" });
+  }
+  const text = await res.text();
+  let data: unknown;
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    return NextResponse.json({ error: text.slice(0, 800) || "worker returned non-JSON" }, { status: res.status || 502 });
+  }
+  return NextResponse.json(data as object, { status: res.status });
 }
 
 export async function queryWorker(sql: string, params: unknown[] = []) {
@@ -52,14 +69,29 @@ export async function queryWorker(sql: string, params: unknown[] = []) {
     headers: {
       "content-type": "application/json",
       authorization: `Bearer ${token}`,
+      "User-Agent": "Lazynext-Dashboard/1.0",
     },
     body: JSON.stringify({ sql, params }),
   };
-  // In production use the service binding (same-account worker fetch is blocked)
+  // In production use the service binding (same-account worker fetch is blocked).
+  // In `next dev` the binding isn't available — fall back to direct fetch with UA.
+  let res: Response;
   const svc = env.COMPANY_API as { fetch: typeof fetch } | undefined;
-  const res = svc?.fetch
-    ? await svc.fetch(`${url.replace(/\/$/, "")}/query`, reqInit)
-    : await fetch(`${url.replace(/\/$/, "")}/query`, { ...reqInit, cache: "no-store" });
-  const data = await res.json();
-  return NextResponse.json(data, { status: res.status });
+  if (svc?.fetch) {
+    try {
+      res = await svc.fetch(`${url.replace(/\/$/, "")}/query`, reqInit);
+    } catch {
+      res = await fetch(`${url.replace(/\/$/, "")}/query`, { ...reqInit, cache: "no-store" });
+    }
+  } else {
+    res = await fetch(`${url.replace(/\/$/, "")}/query`, { ...reqInit, cache: "no-store" });
+  }
+  const text = await res.text();
+  let data: unknown;
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    return NextResponse.json({ error: text.slice(0, 800) || "worker returned non-JSON" }, { status: res.status || 502 });
+  }
+  return NextResponse.json(data as object, { status: res.status });
 }
