@@ -1,0 +1,18 @@
+---
+description: Project facts imported from Cloud Code, Devin, OpenCode, ChatGPT for this OS only
+alwaysApply: true
+---
+
+# Lazynext OS — imported house rules
+
+- Company: UNITED GLOBAL VENTURES PRIVATE LIMITED. Public name: Lazynext. Email: support@lazynext.com.
+- Usernames, in order: `lazynext`, `lazynextai`, `lazynext.ai`, `lazynext-ai`, `lazynext_ai`. Skip unsupported formats. Do not invent another.
+- Never submit personal selfie, passport, or personal ID. Company papers only when the site allows company verification. Docs live in `/Users/avaspatel/Downloads/Lazynext_Docs`.
+- Dodo Payments stays test mode (founder: one more week from 2026-10-21, then ask again). Do not KYC or go live.
+- Protected product files stay locked: `worker.js`, `index.html`, `src/scanner.js`, `package.json`, `test/scanner.test.mjs`, `.github/` (devops only). Write new files instead of editing those.
+- Penpot is self-hosted `https://penpot.lazynext.com`. Keep that tab open with Connected for MCP. Global MCP only (`~/.cursor/mcp.json`), never project `.cursor/mcp.json`.
+- After a Mac restart, the tunnel is: `cloudflared tunnel run --config ~/.cloudflared/config.yml`. Do not start a second fleet (`pkill -f run_agents.py` then launchd respawns one).
+- Devin history is already imported at `Lazynext-OS-Devin-Import-2026-10-09/` (search with `search.py`). ChatGPT export for this project is empty/pending. OpenCode MCP list already matches Cursor (Context7, Playwright, Firecrawl, Penpot). Do not copy API keys from OpenCode config.
+- Six missing native connectors stay pending until a company-only path exists: LinkedIn, TikTok, Snapchat, Teams, Viber, beehiiv.
+- Microsoft Partner Center seller `96466040`: legal name on the paper is UNITED GLOBAL VENTURES PRIVATE LIMITED. Publisher + MCA address were saved to match the Certificate. Business verification is In Progress with document Provided. Do not upload a second document (attempt 2 of 3). Microsoft review cannot be made faster from our side.
+- Wikipedia email is already confirmed. Penpot tab stay-open and tunnel-after-restart are operator habits, not leftover chores.

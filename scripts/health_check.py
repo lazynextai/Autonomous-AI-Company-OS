@@ -28,6 +28,15 @@ CHECKS = {
     "a11y-checker-domain": "https://checker.lazynext.com/health",
     "a11y-api-domain": "https://api.lazynext.com/health",
 }
+# Warm Cloudflare containers (sleepAfter 30m) without treating a cold 503 as a
+# health failure — WordPress HTML GET races a 20s warming page, so a fail
+# here would spam the founder mailbox. Ping only; never add these to CHECKS.
+KEEP_WARM = {
+    "blog": "https://blog.lazynext.com/",
+    "postiz": "https://postiz.lazynext.com/",
+    "listmonk": "https://listmonk.lazynext.com/",
+    "mattermost": "https://mattermost.lazynext.com/",
+}
 # The product deploys the same bundle to two scripts (accessibility-checker +
 # accessibility-checker-api). deploy.mjs keeps them in sync, but nothing
 # detects a manual single-script deploy — compare a deterministic surface
@@ -78,6 +87,15 @@ class _ScopedRedirectHandler(urllib.request.HTTPRedirectHandler):
 def _open(req: urllib.request.Request):
     # urllib otherwise forwards Authorization to a redirect's destination.
     return urllib.request.build_opener(_ScopedRedirectHandler()).open(req, timeout=15)
+
+
+def keep_warm(url: str) -> None:
+    """Touch a container origin so sleepAfter 30m does not idle it. Fail-open."""
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "healthcheck/1.0"})
+        urllib.request.urlopen(req, timeout=25).close()
+    except Exception:
+        return
 
 
 def check(url: str) -> bool:
@@ -158,6 +176,8 @@ def corpus_size() -> int | None:
 
 
 async def main() -> int:
+    for url in KEEP_WARM.values():
+        keep_warm(url)
     now = {name: check(url) for name, url in CHECKS.items()}
     for name, (a, b) in DRIFT_PAIRS.items():
         body_a, body_b = fetch_body(a), fetch_body(b)
