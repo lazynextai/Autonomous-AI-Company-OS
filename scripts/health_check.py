@@ -36,6 +36,16 @@ KEEP_WARM = {
     "postiz": "https://postiz.lazynext.com/",
     "listmonk": "https://listmonk.lazynext.com/",
     "mattermost": "https://mattermost.lazynext.com/",
+    # ghost was missing from the warm set — with sleepAfter 30m and a 15-min
+    # poke gap that should have meant warm, but a cold boot takes 60-90s, the
+    # 25s touch timed out before the first request completed, and the
+    # container idled again -> persistent 503. Longer timeout completes the
+    # wake so the sleep timer resets. Penpot is tunnel-served on the same
+    # Mac (Docker + cloudflared), not a CF container, but poking it is free
+    # and catches a down tunnel at the same cadence instead of relying on the
+    # once-at-boot agent.
+    "ghost": "https://ghost.lazynext.com/",
+    "penpot": "https://penpot.lazynext.com/",
 }
 # The product deploys the same bundle to two scripts (accessibility-checker +
 # accessibility-checker-api). deploy.mjs keeps them in sync, but nothing
@@ -93,7 +103,11 @@ def keep_warm(url: str) -> None:
     """Touch a container origin so sleepAfter 30m does not idle it. Fail-open."""
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "healthcheck/1.0"})
-        urllib.request.urlopen(req, timeout=25).close()
+        # 45s: a cold CF container boots inline and the first request can take
+        # 60-90s total, but a completed fetch (any status) resets the sleep
+        # timer. 25s was too short -> the wake aborted and the container
+        # idled again, which is exactly the ghost/mattermost 503 loop.
+        urllib.request.urlopen(req, timeout=45).close()
     except Exception:
         return
 
