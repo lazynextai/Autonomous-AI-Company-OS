@@ -6,6 +6,7 @@ helpers are async for the hot polling paths.
 """
 
 import json
+import re
 from datetime import date, datetime
 from typing import Any
 
@@ -182,10 +183,28 @@ def _decode_row(table: str, row: dict) -> dict:
     return out
 
 
+_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _quote_ident(value: str, what: str = "identifier") -> str:
+    """Validate that an interpolated SQL identifier is a plain, safe name.
+
+    Table/column/order names are interpolated directly into SQL in this
+    builder (values are always parameterized). Every identifier must match
+    the allowlist pattern or query building fails loudly instead of emitting
+    attacker-controlled SQL. This hardens the class against any future call
+    site that passes runtime input as a column/table name.
+    """
+    v = value.strip()
+    if not _IDENTIFIER_RE.match(v):
+        raise ValueError(f"invalid SQL {what}: {value!r}")
+    return v
+
+
 class Table:
     def __init__(self, client: CloudflareClient, name: str) -> None:
         self._client = client
-        self._name = name
+        self._name = _quote_ident(name, "table name")
 
     def select(self, columns: str = "*") -> "QueryBuilder":
         return QueryBuilder(self._client, self._name).select(columns)
@@ -210,28 +229,31 @@ class QueryBuilder:
         self._limit: int | None = None
 
     def select(self, columns: str) -> "QueryBuilder":
+        if columns != "*":
+            columns = ", ".join(_quote_ident(c.strip(), "column") for c in columns.split(","))
         self._select = columns
         return self
 
     def eq(self, column: str, value: Any) -> "QueryBuilder":
-        self._where.append((column, "=", value))
+        self._where.append((_quote_ident(column, "column"), "=", value))
         return self
 
     def like(self, column: str, pattern: str) -> "QueryBuilder":
-        self._where.append((column, "LIKE", pattern))
+        self._where.append((_quote_ident(column, "column"), "LIKE", pattern))
         return self
 
     def lt(self, column: str, value: Any) -> "QueryBuilder":
-        self._where.append((column, "<", value))
+        self._where.append((_quote_ident(column, "column"), "<", value))
         return self
 
     def gte(self, column: str, value: Any) -> "QueryBuilder":
-        self._where.append((column, ">=", value))
+        self._where.append((_quote_ident(column, "column"), ">=", value))
         return self
 
     def order(self, column: str, ascending: bool = True) -> "QueryBuilder":
         direction = "ASC" if ascending else "DESC"
-        self._order = f"{self._order}, {column} {direction}" if self._order else f"{column} {direction}"
+        col = _quote_ident(column, "order column")
+        self._order = f"{self._order}, {col} {direction}" if self._order else f"{col} {direction}"
         return self
 
     def limit(self, n: int) -> "QueryBuilder":
@@ -270,11 +292,11 @@ class UpdateBuilder:
     def execute(self) -> "Result":
         if not self._data:
             return Result([])
-        sets = ", ".join(f"{k} = ?" for k in self._data)
+        sets = ", ".join(f"{_quote_ident(k, 'column')} = ?" for k in self._data)
         params = [_encode(v) for v in self._data.values()]
         sql = f"UPDATE {self._name} SET {sets}"
         if self._where:
-            sql += " WHERE " + " AND ".join(f"{c} = ?" for c, _ in self._where)
+            sql += " WHERE " + " AND ".join(f"{_quote_ident(c, 'column')} = ?" for c, _ in self._where)
             params.extend(_encode(v) for _, v in self._where)
         res = self._client.execute(sql, params)
         return Result(res.get("meta", {}).get("changes", 0))
@@ -289,7 +311,7 @@ class InsertBuilder:
     def execute(self) -> "Result":
         if not self._rows:
             return Result([])
-        cols = list(self._rows[0].keys())
+        cols = [_quote_ident(str(c), "column") for c in self._rows[0].keys()]
         placeholders = "(" + ", ".join("?" for _ in cols) + ")"
         sql = f"INSERT INTO {self._name} ({', '.join(cols)}) VALUES " + ", ".join(
             placeholders for _ in self._rows
