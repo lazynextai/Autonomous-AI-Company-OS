@@ -20,6 +20,44 @@ const SIGN_BASE = "https://ai-company.lazynext.com";
 const DOC_MAX_BYTES = 500 * 1024;
 const DOC_TYPES = new Set(["text/html", "text/plain"]);
 
+/** SSRF guard for doc_url: only http(s), and only public-routable hosts.
+ *  Blocks private (10/8, 172.16/12, 192.168/16), loopback (127/8, ::1),
+ *  link-local (169.254/16), CGNAT (100.64/10), multicast, and literal
+ *  hostnames that resolve internally (localhost, *.internal, *.local).
+ *  Cloud metadata (169.254.169.254) is the highest-value target this kills.
+ */
+function isSafeDocUrl(raw: string): boolean {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+  const host = u.hostname.toLowerCase();
+  if (host === "localhost" || host.endsWith(".local") || host.endsWith(".internal")) return false;
+  // Resolve the host once through the same lookup Cloudflare uses for fetch.
+  // We can't do DNS from a Worker easily, so also block by IP literal.
+  const ipv4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+  if (ipv4) {
+    const [a, b, c, d] = ipv4.slice(1).map(Number);
+    if (a > 255 || b > 255 || c > 255 || d > 255) return false;
+    if (a === 0 || a === 10) return false;
+    if (a === 127) return false;
+    if (a === 169 && b === 254) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a === 192 && b === 168) return false;
+    if (a === 100 && b >= 64 && b <= 127) return false;
+    if (a >= 224) return false; // multicast + reserved
+  }
+  if (host.startsWith("[") || host.includes(":")) {
+    const bare = host.startsWith("[") && host.endsWith("]") ? host.slice(1, -1) : host;
+    if (bare === "::1" || bare.toLowerCase().startsWith("fe80") || /^::ffff:/.test(bare))
+      return false; // loopback, link-local, or IPv4-mapped IPv6 (incl. metadata via ::ffff:a9fe:a9fe)
+  }
+  return true;
+}
+
 interface SignRow {
   id: number;
   public_id: string;
@@ -64,6 +102,7 @@ async function snapshotDoc(env: Env, pid: string, docUrl: string, docHtml: strin
   } else if (docText) {
     bytes = new TextEncoder().encode(`<pre style="font-family:system-ui;white-space:pre-wrap;padding:2rem">${esc(docText)}</pre>`);
   } else if (docUrl) {
+    if (!isSafeDocUrl(docUrl)) return { error: "doc_url must be a public http(s) URL" };
     const r = await fetch(docUrl, { signal: AbortSignal.timeout(15000) }).catch(() => null);
     if (!r?.ok) return { error: `could not fetch doc_url (${r?.status ?? "unreachable"})` };
     if (!DOC_TYPES.has((r.headers.get("content-type") ?? "").split(";")[0].trim()))
