@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { PageHeader, Card, Empty, timeAgo } from "@/components/ui";
-import { Github, Star, GitFork, GitCommit, ExternalLink, ArrowLeft } from "lucide-react";
+import { FolderGit2, Star, GitFork, GitCommit, ExternalLink, ArrowLeft } from "lucide-react";
 
 const LANG_COLORS: Record<string, string> = {
   TypeScript: "#3178C6", JavaScript: "#F1E05A", Python: "#3572A5",
@@ -56,7 +56,7 @@ export default function RepoPage() {
           rel="noreferrer"
           className="inline-flex items-center gap-2 bg-card hover:bg-cardHover border border-border text-sm font-medium px-4 py-2.5 rounded-lg transition"
         >
-          <Github className="w-4 h-4" /> Open on GitHub
+          <FolderGit2 className="w-4 h-4" /> Open on GitHub
         </a>
       </PageHeader>
 

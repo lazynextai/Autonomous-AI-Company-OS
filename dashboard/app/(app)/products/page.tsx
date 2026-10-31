@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { queryApi, parseJson } from "@/lib/api";
 import { PageHeader, Card, StatusBadge, Empty, timeAgo } from "@/components/ui";
 import { toast } from "@/components/Toast";
-import { Package, ExternalLink, Github, Rocket, X } from "lucide-react";
+import { Package, ExternalLink, FolderGit2, Rocket, X } from "lucide-react";
 
 export default function ProductsPage() {
   const [brain, setBrain] = useState<any>(null);
@@ -144,7 +144,7 @@ export default function ProductsPage() {
             rel="noreferrer"
             className="inline-flex items-center gap-2 text-sm text-accentSoft hover:underline"
           >
-            <Github className="w-4 h-4" /> Product repos on GitHub →
+            <FolderGit2 className="w-4 h-4" /> Product repos on GitHub →
           </a>
         </div>
       )}

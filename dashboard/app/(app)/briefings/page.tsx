@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type JSX } from "react";
 import { queryApi } from "@/lib/api";
 import { PageHeader, Card, Empty, timeAgo } from "@/components/ui";
 import { DollarSign, Flag, FileText } from "lucide-react";

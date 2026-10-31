@@ -7,7 +7,7 @@ import { verifySession } from "@/lib/auth";
 // Internal /api/* routes proxy to the worker with the owner bearer token,
 // so they require the owner session specifically — a member session
 // (lz_user_session, HMAC-signed by /api/auth) only grants page access.
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (
     pathname === "/login" ||

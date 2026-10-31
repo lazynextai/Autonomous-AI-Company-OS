@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PageHeader, Card, Empty, timeAgo } from "@/components/ui";
-import { Github, GitFork, Star, ExternalLink } from "lucide-react";
+import { FolderGit2, GitFork, Star, ExternalLink } from "lucide-react";
 
 interface Repo {
   name: string;
@@ -47,7 +47,7 @@ export default function CodePage() {
             <Link key={r.name} href={`/code/${r.name}`} className="block">
               <Card className="hover:border-accent transition h-full">
                 <div className="flex items-center gap-2.5 mb-2">
-                  <Github className="w-4 h-4 text-muted" />
+                  <FolderGit2 className="w-4 h-4 text-muted" />
                   <span className="text-sm font-semibold text-accentSoft truncate">{r.name}</span>
                   <ExternalLink className="w-3 h-3 text-muted ml-auto shrink-0" />
                 </div>
