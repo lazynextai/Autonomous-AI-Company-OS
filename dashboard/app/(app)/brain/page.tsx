@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { queryApi, parseJson } from "@/lib/api";
-import { PageHeader, Card, Empty } from "@/components/ui";
+import { PageHeader, Card, } from "@/components/ui";
 
 export default function BrainPage() {
   const [brain, setBrain] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
@@ -25,9 +24,8 @@ export default function BrainPage() {
             blockers: parseJson(d.blockers, []),
           });
         }
-        setLoading(false);
       } catch {
-        setLoading(false);
+        // poller keeps retrying; empty states render when brain is null
       }
     };
     load();

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { queryApi, parseJson } from "@/lib/api";
 import Link from "next/link";
 import { PageHeader, Card, StatusBadge, Empty, timeAgo } from "@/components/ui";
-import { CheckCircle2, AlertCircle, Zap } from "lucide-react";
+import { Zap } from "lucide-react";
 import { toast } from "@/components/Toast";
 
 interface AgentMemory {

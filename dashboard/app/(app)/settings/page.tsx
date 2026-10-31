@@ -6,8 +6,8 @@ import { queryApi } from "@/lib/api";
 import { toast } from "@/components/Toast";
 import Link from "next/link";
 import {
-  GitBranch, Mail, TerminalSquare, Globe, Database, Palette, Cpu, CreditCard,
-  Share2, Briefcase, ShoppingCart, Phone, LifeBuoy, Send, CalendarClock, MessageCircle,
+  GitBranch, Mail, Globe, Database, Palette, Cpu, CreditCard,
+  Share2, Phone, MessageCircle,
   FileCheck2, BookOpen, Webhook,
 } from "lucide-react";
 
@@ -250,7 +250,9 @@ export default function SettingsPage() {
   const [totpQr, setTotpQr] = useState("");
   const [totpCode, setTotpCode] = useState("");
   const [loading, setLoading] = useState(true);
-  const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
+  const [density, setDensity] = useState<"comfortable" | "compact">(() =>
+    typeof window !== "undefined" ? ((localStorage.getItem("lz_density") as "compact") || "comfortable") : "comfortable"
+  );
 
   useEffect(() => {
     Promise.all(
@@ -260,8 +262,6 @@ export default function SettingsPage() {
     )
       .then((pairs) => setFlags(Object.fromEntries(pairs as [string, boolean][])))
       .finally(() => setLoading(false));
-    const d = (localStorage.getItem("lz_density") as "compact") || "comfortable";
-    setDensity(d);
   }, []);
 
   const setD = (d: "comfortable" | "compact") => {
@@ -441,7 +441,7 @@ export default function SettingsPage() {
             </div>
             <div className="pt-3 border-t border-border">
               <div className="text-sm text-fg mb-1">Email verification</div>
-              <div className="text-xs text-muted mb-3">Send a real verification email to the founder address via Brevo.</div>
+              <div className="text-xs text-muted mb-3">a real verification email to the founder address via Brevo.</div>
               <button
                 onClick={async () => {
                   const b = await queryApi<any>("SELECT founder_email FROM company_brain LIMIT 1");

@@ -9,7 +9,7 @@ export default function NotFound() {
           Page not found
         </div>
         <p className="text-sm text-muted mb-8">
-          This surface doesn't exist — even for an autonomous company.
+          This surface doesn&apos;t exist — even for an autonomous company.
         </p>
         <Link
           href="/"

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { queryApi } from "@/lib/api";
-import { PageHeader, Card, Empty, timeAgo } from "@/components/ui";
+import { PageHeader, Card, Empty, } from "@/components/ui";
 import { Crown, Bot } from "lucide-react";
 
 interface Agent {

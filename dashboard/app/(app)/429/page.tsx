@@ -6,7 +6,7 @@ export default function RateLimitedPage() {
       <div className="text-7xl font-bold text-accentSoft mb-4">429</div>
       <h1 className="text-xl font-bold text-fg mb-2">Too many requests</h1>
       <p className="text-sm text-muted max-w-sm mb-8">
-        You've hit the rate limit. Take a breath — the company keeps working while you wait a few seconds.
+        You&apos;ve hit the rate limit. Take a breath — the company keeps working while you wait a few seconds.
       </p>
       <Link
         href="/"

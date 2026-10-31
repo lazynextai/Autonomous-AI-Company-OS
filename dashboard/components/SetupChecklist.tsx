@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { X } from "lucide-react";
 
 const STEPS = [
@@ -11,11 +11,9 @@ const STEPS = [
 ];
 
 export default function SetupChecklist({ agentsActive }: { agentsActive: number }) {
-  const [dismissed, setDismissed] = useState(true);
-
-  useEffect(() => {
-    setDismissed(localStorage.getItem("lz_setup_dismissed") === "1");
-  }, []);
+  const [dismissed, setDismissed] = useState<boolean>(() =>
+    typeof window !== "undefined" ? localStorage.getItem("lz_setup_dismissed") === "1" : true
+  );
 
   if (dismissed || agentsActive > 0) return null;
 

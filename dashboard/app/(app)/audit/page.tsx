@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { queryApi, parseJson } from "@/lib/api";
 import { PageHeader, Card, Empty, timeAgo } from "@/components/ui";
-import { User, Bot, Key, Webhook, ListTodo, Rocket, ShieldCheck, Download } from "lucide-react";
+import { User, Bot, Webhook, ListTodo, Rocket, ShieldCheck, Download } from "lucide-react";
 
 interface AuditRow {
   id: number;

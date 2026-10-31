@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { queryApi } from "@/lib/api";
 import { PageHeader, Card, Empty, timeAgo } from "@/components/ui";
-import { Bell, AlertTriangle, FileText, Zap, CheckCheck } from "lucide-react";
+import { AlertTriangle, FileText, Zap, CheckCheck } from "lucide-react";
 
 interface Item {
   id: string;

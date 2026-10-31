@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { queryApi, parseJson } from "@/lib/api";
-import { PageHeader, Card, Empty, timeAgo } from "@/components/ui";
+import { PageHeader, Card, Empty, } from "@/components/ui";
 
 interface LogLine {
   at: string;

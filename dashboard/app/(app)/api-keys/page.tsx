@@ -132,7 +132,7 @@ export default function ApiKeysPage() {
             {newKey ? (
               <>
                 <h2 className="text-lg font-bold text-fg mb-1">Key created</h2>
-                <p className="text-xs text-muted mb-4">Copy it now — it won't be shown again.</p>
+                <p className="text-xs text-muted mb-4">Copy it now — it won&apos;t be shown again.</p>
                 <div className="flex items-center gap-2 bg-input border border-border rounded-lg px-3.5 py-3">
                   <code className="flex-1 text-xs text-accentSoft font-mono break-all">{newKey}</code>
                   <button

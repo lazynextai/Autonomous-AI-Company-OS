@@ -99,7 +99,6 @@ export default function MediaPage() {
           {items.map((m) => (
             <Card key={m.id} className="p-0 overflow-hidden">
               <div className="h-40 bg-input flex items-center justify-center overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={m.url} alt={m.name} className="max-h-full max-w-full object-contain" />
               </div>
               <div className="p-4">

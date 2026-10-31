@@ -3,17 +3,16 @@
 import { useEffect, useState } from "react";
 
 export default function Splash() {
-  const [gone, setGone] = useState(false);
+  const [gone, setGone] = useState<boolean>(() =>
+    typeof window !== "undefined" && !!sessionStorage.getItem("lz_splashed")
+  );
 
   useEffect(() => {
-    if (sessionStorage.getItem("lz_splashed")) {
-      setGone(true);
-      return;
-    }
+    if (gone) return; // already seen this session — initializer handled it
     sessionStorage.setItem("lz_splashed", "1");
     const t = setTimeout(() => setGone(true), 900);
     return () => clearTimeout(t);
-  }, []);
+  }, [gone]);
 
   if (gone) return null;
 

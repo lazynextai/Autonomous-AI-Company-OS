@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { queryApi, parseJson } from "@/lib/api";
-import { PageHeader, Card, StatusBadge, Empty, timeAgo } from "@/components/ui";
+import { Card, StatusBadge, Empty, timeAgo } from "@/components/ui";
 import { ArrowLeft, Settings2 } from "lucide-react";
 import { toast } from "@/components/Toast";
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { queryApi, parseJson } from "@/lib/api";
+import { queryApi, } from "@/lib/api";
 import { PageHeader, Card, StatusBadge, timeAgo } from "@/components/ui";
 import { Search as SearchIcon, ListTodo, Users, BookOpen, Globe, Loader2, Plus } from "lucide-react";
 

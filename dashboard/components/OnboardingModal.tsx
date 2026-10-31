@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { X, Zap, Brain, Plug, Rocket } from "lucide-react";
 
 const STEPS = [
@@ -27,14 +27,10 @@ const STEPS = [
 ];
 
 export default function OnboardingModal() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<boolean>(() =>
+    typeof window !== "undefined" ? localStorage.getItem("lz_onboarded") !== "1" : false
+  );
   const [step, setStep] = useState(0);
-
-  useEffect(() => {
-    if (localStorage.getItem("lz_onboarded") !== "1") {
-      setOpen(true);
-    }
-  }, []);
 
   const done = () => {
     localStorage.setItem("lz_onboarded", "1");

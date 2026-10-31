@@ -39,7 +39,7 @@ const ITEMS = [
   { href: "/settings", label: "Settings", icon: Settings, hint: "Integrations + links" },
 ];
 
-const ACTIONS: { label: string; hint: string; icon: any; run: () => Promise<string> | string }[] = [
+const ACTIONS: { label: string; hint: string; icon: any; run: (router: ReturnType<typeof useRouter>) => Promise<string> | string }[] = [
   {
     label: "Agent tick",
     hint: "One agent generates a message on the bus",
@@ -53,8 +53,8 @@ const ACTIONS: { label: string; hint: string; icon: any; run: () => Promise<stri
     label: "Open sandbox",
     hint: "Run code in the Cloudflare container",
     icon: TerminalSquare,
-    run: () => {
-      location.href = "/sandbox";
+    run: (router) => {
+      router.push("/sandbox");
       return "Opening sandbox…";
     },
   },
@@ -72,9 +72,9 @@ const ACTIONS: { label: string; hint: string; icon: any; run: () => Promise<stri
     label: "Sign out",
     hint: "End the dashboard session",
     icon: LogOut,
-    run: async () => {
+    run: async (router) => {
       await fetch("/api/logout", { method: "POST" });
-      location.href = "/login";
+      router.push("/login");
       return "";
     },
   },
@@ -128,7 +128,7 @@ export default function CommandPalette() {
     if (item.href) {
       router.push(item.href);
     } else if (item.action) {
-      const msg = await item.action.run();
+      const msg = await item.action.run(router);
       if (msg) toast(msg);
     }
   };

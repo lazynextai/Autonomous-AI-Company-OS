@@ -16,12 +16,12 @@ function apply(t: Theme) {
 }
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>(() =>
+    typeof window !== "undefined" ? ((localStorage.getItem("lz_theme") as Theme) || "system") : "dark"
+  );
 
   useEffect(() => {
-    const saved = (localStorage.getItem("lz_theme") as Theme) || "system";
-    setTheme(saved);
-    apply(saved);
+    apply(theme);
     const mq = window.matchMedia("(prefers-color-scheme: light)");
     const onChange = () => {
       const t = (localStorage.getItem("lz_theme") as Theme) || "system";
@@ -29,7 +29,7 @@ export default function ThemeToggle() {
     };
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
-  }, []);
+  }, [theme]);
 
   const cycle = () => {
     const order: Theme[] = ["dark", "light", "system"];

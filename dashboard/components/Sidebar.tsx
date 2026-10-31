@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { queryApi } from "@/lib/api";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -48,6 +48,7 @@ const NAV = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [avatarMenu, setAvatarMenu] = useState(false);
   const [productMenu, setProductMenu] = useState(false);
@@ -174,7 +175,7 @@ export default function Sidebar() {
                   <button
                     onClick={async () => {
                       await fetch("/api/logout", { method: "POST" });
-                      location.href = "/login";
+                      router.push("/login");
                     }}
                     className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-bad hover:bg-cardHover transition text-left"
                   >
