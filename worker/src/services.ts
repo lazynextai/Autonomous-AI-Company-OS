@@ -7,6 +7,8 @@ import { Env, json, authorize, touchKey, listAll } from "./gateway";
 import { publishToBus } from "./webhooks";
 import { recordLeadEvidence, listLeadEvidence, evidenceSummary } from "./evidence";
 import { outboundDecision, noteBreakerTrip, recordDispatchAudit, breakerAdmin } from "./breakers";
+import { openDispatchDecision, closeDispatchDecision } from "./decisions";
+import { recordDispatchLedger, estimateCostCents } from "./ledger";
 import puppeteer from "@cloudflare/puppeteer";
 
 // Media library — the Postiz piece the native scheduler lacked. Bytes live
@@ -281,9 +283,33 @@ export async function handleServices(
       ctx.waitUntil(noteBreakerTrip(env, id, decision.reason ?? "blocked"));
       return json({ error: "blocked by outbound breaker", reason: decision.reason, stats: decision.stats }, 503);
     }
+    // Governance record — fail closed. An external side effect must carry one
+    // auditable decision package (objective, action, authority, evidence,
+    // cost, target, rollback). A record that cannot be written means the
+    // action does not run; this is the breaker pattern one layer up.
+    let decisionId = 0;
+    try {
+      const pkg = await openDispatchDecision(env, {
+        connector: id,
+        action: "connector.dispatch",
+        target: id,
+        cost_cents: estimateCostCents(id),
+        source: "direct",
+      });
+      decisionId = pkg.id;
+    } catch (err) {
+      return json({
+        error: "decision record unavailable — dispatch blocked",
+        reason: (err instanceof Error ? err.message : String(err)).slice(0, 300),
+      }, 503);
+    }
+    const startedAt = Date.now();
     const out = await callConnector(env, id, cred ?? "", b);
+    const duration = Date.now() - startedAt;
     ctx.waitUntil(recordDispatchAudit(env, id, out.ok, out.status, "direct"));
-    return json(out, out.ok ? 200 : out.status ?? 502);
+    ctx.waitUntil(closeDispatchDecision(env, decisionId, out.ok, out.error));
+    ctx.waitUntil(recordDispatchLedger(env, id, { ok: out.ok, duration_ms: duration, source: "direct" }));
+    return json({ ...out, decision_id: decisionId }, out.ok ? 200 : out.status ?? 502);
   }
 
   // --- Outbound breaker admin surface ---------------------------------------
@@ -456,7 +482,7 @@ async function ensureSignwellSecret(env: Env): Promise<void> {
 // Credential lives in KV as conn:brevo in "sender@domain.com:api_key" form
 // (bare key → support@lazynext.com sender), falling back to the
 // BREVO_API_KEY worker secret. Free tier: 300 emails/day.
-async function brevoCred(env: Env): Promise<{ from: string; key: string } | null> {
+export async function brevoCred(env: Env): Promise<{ from: string; key: string } | null> {
   const cred = (await env.EPHEMERAL.get("conn:brevo")) ?? env.BREVO_API_KEY;
   if (!cred) return null;
   const i = cred.lastIndexOf(":");
@@ -957,7 +983,7 @@ export const CONNECTOR_IDS = [
 // truth — then a CONN_<ID> worker secret as static fallback. The local fleet
 // (core/tools/connectors.py) deliberately resolves the other way (env → KV)
 // so a local override wins on the dev host; each order suits its runtime.
-async function connCred(env: Env, id: string): Promise<string | null> {
+export async function connCred(env: Env, id: string): Promise<string | null> {
   return (await env.EPHEMERAL.get(`conn:${id}`))
     ?? ((env as unknown as Record<string, unknown>)[`CONN_${id.toUpperCase()}`] as string | undefined)
     ?? null;
@@ -2234,6 +2260,26 @@ export async function dispatchSocialPost(env: Env, postId: number): Promise<Soci
     return "failed";
   }
 
+  // Governance record — same fail-closed rule as direct dispatch. A scheduled
+  // post is an external side effect, so it must carry a decision package.
+  let decisionId = 0;
+  try {
+    const pkg = await openDispatchDecision(env, {
+      connector: row.connector,
+      action: "social.post",
+      target: row.connector,
+      cost_cents: estimateCostCents(row.connector),
+      source: "scheduled",
+    });
+    decisionId = pkg.id;
+  } catch (err) {
+    const reason = `decision: ${err instanceof Error ? err.message : String(err)}`.slice(0, 400);
+    await env.DB.prepare(
+      "UPDATE social_posts SET status = 'failed', last_error = ? WHERE id = ?",
+    ).bind(reason, postId).run();
+    return "failed";
+  }
+
   // attempts is post-claim — the same count the old pre-claim `attempts+1`
   // comparisons used. Requeue keeps 'queued'+future run_at so the cron sweep
   // re-enqueues it; linear backoff gives a downed platform breathing room
@@ -2263,6 +2309,7 @@ export async function dispatchSocialPost(env: Env, postId: number): Promise<Soci
       await env.DB.prepare(
         "UPDATE social_posts SET status = 'failed', last_error = ? WHERE id = ?",
       ).bind(`'${row.connector}' not connected — set it in Settings → Connector library`, postId).run();
+      await closeDispatchDecision(env, decisionId, false, "connector not connected");
       return "failed";
     }
     const out = await callConnector(env, row.connector, cred, JSON.parse(row.payload) as Record<string, unknown>);
@@ -2271,12 +2318,24 @@ export async function dispatchSocialPost(env: Env, postId: number): Promise<Soci
         "UPDATE social_posts SET status = 'posted', last_error = NULL, posted_at = ? WHERE id = ?",
       ).bind(Date.now(), postId).run();
       await recordDispatchAudit(env, row.connector, true, out.status, "scheduled");
+      await closeDispatchDecision(env, decisionId, true);
+      await recordDispatchLedger(env, row.connector, {
+        ok: true, retries: Math.max(row.attempts - 1, 0), source: "scheduled",
+      });
       return "posted";
     }
     await recordDispatchAudit(env, row.connector, false, out.status, "scheduled");
+    await closeDispatchDecision(env, decisionId, false, String(out.error ?? out.status ?? "dispatch failed"));
+    await recordDispatchLedger(env, row.connector, {
+      ok: false, retries: Math.max(row.attempts - 1, 0), source: "scheduled",
+    });
     return await failOrRequeue(String(out.error ?? out.status ?? "dispatch failed"));
   } catch (e) {
     await recordDispatchAudit(env, row.connector, false, undefined, "scheduled");
+    await closeDispatchDecision(env, decisionId, false, e instanceof Error ? e.message : String(e));
+    await recordDispatchLedger(env, row.connector, {
+      ok: false, retries: Math.max(row.attempts - 1, 0), source: "scheduled",
+    });
     return await failOrRequeue(e instanceof Error ? e.message : String(e));
   }
 }

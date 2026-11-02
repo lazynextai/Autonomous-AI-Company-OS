@@ -1,7 +1,7 @@
 # Design Proposal — Company Template Manifests, Independent Observer Pass, Capability/Readiness Matrix (P2)
 
 **Date:** 2026-11-02
-**Status:** Proposal (P2, not scheduled)
+**Status:** IMPLEMENTED 2026-11-03 (PR #13) — `company_manifests` + `capability_readiness` (migration 012), `worker/src/manifests.ts` / `observer.ts` / `readiness.ts`, `*/10` cron probe sweep (6h gate, zero-side-effect GETs), observer reviews audited scope `observer`, activation writes only the KV intent pointer. Verified: pytest + `node --test` green before merge.
 **Source:** [Star-list review — roadmap opportunities 5, 6, 7](../research/github-star-list-autonomous-ai-company-os-2026-11-02.md)
 **Pattern references:** `Claw-Company/clawcompany` (role/template packaging), `auto-co-meta` (thin harness, template bootstrap), `Hyper-AI-Lab/cyber-ai-team` (governor/observer separation, readiness evidence), `Mistico06/ai-company-os-github` ("observed behaviour beats declared capability").
 

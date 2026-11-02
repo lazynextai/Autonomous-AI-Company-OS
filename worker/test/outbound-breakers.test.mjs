@@ -173,6 +173,12 @@ const services = (deps) =>
       outboundDecision: deps.outboundDecision,
       noteBreakerTrip: deps.noteBreakerTrip,
       recordDispatchAudit: deps.recordDispatchAudit,
+      // Governance + ledger edges are stubbed by default so each test asserts
+      // only the behaviour it names; a test that cares registers its own.
+      openDispatchDecision: deps.openDispatchDecision ?? (async () => ({ id: 1, authority: "auto" })),
+      closeDispatchDecision: deps.closeDispatchDecision ?? (async () => {}),
+      recordDispatchLedger: deps.recordDispatchLedger ?? (async () => {}),
+      estimateCostCents: deps.estimateCostCents ?? (() => 0),
       breakerAdmin: async () => jsonFn({}),
       puppeteer: {},
     },
