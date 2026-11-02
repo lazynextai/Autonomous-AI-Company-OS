@@ -155,6 +155,43 @@ export const OPENAPI_SPEC = {
         responses: { "200": { description: "Updated" } },
       },
     },
+    "/api/v1/crm/leads/{id}/evidence": {
+      get: {
+        summary: "List claim-level provenance for a lead (read scope)",
+        description: "Returns every recorded enrichment claim with source URL, fetch time, evidence excerpt/hash, verification method, confidence, provider, and a verified/inferred/unknown disposition plus per-lead counts.",
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        responses: { "200": { description: "Evidence rows + summary" }, "404": { description: "lead not found" } },
+      },
+      post: {
+        summary: "Record an evidence-backed claim for a lead (write scope) — additive, never rewrites qualification",
+        description: "A claim needs a source_url, an evidence_excerpt, or an evidence_hash. exact/normalized methods require an excerpt or hash; fuzzy is recorded as 'inferred', no evidence as 'unknown'. Clients cannot force a disposition.",
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["claim"],
+                properties: {
+                  claim: { type: "string", description: "the asserted fact being recorded" },
+                  source_url: { type: "string" },
+                  fetched_at: { type: "string", format: "date-time" },
+                  evidence_excerpt: { type: "string", description: "verbatim supporting text; hashed server-side when no hash is supplied" },
+                  evidence_hash: { type: "string", description: "SHA-256 hex of the evidence" },
+                  verification_method: { type: "string", enum: ["exact", "normalized", "fuzzy", "none"] },
+                  confidence: { type: "number", minimum: 0, maximum: 1 },
+                  provider: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+        responses: { "201": { description: "{id, lead_id, claim, disposition, verification_method, confidence}" }, "400": { description: "invalid claim/evidence" }, "404": { description: "lead not found" } },
+      },
+    },
+    "/api/v1/crm/evidence/summary": {
+      get: { summary: "Evidence disposition counts across all leads (read scope)", responses: { "200": { description: "Counts by disposition" } } },
+    },
     "/api/v1/support/tickets": {
       get: { summary: "List support tickets", responses: { "200": { description: "Tickets" } } },
       post: {
@@ -288,6 +325,26 @@ export const OPENAPI_SPEC = {
         summary: "Cancel a queued post (admin scope)",
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: { "200": { description: "Cancelled" }, "403": { description: "scope 'admin' required" } },
+      },
+    },
+    "/api/v1/ops/breakers": {
+      get: {
+        summary: "Outbound circuit-breaker state (read scope)",
+        description: "Current policy, per-connector dispatch counts in-window, and the last trips. Breakers gate connector dispatch and the social scheduler; a tripped breaker fails closed and records why.",
+        responses: { "200": { description: "{policy, stats, trips}" } },
+      },
+      post: {
+        summary: "Update breaker policy (admin scope)",
+        description: "Partial update — volume, repeated-failure, error-rate, and deliverability thresholds. Every blocked send is recorded in social_posts.last_error and episodic_events scope 'breaker'.",
+        requestBody: { content: { "application/json": { schema: { type: "object", properties: { enabled: { type: "boolean" }, volume_limit: { type: "integer" }, volume_window_ms: { type: "integer" }, failure_limit: { type: "integer" }, failure_window_ms: { type: "integer" }, error_rate_limit: { type: "number" }, deliverability_limit: { type: "number" } } } } } },
+        responses: { "200": { description: "Updated policy" }, "400": { description: "invalid threshold" }, "403": { description: "scope 'admin' required" } },
+      },
+    },
+    "/api/v1/ops/breakers/reset": {
+      post: {
+        summary: "Clear the recorded breaker trip (admin scope)",
+        description: "Clears the tripped marker only. Thresholds stay; dispatch resumes when the rolling counts fall back under policy.",
+        responses: { "200": { description: "Reset" }, "403": { description: "scope 'admin' required" } },
       },
     },
     "/api/v1/media": {
@@ -617,6 +674,23 @@ export const OPENAPI_SPEC = {
     },
     "/sign/request": {
       post: { summary: "Fleet-facing e-sign door — same request path as /api/v1/sign/requests for internal-bearer callers", "x-internal": true, security: [{ internalAuth: [] }], responses: { "201": { description: "Request created" } } },
+    },
+    "/evidence/record": {
+      post: {
+        summary: "Fleet-facing evidence capture — same validation/table as POST /api/v1/crm/leads/{id}/evidence",
+        description: "Body carries lead_id plus the claim fields. Additive provenance only: it never rewrites crm_leads.status or notes, and it refuses a disposition the evidence does not support.",
+        "x-internal": true,
+        security: [{ internalAuth: [] }],
+        responses: { "201": { description: "Recorded" }, "400": { description: "invalid claim/evidence" }, "404": { description: "lead not found" } },
+      },
+    },
+    "/evidence/list": {
+      post: {
+        summary: "Fleet-facing evidence read — {lead_id} for one lead's claims, empty body for disposition counts",
+        "x-internal": true,
+        security: [{ internalAuth: [] }],
+        responses: { "200": { description: "Evidence rows or summary" } },
+      },
     },
     "/kv/get": {
       post: { summary: "KV read", "x-internal": true, security: [{ internalAuth: [] }], responses: { "200": { description: "{value}" } } },

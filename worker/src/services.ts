@@ -5,6 +5,8 @@
  */
 import { Env, json, authorize, touchKey, listAll } from "./gateway";
 import { publishToBus } from "./webhooks";
+import { recordLeadEvidence, listLeadEvidence, evidenceSummary } from "./evidence";
+import { outboundDecision, noteBreakerTrip, recordDispatchAudit, breakerAdmin } from "./breakers";
 import puppeteer from "@cloudflare/puppeteer";
 
 // Media library — the Postiz piece the native scheduler lacked. Bytes live
@@ -91,6 +93,16 @@ export async function handleServices(
     if (b.value_cents != null) f.value_cents = Number(b.value_cents);
     return update(env, "crm_leads", id, f);
   }
+  // Claim-level provenance — additive only. Lead qualification (status/notes)
+  // is untouched; evidence never rewrites a claim, it records what was seen.
+  const evidenceMatch = path.match(/^\/api\/v1\/crm\/leads\/(\d+)\/evidence$/);
+  if (evidenceMatch) {
+    const leadId = Number(evidenceMatch[1]);
+    if (req.method === "GET") return listLeadEvidence(env, leadId);
+    if (req.method === "POST") return recordLeadEvidence(env, leadId, b);
+  }
+  if (path === "/api/v1/crm/evidence/summary" && req.method === "GET")
+    return evidenceSummary(env);
 
   // --- Support tickets ------------------------------------------------------
   if (path === "/api/v1/support/tickets" && req.method === "GET")
@@ -262,12 +274,26 @@ export async function handleServices(
     const cred = await connCred(env, id);
     if (!cred && !(id === "brevo" && (await brevoCred(env))))
       return json({ error: `'${id}' not connected — set it in Settings → Connector library` }, 503);
+    // Policy-level circuit breakers run before any external side effect —
+    // a tripped breaker blocks the send and records why.
+    const decision = await outboundDecision(env, id);
+    if (!decision.allow) {
+      ctx.waitUntil(noteBreakerTrip(env, id, decision.reason ?? "blocked"));
+      return json({ error: "blocked by outbound breaker", reason: decision.reason, stats: decision.stats }, 503);
+    }
     const out = await callConnector(env, id, cred ?? "", b);
-    ctx.waitUntil(
-      env.DB.prepare("INSERT INTO episodic_events (scope, payload) VALUES ('connector', ?)")
-        .bind(JSON.stringify({ id, ok: out.ok, status: out.status })).run().catch(() => undefined),
-    );
+    ctx.waitUntil(recordDispatchAudit(env, id, out.ok, out.status, "direct"));
     return json(out, out.ok ? 200 : out.status ?? 502);
+  }
+
+  // --- Outbound breaker admin surface ---------------------------------------
+  // Read is available to any API key; every mutation is admin-scoped because
+  // breaker policy governs what the company may say externally.
+  if (path === "/api/v1/ops/breakers" || path === "/api/v1/ops/breakers/reset") {
+    const isAdmin = (key!.scopes ?? "").split(",").map((s) => s.trim()).includes("admin");
+    if (req.method === "GET") return breakerAdmin(env, path, "GET", {});
+    if (!isAdmin) return json({ error: "scope 'admin' required — breaker policy governs outbound" }, 403);
+    return breakerAdmin(env, path, req.method, b);
   }
 
   // --- Social scheduler (Postiz replacement) --------------------------------
@@ -2194,6 +2220,20 @@ export async function dispatchSocialPost(env: Env, postId: number): Promise<Soci
   ).bind(postId).first<{ connector: string; payload: string; attempts: number }>();
   if (!row) return "skipped";
 
+  // Circuit breaker gate — fail closed before the provider call. The row was
+  // just claimed, so a blocked send is parked terminal ('failed') with the
+  // reason attached; the claim/requeue machine is untouched (no retry loop
+  // hammering a provider we already decided to stop calling).
+  const decision = await outboundDecision(env, row.connector);
+  if (!decision.allow) {
+    const reason = `breaker: ${decision.reason ?? "blocked"}`;
+    await env.DB.prepare(
+      "UPDATE social_posts SET status = 'failed', last_error = ? WHERE id = ?",
+    ).bind(reason.slice(0, 400), postId).run();
+    await noteBreakerTrip(env, row.connector, decision.reason ?? "blocked");
+    return "failed";
+  }
+
   // attempts is post-claim — the same count the old pre-claim `attempts+1`
   // comparisons used. Requeue keeps 'queued'+future run_at so the cron sweep
   // re-enqueues it; linear backoff gives a downed platform breathing room
@@ -2230,10 +2270,13 @@ export async function dispatchSocialPost(env: Env, postId: number): Promise<Soci
       await env.DB.prepare(
         "UPDATE social_posts SET status = 'posted', last_error = NULL, posted_at = ? WHERE id = ?",
       ).bind(Date.now(), postId).run();
+      await recordDispatchAudit(env, row.connector, true, out.status, "scheduled");
       return "posted";
     }
+    await recordDispatchAudit(env, row.connector, false, out.status, "scheduled");
     return await failOrRequeue(String(out.error ?? out.status ?? "dispatch failed"));
   } catch (e) {
+    await recordDispatchAudit(env, row.connector, false, undefined, "scheduled");
     return await failOrRequeue(e instanceof Error ? e.message : String(e));
   }
 }

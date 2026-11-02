@@ -1,10 +1,11 @@
 # GitHub Star List Review: Autonomous AI Company OS
 
 **Reviewed:** 2026-11-02 (IST)  
-**List:** https://github.com/stars/lazynextai/lists/autonomous-ai-company-os  
+**List after curation (2026-11-02):** `Implementation References` (18) at https://github.com/stars/lazynextai/lists/implementation-references; `Market Intelligence` (17) at https://github.com/stars/lazynextai/lists/market-intelligence. 36 total starred repositories remain; the 16 prune repos were removed and unstarred. The original slug `autonomous-ai-company-os` was replaced by `implementation-references` after rename.  
+**List at review time:** https://github.com/stars/lazynextai/lists/autonomous-ai-company-os (slug now `implementation-references`)  
 **Source:** GitHub GraphQL API via authenticated `gh` CLI  
 **Scope:** All 51 list items; repository metadata, README-level review of the highest-signal projects, lifecycle and duplication audit.  
-**Safety:** No stars, list entries, repositories, issues, or GitHub settings were changed.
+**Safety:** This report was initially produced non-destructively. After founder approval, the 16-item prune and list split were executed on 2026-11-02; no repositories, issues, or GitHub settings were changed.
 
 ## Executive assessment
 
@@ -164,9 +165,9 @@ These are proposals, not automatically approved tasks. They are deliberately sco
 
 Do **not** add blockchain/USDC/Solana payments, LinkedIn automation, a desktop agent runtime, a second Postgres/Docker control plane, ERPNext, or a new framework solely because starred repositories use them. They conflict with current product scope, connector gates, or Cloudflare-first architecture.
 
-## Prune candidates (recommendation only)
+## Prune candidates (EXECUTED 2026-11-02)
 
-No stars were removed. The following 16 entries are the clearest candidates for a future human-approved cleanup:
+All 16 entries below were removed from the list and unstarred after founder approval. The original analysis is retained for the record.
 
 1. `EmpGrip/EmpGrip` — zero-byte repository, no usable metadata.
 2. `HamzaBasar/Hamza-ai-business-os` — zero-byte repository, no usable metadata.
@@ -204,8 +205,8 @@ These are not recommended for immediate removal because each has a narrow resear
 
 ### Recommended next actions
 
-- [ ] Founder reviews the 16 prune candidates; only then remove stars/list entries manually.
-- [ ] Decide whether to split the current list into **Implementation References** and **Market Intelligence**; the seven API Evangelist profiles belong in the latter.
+- [x] Founder approved the 16 prune candidates; stars and list entries removed 2026-11-02.
+- [x] List split into **Implementation References** (18) and **Market Intelligence** (17); 36 stars total.
 - [ ] Convert opportunities 1–4 into narrowly scoped design proposals only after checking existing shipped capabilities and deduplication rules.
 - [ ] Start with evidence-backed CRM enrichment and outbound circuit breakers; both reuse existing data paths and have clear safety value.
 - [ ] Add provenance links from any future roadmap/design document back to this report and the specific source repository.

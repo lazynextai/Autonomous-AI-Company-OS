@@ -21,6 +21,7 @@ import { fanOut, handleWebhooks, publishToBus } from "./webhooks";
 import { handleServices, handleSignwellWebhook, handleBrevoWebhook, handleBrevoInbound, brevoSend, marketingFooter, unsubHeaders, unsubscribeEmail, enrollLead, dispatchScheduledPosts, dispatchSocialPost, queueSocialPost, handleMediaServe, CONNECTOR_IDS, SEQUENCE, SEQ_DAYS } from "./services";
 import { handleSignApi, handleSignPublic, createSignRequest } from "./sign";
 import { handleConnect, refreshConnectorTokens } from "./connect_oauth";
+import { recordLeadEvidence, listLeadEvidence, evidenceSummary } from "./evidence";
 
 export { Env };
 
@@ -257,6 +258,22 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, path: string
       return createSignRequest(env, ctx, b, "internal:fleet");
     }
 
+    case "/evidence/record": {
+      // Internal-bearer door for the fleet's enrichment pass — same evidence
+      // table and validation as /api/v1/crm/leads/:id/evidence, but callable
+      // without an lzk_ key. Additive only: never rewrites a lead's status.
+      const b = await readBody<Record<string, unknown>>(req);
+      const leadId = Number(b.lead_id);
+      if (!Number.isInteger(leadId) || leadId <= 0)
+        return json({ error: "lead_id required" }, 400);
+      return recordLeadEvidence(env, leadId, b);
+    }
+    case "/evidence/list": {
+      const b = await readBody<{ lead_id?: number } | null>(req).catch(() => null);
+      if (b?.lead_id) return listLeadEvidence(env, Number(b.lead_id));
+      return evidenceSummary(env);
+    }
+
     case "/bus/ack": {
       const b = await readBody<{ channel: string; group: string; ids: (string | number)[] }>(req);
       if (!b.ids?.length) return json({ ok: true });
@@ -414,7 +431,7 @@ export default {
           path.startsWith("/api/v1/booking") || path.startsWith("/api/v1/store") ||
           path.startsWith("/api/v1/marketing") || path.startsWith("/api/v1/signwell") ||
           path.startsWith("/api/v1/social") || path.startsWith("/api/v1/connectors") ||
-          path.startsWith("/api/v1/media"))
+          path.startsWith("/api/v1/ops") || path.startsWith("/api/v1/media"))
         return cors(req, await handleServices(req, env, ctx, path));
       if (path.startsWith("/api/")) return cors(req, await handlePublicApi(req, env, ctx, path));
 
