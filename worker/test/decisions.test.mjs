@@ -15,7 +15,8 @@ const mod = loadModule(
     "AUTHORITY_CLASSES", "DECISION_OUTCOMES", "classifyAuthority", "buildDecisionRecord",
     "normalizeEvidence", "parseExpiry", "canTransition", "createDecisionPackage",
     "decideDecisionPackage", "openDispatchDecision", "closeDispatchDecision",
-    "expireDecisionPackages", "decisionGate", "handleDecisionRoutes", "listDecisionPackages", "evidenceForLead",
+    "expireDecisionPackages", "decisionGate", "parseDecisionScope", "scopeCovers",
+    "handleDecisionRoutes", "listDecisionPackages", "evidenceForLead",
   ],
 );
 
@@ -231,8 +232,8 @@ test("with enforcement on, an approval action needs an approved package for its 
   assert.equal(allowed.package_id, 11);
 });
 
-test("the gate never blocks an automatic (internal, reversible) action", async () => {
-  const kv = fakeKv({ "config:decision_enforce": "1" });
+test("the gate never blocks an automatic (internal, reversible) action outside the all scope", async () => {
+  const kv = fakeKv({ "config:decision_enforce": "approval" });
   const gate = await mod.decisionGate({ DB: fakeDb(), EPHEMERAL: kv }, { type: "ledger.append", target: "x" });
   assert.equal(gate.allow, true);
 });
@@ -242,6 +243,101 @@ test("an enforcement read failure fails closed", async () => {
   const gate = await mod.decisionGate({ DB: fakeDb(), EPHEMERAL: kv }, { type: "connector.dispatch", connector: "x" });
   assert.equal(gate.allow, false);
   assert.match(gate.reason, /decision_gate_unavailable/);
+});
+
+// --- scoped enforcement -----------------------------------------------------
+test("the enforcement value parses to one of four scopes, legacy '1' staying all", () => {
+  assert.equal(mod.parseDecisionScope(null), "off");
+  assert.equal(mod.parseDecisionScope(""), "off");
+  assert.equal(mod.parseDecisionScope("off"), "off");
+  assert.equal(mod.parseDecisionScope("human_only"), "human_only");
+  assert.equal(mod.parseDecisionScope("human"), "human_only", "staging-note alias");
+  assert.equal(mod.parseDecisionScope("approval"), "approval");
+  assert.equal(mod.parseDecisionScope("all"), "all");
+  assert.equal(mod.parseDecisionScope("1"), "all", "the old boolean flag keeps all-enforcing semantics");
+  assert.equal(mod.parseDecisionScope("banana"), "off", "unknown values never arm the gate");
+  assert.equal(mod.parseDecisionScope(" random "), "off");
+});
+
+test("scope coverage nests: human_only < approval < all", () => {
+  assert.equal(mod.scopeCovers("off", "human_only"), false);
+  assert.equal(mod.scopeCovers("human_only", "human_only"), true);
+  assert.equal(mod.scopeCovers("human_only", "approval"), false);
+  assert.equal(mod.scopeCovers("human_only", "auto"), false);
+  assert.equal(mod.scopeCovers("approval", "human_only"), true);
+  assert.equal(mod.scopeCovers("approval", "approval"), true);
+  assert.equal(mod.scopeCovers("approval", "auto"), false);
+  assert.equal(mod.scopeCovers("all", "human_only"), true);
+  assert.equal(mod.scopeCovers("all", "approval"), true);
+  assert.equal(mod.scopeCovers("all", "auto"), true);
+});
+
+test("human_only scope gates human actions but lets approval-class dispatch through", async () => {
+  const kv = fakeKv({ "config:decision_enforce": "human_only" });
+  const none = fakeDb([{ match: /FROM decision_packages/, handle: () => null }]);
+
+  const sign = await mod.decisionGate({ DB: none, EPHEMERAL: kv }, { type: "connector.dispatch", connector: "signwell", target: "signwell" });
+  assert.equal(sign.allow, false);
+  assert.equal(sign.enforced, true);
+  assert.equal(sign.scope, "human_only");
+  assert.match(sign.reason, /no approved decision package for 'signwell'/);
+
+  const x = await mod.decisionGate({ DB: none, EPHEMERAL: kv }, { type: "connector.dispatch", connector: "x", target: "x" });
+  assert.equal(x.allow, true, "an approval-class post is outside human_only scope");
+  assert.equal(x.enforced, false);
+});
+
+test("approval scope gates approval and human_only actions, never auto", async () => {
+  const kv = fakeKv({ "config:decision_enforce": "approval" });
+  const none = fakeDb([{ match: /FROM decision_packages/, handle: () => null }]);
+
+  const x = await mod.decisionGate({ DB: none, EPHEMERAL: kv }, { type: "connector.dispatch", connector: "x", target: "x" });
+  assert.equal(x.allow, false);
+  assert.equal(x.scope, "approval");
+
+  const sign = await mod.decisionGate({ DB: none, EPHEMERAL: kv }, { type: "connector.dispatch", connector: "signwell", target: "signwell" });
+  assert.equal(sign.allow, false, "a narrower authority is still covered");
+
+  const slack = await mod.decisionGate({ DB: none, EPHEMERAL: kv }, { type: "connector.dispatch", connector: "slack", target: "slack" });
+  assert.equal(slack.allow, true, "internal messaging stays auto and ungated");
+  assert.equal(slack.enforced, false);
+});
+
+test("all scope enforces even auto-class internal records", async () => {
+  const kv = fakeKv({ "config:decision_enforce": "all" });
+  const none = fakeDb([{ match: /FROM decision_packages/, handle: () => null }]);
+  const blocked = await mod.decisionGate({ DB: none, EPHEMERAL: kv }, { type: "ledger.append", target: "ledger" });
+  assert.equal(blocked.allow, false);
+  assert.equal(blocked.scope, "all");
+
+  const approved = fakeDb([{ match: /FROM decision_packages/, handle: () => ({ id: 41 }) }]);
+  const allowed = await mod.decisionGate({ DB: approved, EPHEMERAL: kv }, { type: "ledger.append", target: "ledger" });
+  assert.equal(allowed.allow, true);
+  assert.equal(allowed.package_id, 41);
+});
+
+test("legacy '1' is all-enforcing, including auto actions", async () => {
+  const kv = fakeKv({ "config:decision_enforce": "1" });
+  const none = fakeDb([{ match: /FROM decision_packages/, handle: () => null }]);
+  const gate = await mod.decisionGate({ DB: none, EPHEMERAL: kv }, { type: "ledger.append", target: "ledger" });
+  assert.equal(gate.allow, false);
+  assert.equal(gate.scope, "all");
+});
+
+test("an unknown or blank enforcement value leaves the gate off", async () => {
+  for (const value of [null, "", "  ", "banana", "2"]) {
+    const kv = fakeKv(value == null ? {} : { "config:decision_enforce": value });
+    const gate = await mod.decisionGate({ DB: fakeDb(), EPHEMERAL: kv }, { type: "connector.dispatch", connector: "x", target: "x" });
+    assert.equal(gate.allow, true, `value ${JSON.stringify(value)} must mean off`);
+    assert.equal(gate.enforced, false);
+  }
+});
+
+test("a KV read failure leaves auto-class internal records alone", async () => {
+  const kv = { get: async () => { throw new Error("KV down"); } };
+  const gate = await mod.decisionGate({ DB: fakeDb(), EPHEMERAL: kv }, { type: "ledger.append", target: "ledger" });
+  assert.equal(gate.allow, true, "only the all scope covers auto, so an unknown scope must not block it");
+  assert.equal(gate.enforced, false);
 });
 
 // --- routes ---------------------------------------------------------------

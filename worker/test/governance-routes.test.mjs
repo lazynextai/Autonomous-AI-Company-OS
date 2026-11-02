@@ -29,6 +29,9 @@ const services = (scopes, over = {}) =>
       outboundDecision: async () => ({ allow: true, stats: {} }),
       noteBreakerTrip: async () => {},
       recordDispatchAudit: async (_e, id, ok) => calls.push({ fn: "audit", id, ok }),
+      // Governance gate stub — each test opts into the real decisionGate;
+      // the default keeps the pre-scope behaviour (off) explicit.
+      decisionGate: over.decisionGate ?? (async () => ({ allow: true, enforced: false, scope: "off" })),
       openDispatchDecision: over.openDispatchDecision ?? (async (_e, input) => {
         calls.push({ fn: "open", input });
         return { id: 21, authority: "approval" };
@@ -50,6 +53,10 @@ const req = (method, path, body) =>
   });
 
 const kvWith = (entries) => fakeKv(entries);
+
+// The real decisionGate, lifted from decisions.ts, so the dispatch-path tests
+// prove the route consults the shipped implementation rather than a stub.
+const decisions = loadModule("decisions.ts", { json: jsonFn }, ["decisionGate"]);
 
 test("a direct dispatch opens a decision package, audits it, and closes it with the outcome", async () => {
   calls.length = 0;
@@ -107,8 +114,102 @@ test("a dispatch whose decision record cannot be written is blocked, not sent", 
   }
 });
 
+// --- dispatch path consults the scoped decision gate ----------------------
+test("a direct dispatch blocked under approval scope never reaches the provider", async () => {
+  calls.length = 0;
+  const mod = services("read,write,admin", { decisionGate: decisions.decisionGate });
+  const ctx = fakeCtx();
+  let providerCalls = 0;
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => { providerCalls++; return new Response("{}", { status: 201 }); };
+  try {
+    const res = await mod.handleServices(
+      req("POST", "/api/v1/connectors/x", { text: "hello" }),
+      {
+        DB: fakeDb([{ match: /FROM decision_packages/, handle: () => null }]),
+        EPHEMERAL: kvWith({ "conn:x": "token", "config:decision_enforce": "approval" }),
+      },
+      ctx,
+      "/api/v1/connectors/x",
+    );
+    assert.equal(res.status, 503);
+    const body = await readJson(res);
+    assert.match(body.error, /decision gate/);
+    assert.match(body.reason, /no approved decision package for 'x'/);
+    assert.equal(body.scope, "approval");
+    await ctx.flush();
+    assert.equal(providerCalls, 0, "a gate block must never post");
+    assert.equal(calls.some((c) => c.fn === "open"), false, "no decision record is opened for a blocked dispatch");
+    assert.equal(calls.some((c) => c.fn === "audit"), false, "no audit claims a send that did not happen");
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test("a direct dispatch outside the configured scope still runs", async () => {
+  calls.length = 0;
+  const mod = services("read,write,admin", { decisionGate: decisions.decisionGate });
+  const ctx = fakeCtx();
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ data: { id: "1" } }), { status: 201, headers: { "content-type": "application/json" } });
+  try {
+    const res = await mod.handleServices(
+      req("POST", "/api/v1/connectors/x", { text: "hello" }),
+      {
+        DB: fakeDb(),
+        EPHEMERAL: kvWith({ "conn:x": "token", "config:decision_enforce": "human_only" }),
+      },
+      ctx,
+      "/api/v1/connectors/x",
+    );
+    assert.equal(res.status, 200, "an approval-class post is outside human_only scope");
+    await ctx.flush();
+    assert.ok(calls.find((c) => c.fn === "open"), "the allowed dispatch still opens a decision record");
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test("a scheduled post blocked under approval scope parks failed with the missing approval", async () => {
+  const { env, writes } = dispatchEnv(
+    [{ id: 12, connector: "x", payload: JSON.stringify({ text: "hi" }), attempts: 1, status: "queued" }],
+    { "config:decision_enforce": "approval" },
+  );
+  const opened = [];
+  const mod = loadModule(
+    "services.ts",
+    {
+      json: jsonFn,
+      authorize: async () => ({ res: jsonFn({}, 401) }),
+      touchKey: () => {},
+      listAll: async () => [],
+      publishToBus: async () => 1,
+      recordLeadEvidence: async () => jsonFn({}),
+      listLeadEvidence: async () => jsonFn({}),
+      evidenceSummary: async () => jsonFn({}),
+      outboundDecision: async () => ({ allow: true, stats: {} }),
+      noteBreakerTrip: async () => {},
+      recordDispatchAudit: async () => {},
+      decisionGate: decisions.decisionGate,
+      openDispatchDecision: async (_e, input) => { opened.push(input); return { id: 22, authority: "approval" }; },
+      closeDispatchDecision: async () => {},
+      recordDispatchLedger: async () => {},
+      estimateCostCents: () => 0,
+      breakerAdmin: async () => jsonFn({}),
+      puppeteer: {},
+    },
+    ["dispatchSocialPost"],
+  );
+  const outcome = await mod.dispatchSocialPost(env, 12);
+  assert.equal(outcome, "failed");
+  const parked = writes.find((w) => /SET status = 'failed'/.test(w.sql));
+  assert.match(String(parked.params[0]), /^decision gate: no approved decision package for 'x'/);
+  assert.equal(opened.length, 0, "a gate block never opens a decision record");
+  assert.equal(writes.some((w) => /status = 'posted'/.test(w.sql)), false);
+});
+
 // --- scheduled path -------------------------------------------------------
-const dispatchEnv = (social) => {
+const dispatchEnv = (social, kvEntries = {}) => {
   const writes = [];
   const db = fakeDb([
     {
@@ -122,7 +223,7 @@ const dispatchEnv = (social) => {
     { match: /SELECT connector, payload, attempts FROM social_posts/, handle: (_s, p) => social.find((r) => r.id === p[0]) ?? null },
     { match: /UPDATE social_posts SET/, handle: (sql, params) => { writes.push({ sql, params }); return { meta: { changes: 1 } }; } },
   ]);
-  return { env: { DB: db, EPHEMERAL: fakeKv({ "conn:x": "tok" }) }, writes };
+  return { env: { DB: db, EPHEMERAL: fakeKv({ "conn:x": "tok", ...kvEntries }) }, writes };
 };
 
 test("a scheduled post carries a decision record and a ledger row", async () => {
@@ -144,6 +245,7 @@ test("a scheduled post carries a decision record and a ledger row", async () => 
       outboundDecision: async () => ({ allow: true, stats: {} }),
       noteBreakerTrip: async () => {},
       recordDispatchAudit: async () => {},
+      decisionGate: async () => ({ allow: true, enforced: false, scope: "off" }),
       openDispatchDecision: async (_e, input) => { opened.push(input); return { id: 33, authority: "approval" }; },
       closeDispatchDecision: async (_e, id, ok) => closed.push({ id, ok }),
       recordDispatchLedger: async (_e, id, meta) => ledger.push({ id, meta }),
@@ -186,6 +288,7 @@ test("a scheduled post whose decision cannot be recorded is parked failed", asyn
       outboundDecision: async () => ({ allow: true, stats: {} }),
       noteBreakerTrip: async () => {},
       recordDispatchAudit: async () => {},
+      decisionGate: async () => ({ allow: true, enforced: false, scope: "off" }),
       openDispatchDecision: async () => { throw new Error("D1 unavailable"); },
       closeDispatchDecision: async () => {},
       recordDispatchLedger: async () => {},

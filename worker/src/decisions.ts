@@ -11,6 +11,7 @@
 import { Env, json } from "./gateway";
 
 export type AuthorityClass = "auto" | "approval" | "human_only";
+export type DecisionScope = "off" | "human_only" | "approval" | "all";
 export type DecisionOutcome =
   | "draft" | "approved" | "rejected" | "executed" | "failed" | "voided" | "expired";
 
@@ -390,19 +391,52 @@ export async function listDecisionPackages(env: Env, url: URL): Promise<Response
 
 /**
  * Opt-in enforcement. Default OFF so dispatch keeps its existing semantics.
- * When `config:decision_enforce` is "1", an approval/human_only action needs an
+ * `config:decision_enforce` is now scope-aware: instead of a bare on/off flag
+ * it accepts `human_only` | `approval` | `all` (legacy `"1"` == `all`), so a
+ * scope can cover exactly the actions it should — `human_only` alone is
+ * provably non-blocking for the fleet (no agent performs a human-only action).
+ * An approval/human_only action covered by the configured scope needs an
  * approved, unexpired package for the same target before it may run.
  */
-export async function decisionGate(env: Env, action: ActionRef): Promise<{ allow: boolean; enforced: boolean; reason?: string; package_id?: number }> {
+
+// A scope enforces its own class and anything narrower: human_only is the
+// least powerful, auto the most autonomous. rank(scope) >= rank(authority)
+// means the scope covers the action.
+const SCOPE_RANK: Record<DecisionScope, number> = { off: 0, human_only: 1, approval: 2, all: 3 };
+const AUTHORITY_RANK: Record<AuthorityClass, number> = { human_only: 1, approval: 2, auto: 3 };
+
+export function parseDecisionScope(value: unknown): DecisionScope {
+  const s = String(value ?? "").trim().toLowerCase();
+  if (s === "all" || s === "1") return "all"; // legacy "1" stays all-enforcing
+  if (s === "human_only" || s === "human" || s === "human-only") return "human_only";
+  if (s === "approval") return "approval";
+  return "off"; // absent, explicit "off", or any unknown value
+}
+
+export function scopeCovers(scope: DecisionScope, authority: AuthorityClass): boolean {
+  return (SCOPE_RANK[scope] ?? 0) >= (AUTHORITY_RANK[authority] ?? 2);
+}
+
+export async function decisionGate(env: Env, action: ActionRef): Promise<{ allow: boolean; enforced: boolean; scope?: DecisionScope; reason?: string; package_id?: number }> {
   const { authority } = classifyAuthority(action);
-  if (authority === "auto") return { allow: true, enforced: false };
   let flag: string | null = null;
   try {
     flag = await env.EPHEMERAL.get("config:decision_enforce");
   } catch {
+    // A control-plane outage must not silently unarm the gate: any enforcing
+    // scope covers human_only, so approval/human_only fail closed when the
+    // flag is unreadable. Automatic internal records stay exempt — only the
+    // "all" scope covers auto, and a reversible record must not be held
+    // hostage by KV.
+    if (authority === "auto") {
+      console.error("[decision_gate] config read failed; auto action allowed unchanged");
+      return { allow: true, enforced: false };
+    }
+    console.error(`[decision_gate] config read failed; blocking ${authority} action`);
     return { allow: false, enforced: true, reason: "decision_gate_unavailable: KV read failed" };
   }
-  if (flag !== "1") return { allow: true, enforced: false };
+  const scope = parseDecisionScope(flag);
+  if (scope === "off" || !scopeCovers(scope, authority)) return { allow: true, enforced: false, scope };
   try {
     const target = String(action.target ?? action.connector ?? "");
     const row = await env.DB.prepare(
@@ -411,10 +445,10 @@ export async function decisionGate(env: Env, action: ActionRef): Promise<{ allow
           AND (expiry_at IS NULL OR datetime(expiry_at) >= datetime('now'))
         ORDER BY id DESC LIMIT 1`,
     ).bind(target).first<{ id: number }>();
-    if (row) return { allow: true, enforced: true, package_id: row.id };
-    return { allow: false, enforced: true, reason: `no approved decision package for '${target}' (authority ${authority})` };
+    if (row) return { allow: true, enforced: true, scope, package_id: row.id };
+    return { allow: false, enforced: true, scope, reason: `no approved decision package for '${target}' (authority ${authority}, scope ${scope})` };
   } catch (err) {
-    return { allow: false, enforced: true, reason: `decision_gate_failed: ${err instanceof Error ? err.message : String(err)}`.slice(0, 300) };
+    return { allow: false, enforced: true, scope, reason: `decision_gate_failed: ${err instanceof Error ? err.message : String(err)}`.slice(0, 300) };
   }
 }
 

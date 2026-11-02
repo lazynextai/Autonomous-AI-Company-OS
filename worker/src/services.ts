@@ -7,7 +7,7 @@ import { Env, json, authorize, touchKey, listAll } from "./gateway";
 import { publishToBus } from "./webhooks";
 import { recordLeadEvidence, listLeadEvidence, evidenceSummary } from "./evidence";
 import { outboundDecision, noteBreakerTrip, recordDispatchAudit, breakerAdmin } from "./breakers";
-import { openDispatchDecision, closeDispatchDecision } from "./decisions";
+import { openDispatchDecision, closeDispatchDecision, decisionGate } from "./decisions";
 import { recordDispatchLedger, estimateCostCents } from "./ledger";
 import puppeteer from "@cloudflare/puppeteer";
 
@@ -282,6 +282,19 @@ export async function handleServices(
     if (!decision.allow) {
       ctx.waitUntil(noteBreakerTrip(env, id, decision.reason ?? "blocked"));
       return json({ error: "blocked by outbound breaker", reason: decision.reason, stats: decision.stats }, 503);
+    }
+    // Decision gate — opt-in governance, scope-aware via config:decision_enforce.
+    // When the configured scope covers this action's authority class, an
+    // approved package for the target must exist before any external side
+    // effect runs. Off by default; a blocked dispatch names the missing
+    // approval instead of failing like a generic dispatch error.
+    const gate = await decisionGate(env, { type: "connector.dispatch", connector: id, target: id });
+    if (!gate.allow) {
+      return json({
+        error: "blocked by decision gate — missing approval",
+        reason: gate.reason,
+        scope: gate.scope,
+      }, 503);
     }
     // Governance record — fail closed. An external side effect must carry one
     // auditable decision package (objective, action, authority, evidence,
@@ -2257,6 +2270,18 @@ export async function dispatchSocialPost(env: Env, postId: number): Promise<Soci
       "UPDATE social_posts SET status = 'failed', last_error = ? WHERE id = ?",
     ).bind(reason.slice(0, 400), postId).run();
     await noteBreakerTrip(env, row.connector, decision.reason ?? "blocked");
+    return "failed";
+  }
+
+  // Decision gate — same scope-aware opt-in as direct dispatch. A blocked row
+  // is parked terminal with the missing approval named in last_error; it is
+  // never requeued against a provider we are not allowed to call.
+  const gate = await decisionGate(env, { type: "social.post", connector: row.connector, target: row.connector });
+  if (!gate.allow) {
+    const reason = `decision gate: ${gate.reason ?? "blocked"}`;
+    await env.DB.prepare(
+      "UPDATE social_posts SET status = 'failed', last_error = ? WHERE id = ?",
+    ).bind(reason.slice(0, 400), postId).run();
     return "failed";
   }
 
