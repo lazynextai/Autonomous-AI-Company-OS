@@ -160,3 +160,35 @@ async def test_call_connector_consults_gate(monkeypatch):
     res = await connectors.call_connector("_testbreaker", {"text": "hello"})
     assert res == {"ok": True, "status": 200, "body": {}}
     sender.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_client_construction_failure_posts_anyway(monkeypatch):
+    """Fail-SOFT at the outer boundary: if the platform client cannot even be
+    constructed (missing/invalid config), the gate must allow the send rather
+    than raise into call_connector — a broken control plane must never stop
+    company posting."""
+    monkeypatch.setenv("CONN_BREAKER_MODE", "active")
+
+    def _boom(*_a, **_k):
+        raise RuntimeError("no credentials configured")
+
+    monkeypatch.setattr(ob, "CloudflareClient", _boom)
+    res = await ob.check_outbound("x")
+    assert res["allow"] is True
+    assert "gate error" in res["reason"]
+
+
+@pytest.mark.asyncio
+async def test_close_failure_posts_anyway(monkeypatch):
+    """A failing close() must not turn a permitted send into an exception."""
+    monkeypatch.setenv("CONN_BREAKER_MODE", "active")
+    _stub_reads(monkeypatch, dispatch=(0, 0, None))
+
+    class _Client:
+        async def close(self):
+            raise RuntimeError("close blew up")
+
+    monkeypatch.setattr(ob, "CloudflareClient", lambda *a, **k: _Client())
+    res = await ob.check_outbound("x")
+    assert res["allow"] is True

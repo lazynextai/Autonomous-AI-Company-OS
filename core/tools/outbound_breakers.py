@@ -224,9 +224,15 @@ async def check_outbound(connector_id: str) -> dict[str, Any]:
         if email_err:
             logger.error("outbound_breaker_read_failed", connector=connector_id, error=email_err)
             return {"allow": True, "mode": mode, "reason": email_err}
+    except Exception as e:  # noqa: BLE001 — constructor/close/helper escape hatch
+        logger.error("outbound_breaker_read_failed", connector=connector_id, error=f"gate error: {e}")
+        return {"allow": True, "mode": mode, "reason": f"breaker gate error: {e}"}
     finally:
         if client is not None:
-            await client.close()
+            try:
+                await client.close()
+            except Exception:  # noqa: BLE001 — closes are best-effort
+                pass
 
     reason: str | None = None
     if _int(policy.get("enabled"), 1):
