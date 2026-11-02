@@ -13,6 +13,7 @@ import httpx
 import structlog
 
 from core.config import get_settings
+from core.tools.outbound_breakers import check_outbound
 
 logger = structlog.get_logger(__name__)
 
@@ -1333,6 +1334,15 @@ async def call_connector(connector_id: str, payload: dict[str, Any] | str) -> di
     cred = await _credential(connector_id)
     if not cred:
         return {"ok": False, "error": f"'{connector_id}' not connected — set it in Settings → Connector library"}
+    # --- Outbound breaker gate (mirrors worker/src/breakers.ts) -------------
+    # After credential resolution so unconnected connectors fail identically;
+    # before BOTH dispatch paths (the ayrshare early-return and the generic
+    # fn call). Default posture is observe — logs `outbound_breaker_observe`
+    # with the would-be reason and keeps posting. Enforcement arms with
+    # CONN_BREAKER_MODE=active (see the Governance layer note in AGENTS.md).
+    gate = await check_outbound(connector_id)
+    if not gate["allow"]:
+        return {"ok": False, "error": f"blocked by outbound breaker: {gate['reason'] or 'tripped'}", "breaker": True}
     if cred == "ayrshare":
         # Routed through the approved Ayrshare app — used for networks whose
         # native app review is blocked (reddit karma-gate, pinterest trial
