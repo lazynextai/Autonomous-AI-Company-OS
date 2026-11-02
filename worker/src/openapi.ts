@@ -692,6 +692,129 @@ export const OPENAPI_SPEC = {
         responses: { "200": { description: "Evidence rows or summary" } },
       },
     },
+    // --- Governance decision packages + outcome ledger (roadmap P1/P2) ---
+    "/decision/packages": {
+      get: {
+        summary: "List decision packages (filter by ?outcome=&limit=)",
+        "x-internal": true,
+        security: [{ internalAuth: [] }],
+        parameters: [{ name: "outcome", in: "query", schema: { type: "string" } }, { name: "limit", in: "query", schema: { type: "integer", default: 50 } }],
+        responses: { "200": { description: "Packages" } },
+      },
+      post: {
+        summary: "Create a governance decision package",
+        description: "One auditable record per high-impact action: objective, proposed action, authority class (auto|approval|human_only), evidence, cost projection, target, expiry, rollback. Every write is audited to episodic_events scope 'decision'.",
+        "x-internal": true,
+        security: [{ internalAuth: [] }],
+        requestBody: { content: { "application/json": { schema: { type: "object", required: ["title", "proposed_action"], properties: { title: { type: "string" }, objective: { type: "string" }, proposed_action: { type: "string" }, authority: { type: "string", enum: ["auto", "approval", "human_only"] }, target: { type: "string" }, cost_projection_cents: { type: "integer" }, expiry_at: { type: "string" }, rollback: { type: "string" }, evidence: { type: "array", items: { type: "object" } } } } } } },
+        responses: { "201": { description: "Package created (draft)" }, "400": { description: "invalid package" } },
+      },
+    },
+    "/decision/packages/{id}/decide": {
+      post: {
+        summary: "Advance a decision package (approve/reject/execute/void/expire)",
+        description: "Transition table: draft -> approved|rejected|voided; approved -> executed|failed|voided|expired; executed/failed -> voided. Illegal transitions 409.",
+        "x-internal": true,
+        security: [{ internalAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        requestBody: { content: { "application/json": { schema: { type: "object", required: ["outcome"], properties: { outcome: { type: "string", enum: ["approved", "rejected", "executed", "failed", "voided", "expired"] }, decided_by: { type: "string" }, reason: { type: "string" } } } } } },
+        responses: { "200": { description: "Decided" }, "404": { description: "not found" }, "409": { description: "illegal transition" } },
+      },
+    },
+    "/decision/packages/{id}/void": {
+      post: {
+        summary: "Void a decision package (rollback/void path)",
+        "x-internal": true,
+        security: [{ internalAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        responses: { "200": { description: "Voided" } },
+      },
+    },
+    "/ledger/append": {
+      post: {
+        summary: "Append an outcome ledger row",
+        description: "Join key over the existing audit surfaces: task | connector | campaign | scan with duration, retries, provider/model, estimated spend (derived from the provider, never asserted), acceptance, downstream note. dedupe_key makes rows idempotent.",
+        "x-internal": true,
+        security: [{ internalAuth: [] }],
+        requestBody: { content: { "application/json": { schema: { type: "object", required: ["ref_type", "ref_id"], properties: { ref_type: { type: "string", enum: ["task", "connector", "campaign", "scan"] }, ref_id: { type: "string" }, provider: { type: "string" }, model: { type: "string" }, duration_ms: { type: "integer" }, retries: { type: "integer" }, acceptance: { type: "string", enum: ["passed", "failed", "n/a"] }, downstream_note: { type: "string" }, dedupe_key: { type: "string" } } } } } },
+        responses: { "201": { description: "Inserted" }, "200": { description: "Duplicate (dedupe_key)" }, "400": { description: "invalid row" } },
+      },
+    },
+    // --- Independent observer pass (roadmap P4) ---
+    "/observer/review": {
+      post: {
+        summary: "Bounded observer review of a plan or side effect",
+        description: "Deterministic, additive review that returns safe | evidence_gap | policy_concern with gaps and flags. Never executes the plan, never calls a connector. Every review is audited to episodic_events scope 'observer'.",
+        "x-internal": true,
+        security: [{ internalAuth: [] }],
+        requestBody: { content: { "application/json": { schema: { type: "object", properties: { plan: { type: "string" }, evidence: { type: "array", items: { type: "object", properties: { claim: { type: "string" }, disposition: { type: "string", enum: ["verified", "inferred", "unknown"] } } } } } } } } },
+        responses: { "200": { description: "Recommendation" } },
+      },
+    },
+    // --- Capability / readiness matrix (roadmap P3) ---
+    "/manifests/validate": {
+      post: {
+        summary: "Validate + store a template manifest (no activation)",
+        description: "Declarative goals, roles, connector permissions, review thresholds, schedules. Invalid manifests are stored for the diff trail but cannot be activated.",
+        "x-internal": true,
+        security: [{ internalAuth: [] }],
+        responses: { "200": { description: "Validated" }, "400": { description: "Validation errors" } },
+      },
+    },
+    "/manifests/activate": {
+      post: {
+        summary: "Activate a validated manifest version",
+        description: "Writes only the KV intent pointer (config:manifest:active); the live company_brain row the fleet reads is never mutated. Reversible by activating a previous version.",
+        "x-internal": true,
+        security: [{ internalAuth: [] }],
+        responses: { "200": { description: "Activated" }, "400": { description: "invalid or unvalidated" }, "404": { description: "not found" } },
+      },
+    },
+    "/capability/matrix": {
+      get: {
+        summary: "Capability / readiness matrix",
+        description: "Configured vs live-probed vs stale vs documented-only, per connector, plus the existing health-check breadcrumbs (cron, maintenance, monitor sweep, ledger build, probe sweep). Read-only.",
+        "x-internal": true,
+        security: [{ internalAuth: [] }],
+        parameters: [],
+        responses: { "200": { description: "{generated_at, summary, connectors, services}" } },
+      },
+    },
+    "/manifests": {
+      get: {
+        summary: "List stored manifest versions",
+        "x-internal": true,
+        security: [{ internalAuth: [] }],
+        responses: { "200": { description: "Manifests" } },
+      },
+    },
+    "/manifests/latest": {
+      get: {
+        summary: "Current active manifest",
+        "x-internal": true,
+        security: [{ internalAuth: [] }],
+        responses: { "200": { description: "{active}" } },
+      },
+    },
+    "/ledger/summary": {
+      get: {
+        summary: "Outcome ledger roll-up",
+        description: "Grouped by ref_type/provider with total, estimated cost, and acceptance pass-rate. Joins existing audit surfaces only.",
+        "x-internal": true,
+        security: [{ internalAuth: [] }],
+        parameters: [{ name: "days", in: "query", schema: { type: "integer", default: 7 } }],
+        responses: { "200": { description: "{days, totals, groups}" } },
+      },
+    },
+    "/observer/reviews": {
+      get: {
+        summary: "Recent observer reviews",
+        "x-internal": true,
+        security: [{ internalAuth: [] }],
+        parameters: [{ name: "limit", in: "query", schema: { type: "integer", default: 20 } }],
+        responses: { "200": { description: "Reviews" } },
+      },
+    },
     "/kv/get": {
       post: { summary: "KV read", "x-internal": true, security: [{ internalAuth: [] }], responses: { "200": { description: "{value}" } } },
     },

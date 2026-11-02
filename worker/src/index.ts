@@ -22,6 +22,11 @@ import { handleServices, handleSignwellWebhook, handleBrevoWebhook, handleBrevoI
 import { handleSignApi, handleSignPublic, createSignRequest } from "./sign";
 import { handleConnect, refreshConnectorTokens } from "./connect_oauth";
 import { recordLeadEvidence, listLeadEvidence, evidenceSummary } from "./evidence";
+import { handleDecisionRoutes, listDecisionPackages, expireDecisionPackages } from "./decisions";
+import { handleLedgerRoutes, ledgerSummary, buildOutcomeLedger } from "./ledger";
+import { capabilityMatrix, refreshCapabilityReadiness } from "./readiness";
+import { handleObserverRoutes, listObserverReviews } from "./observer";
+import { handleManifestRoutes, listManifests, latestManifest } from "./manifests";
 
 export { Env };
 
@@ -164,7 +169,26 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, path: string
     return json({ value });
   }
 
+  // Governance / ledger / readiness / observer / manifest reads. All internal
+  // (operator bearer) — they expose the decision trail and live probe results,
+  // which are operator surfaces, not customer data.
+  if (req.method === "GET") {
+    if (path === "/decision/packages") return listDecisionPackages(env, new URL(req.url));
+    if (path === "/ledger/summary") return ledgerSummary(env, new URL(req.url));
+    if (path === "/capability/matrix") return capabilityMatrix(env);
+    if (path === "/observer/reviews") return listObserverReviews(env, new URL(req.url));
+    if (path === "/manifests") return listManifests(env, new URL(req.url));
+    if (path === "/manifests/latest") return latestManifest(env);
+  }
+
   if (req.method !== "POST") return json({ error: "not found" }, 404);
+
+  // Decision packages (POST create, /:id/decide, /:id/void) — prefixed so the
+  // sub-routes reach the handler rather than falling through the switch.
+  if (path.startsWith("/decision/")) {
+    const b = await readBody<Record<string, unknown>>(req).catch(() => ({}));
+    return handleDecisionRoutes(env, path, req.method, b);
+  }
 
   switch (path) {
     case "/query":
@@ -272,6 +296,20 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, path: string
       const b = await readBody<{ lead_id?: number } | null>(req).catch(() => null);
       if (b?.lead_id) return listLeadEvidence(env, Number(b.lead_id));
       return evidenceSummary(env);
+    }
+
+    // --- Governance, ledger, observer, manifests ---------------------------
+    // Internal-bearer only (past the API_TOKEN gate): these are the decision
+    // trail and operating policy. Public frames live under /api/v1 (lzk_).
+    case "/ledger/append":
+    case "/observer/review":
+    case "/manifests/validate":
+    case "/manifests/activate": {
+      const b = await readBody<Record<string, unknown>>(req).catch(() => ({}));
+      const handled = await handleLedgerRoutes(env, path, b)
+        ?? await handleObserverRoutes(env, path, b)
+        ?? await handleManifestRoutes(env, path, b);
+      return handled ?? json({ error: "not found" }, 404);
     }
 
     case "/bus/ack": {
@@ -456,6 +494,9 @@ export default {
     ctx.waitUntil(advanceLeadSequence(env).then(() => undefined).catch(() => {}));
     ctx.waitUntil(runDailyMaintenance(env).then(() => undefined).catch(() => {}));
     ctx.waitUntil(refreshConnectorTokens(env).then(() => undefined).catch(() => {}));
+    // Capability probes — zero-side-effect read probes for configured
+    // connectors, gated at 6h inside the sweep itself (roadmap P3).
+    ctx.waitUntil(refreshCapabilityReadiness(env).then(() => undefined).catch(() => {}));
     ctx.waitUntil(dispatchScheduledPosts(env).then(() => undefined).catch(() => {}));
   },
 
@@ -632,6 +673,17 @@ async function runDailyMaintenance(env: Env) {
   // merges AND direct pushes (manual ships never open PRs).
   const sync = await syncShippedFeatures(env).catch(() => ({ added: -1 }));
   await env.EPHEMERAL.put("brain:features_sync", JSON.stringify({ at: Date.now(), ...sync })).catch(() => {});
+
+  // Outcome ledger (roadmap P2) — idempotent task/campaign rows for the last
+  // 24h. Best-effort like every other sweep; the ledger is a read model, not a
+  // gate.
+  const ledger = await buildOutcomeLedger(env).catch((e: unknown) => ({ tasks: -1, campaigns: -1, inserted: -1, error: e instanceof Error ? e.message : String(e) }));
+  await env.EPHEMERAL.put("ledger:last_build", JSON.stringify({ at: Date.now(), ...ledger })).catch(() => {});
+
+  // Decision-package expiry (roadmap P1) — draft/approved packages with a
+  // past expiry become 'expired' so stale approvals never look actionable.
+  const expired = await expireDecisionPackages(env).catch(() => -1);
+  await env.EPHEMERAL.put("decisions:last_expire", JSON.stringify({ at: Date.now(), expired })).catch(() => {});
 }
 
 // Backfill shipped_features from product-repo commits on main. Covers both

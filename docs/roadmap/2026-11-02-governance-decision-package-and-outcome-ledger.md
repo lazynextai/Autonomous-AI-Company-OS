@@ -1,7 +1,7 @@
 # Design Proposal — Governance Decision Package + Outcome & Cost Ledger (P1)
 
 **Date:** 2026-11-02
-**Status:** Proposal (founder-approved roadmap item, not yet scheduled)
+**Status:** IMPLEMENTED 2026-11-03 (PR #13) — `decision_packages` + `outcome_ledger` (migration 011), routes in `worker/src/decisions.ts` / `ledger.ts`, dispatch paths open/close a decision package fail-closed (opt-in gate via `config:decision_enforce`, default off), daily sweep builds idempotent rows. Verified: pytest + `node --test` green before merge.
 **Source:** [Star-list review — roadmap opportunities 2 & 4](../research/github-star-list-autonomous-ai-company-os-2026-11-02.md)
 **Pattern references:** `Node-Features/company-os` (authority classes, evaluation/finance feedback), `Hyper-AI-Lab/cyber-ai-team` (owner approvals, canonical records), `piyush06singhal/nexus-ai` (approval gates, audit), `Claw-Company/clawcompany` (per-mission cost).
 
