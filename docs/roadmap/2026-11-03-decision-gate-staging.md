@@ -1,8 +1,9 @@
-# Decision-Gate Staging — Enforcement Deferred
+# Decision-Gate Staging — human_only ARMED, approval/all deferred
 
 **Date:** 2026-11-03
-**Status:** DEFERRED — gate left **OFF**. `config:decision_enforce` is not set in KV.
-**Context:** staged during the production deploy of the roadmap batch (PR #13, worker version `6cbc0318-9761-4e46-a36f-c856bfa869a6`).
+**Status:** ARMED at `human_only` (worker `b0920079-63cc-4f2b-9809-f761ab4fa146`). `config:decision_enforce = "human_only"` is durable in KV; `approval` and `all` stay OFF.
+**Why this is safe:** `human_only` covers only signwell/billing/payment/identity/legal actions — provably no autonomous fleet agent performs one, so enforcement is inert on normal work (verified live). Blocks are now visible as `episodic_events` scope `decision_gate`.
+**Previous context:** staged during the production deploy of the roadmap batch (PR #13, worker version `6cbc0318-9761-4e46-a36f-c856bfa869a6`).
 **Related:** [Governance decision package + outcome ledger](./2026-11-02-governance-decision-package-and-outcome-ledger.md) (PR #13 design).
 
 ## Summary
@@ -128,7 +129,20 @@ of both. The flag stays off. `GET /kv/get?key=config:decision_enforce` → `{"va
 Do not skip to step 4. The failure mode is silent: a blocked post looks exactly like a failed
 post, and the row is parked terminal (`status='failed'`) rather than retried.
 
-## 6. Verification record (2026-11-03, worker `6cbc0318`)
+## 7. Live verification of the armed state (2026-11-03, worker `b0920079`)
+
+- `GET /health` (internal bearer) → `{"ok":true}`; bare (no bearer) → 401 as designed.
+- `GET /kv/get?key=config:decision_enforce` → `{"value":"human_only"}` (durable — written hours earlier, re-read after the deploy).
+- `/decision/packages`, `/ledger/summary`, `/capability/matrix` → 200; `/api/v1/openapi.json` → 200; `/api/v1/connectors` → 200.
+- **Unapproved human-only dispatch** `POST /api/v1/connectors/signwell` (admin key) → **503**
+  `blocked by decision gate — missing approval` / `no approved decision package for 'signwell' (authority human_only, scope human_only)`, provider never touched.
+- **Block row visible**: `episodic_events` scope `decision_gate` carries
+  `{event:"decision_gate_blocked", type, connector, target, authority, scope, reason, ts}` for each block.
+- **Approved path**: created + approved a `signwell`-targeted package (internal `POST /decision/packages`, then `/decide {"outcome":"approved"}`) → the same dispatch passed the gate and reached the dispatcher, which short-circuits locally with `400 use /api/v1/signwell/send for signing` (`decision_id` recorded). **No external network call.** Package then voided → the same dispatch blocks again (503).
+- **No collateral damage**: `cron:last_tick` fresh; `outbound_breaker_config` `enabled=1`, `tripped_reason` null; **0** new `episodic_events` scope `breaker` rows; that probe left 1 failed `connector` dispatch for `signwell` — below every limit (failure 1/5, error-rate inconclusive below 5 dispatches) and untouched by any agent path.
+- Rollback: `wrangler rollback` to `6cbc0318` + `config:decision_enforce=off` (KV put, `ttl:0` numeric). Not needed.
+
+## 8. Verification record (2026-11-03, worker `6cbc0318`)
 
 - `GET /kv/get?key=config:decision_enforce` → `{"value":null}` (never written; gate off).
 - `decisionGate` production callers: **0** (whole-repo grep: definition + tests only).
