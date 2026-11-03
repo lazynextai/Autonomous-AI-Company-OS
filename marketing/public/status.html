@@ -32,6 +32,7 @@ section{padding:16px 0 60px}
 h2{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px}
 footer{border-top:1px solid var(--border);padding:28px 0;color:var(--muted);font-size:12px;text-align:center}
 .skip{position:absolute;left:-9999px;top:0;background:#6D28D9;color:#fff;padding:10px 18px;border-radius:0 0 10px 0;font-size:13px;font-weight:700;z-index:999}.skip:focus{left:0}
+.agentready{color:var(--accentSoft);font-size:12px;margin-top:10px}
 </style>
 <script type="text/javascript">
     (function(c,l,a,r,i,t,y){
@@ -53,7 +54,8 @@ footer{border-top:1px solid var(--border);padding:28px 0;color:var(--muted);font
 <header>
   <div class="badge"><span class="dot"></span> All systems operational</div>
   <h1>Lazynext Status</h1>
-  <p class="sub">Live availability across the platform.</p>
+  <p class="sub">Live availability across the platform — API, product, and agent surfaces.</p>
+  <p class="agentready">Agent-ready: MCP · A2A · OpenAPI 3.1 · agent.json · llms.txt · GitHub Action · REST</p>
 </header>
 
 <section>
@@ -76,6 +78,7 @@ const services=[
  {name:'Accessibility Checker API',desc:'checker.lazynext.com/health',url:'https://checker.lazynext.com/health'},
  {name:'Public scan API',desc:'api.lazynext.com/health',url:'https://api.lazynext.com/health'},
  {name:'Accessibility Checker',desc:'checker.lazynext.com',url:'https://checker.lazynext.com/'},
+ {name:'Agent surfaces',desc:'MCP · A2A · agent.json · llms.txt',url:'https://checker.lazynext.com/.well-known/agent.json'},
  {name:'Design (Penpot)',desc:'penpot.lazynext.com',url:'https://penpot.lazynext.com'},
 ];
 // uptime bars — 90 days, all green (seeded; real history accumulates over time)

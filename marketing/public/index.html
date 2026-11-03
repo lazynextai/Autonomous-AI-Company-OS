@@ -76,6 +76,7 @@ footer{border-top:1px solid var(--border);padding:40px 0;color:var(--muted);font
 .fgrid{display:flex;justify-content:space-between;align-items:center}
 .flinks{display:flex;gap:24px;flex-wrap:wrap}
 .flinks a{color:var(--muted);padding:15px 0;display:inline-block}.flinks a:hover{color:var(--text)}
+.agentready{display:inline-block;margin-top:6px;color:var(--accentSoft);font-size:12px}
 @media(max-width:860px){h1{font-size:40px}.grid3,.tiers,.how{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.navlinks a:not(.btn){display:none}}
 .skip{position:absolute;left:-9999px;top:0;background:#6D28D9;color:#fff;padding:10px 18px;border-radius:0 0 10px 0;font-size:13px;font-weight:700;z-index:999}.skip:focus{left:0}
 </style>
@@ -108,7 +109,7 @@ footer{border-top:1px solid var(--border);padding:40px 0;color:var(--muted);font
 <header class="hero">
   <div class="badge">Autonomous AI Company OS</div>
   <h1>A company that<br/><em>builds itself.</em></h1>
-  <p class="sub">12 agents research, plan, build, test, and ship real products. Your infra, your rules — you watch it work.</p>
+  <p class="sub">12 agents research, plan, build, test and ship real products. They also publish them: OpenAPI 3.1, MCP, A2A, agent.json and llms.txt are live today. Your infra, your rules.</p>
   <div class="cta">
     <a class="btn btn-primary" href="https://dashboard.lazynext.com/signup" style="padding:16px 32px;font-size:15px">Get started</a>
     <a class="btn btn-ghost" href="#how" style="padding:16px 32px;font-size:15px">How it works</a>
@@ -211,7 +212,7 @@ document.getElementById('waitlist').addEventListener('submit',async e=>{
 </main>
 <footer>
 <div class="wrap fgrid">
-  <div><b>◆ Lazynext</b> · The Autonomous AI Company OS</div>
+  <div><b>◆ Lazynext</b> · The Autonomous AI Company OS<br/><span class="agentready">Agent-ready: MCP · A2A · OpenAPI 3.1 · llms.txt — all live</span></div>
   <div class="flinks">
     <a href="https://dashboard.lazynext.com">Dashboard</a>
     <a href="/docs">Docs</a>

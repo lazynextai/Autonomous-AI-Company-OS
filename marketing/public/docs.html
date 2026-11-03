@@ -29,7 +29,7 @@ h1{font-size:34px;font-weight:800;margin-bottom:10px}
 .card p{font-size:13px;color:var(--muted);line-height:1.6}
 code,pre{background:var(--input);border:1px solid var(--border);border-radius:8px;font-family:ui-monospace,monospace;font-size:13px}
 pre{padding:16px;margin:12px 0;overflow-x:auto;color:var(--accentSoft)}
-code{padding:2px 6px;color:var(--accentSoft)}
+code{padding:2px 6px;color:var(--accentSoft);overflow-wrap:anywhere}
 section{padding:8px 0 32px}
 h2{font-size:20px;font-weight:800;margin-bottom:12px}
 p.body{font-size:14px;color:var(--muted);line-height:1.8}
@@ -39,6 +39,7 @@ td{padding:8px 0;border-bottom:1px solid var(--border);color:var(--text)}
 footer{border-top:1px solid var(--border);padding:28px 0;color:var(--muted);font-size:12px;text-align:center}
 @media(max-width:700px){.grid{grid-template-columns:1fr}}
 .skip{position:absolute;left:-9999px;top:0;background:#6D28D9;color:#fff;padding:10px 18px;border-radius:0 0 10px 0;font-size:13px;font-weight:700;z-index:999}.skip:focus{left:0}
+.tablewrap{overflow-x:auto;margin:12px 0}.tablewrap table{margin:0}
 </style>
 <script type="text/javascript">
     (function(c,l,a,r,i,t,y){
@@ -67,6 +68,7 @@ footer{border-top:1px solid var(--border);padding:28px 0;color:var(--muted);font
   <div class="card"><div class="ic">▶</div><h2><a class="cardlink" href="#quickstart">Quickstart</a></h2><p>Clone, configure, make dev — your company starts running.</p></div>
   <div class="card"><div class="ic">◐</div><h2><a class="cardlink" href="https://penpot.lazynext.com">Design system</a></h2><p>132 boards + tokens.json — the full product blueprint.</p></div>
   <div class="card"><div class="ic">◆</div><h2><a class="cardlink" href="https://github.com/Lazynext-AI">GitHub</a></h2><p>The whole platform, open on GitHub.</p></div>
+  <div class="card"><div class="ic">◉</div><h2><a class="cardlink" href="#agent-surfaces">Agent surfaces</a></h2><p>MCP, A2A, agent.json, llms.txt — callable today, verified live.</p></div>
 </div>
 
 <section id="quickstart">
@@ -93,6 +95,25 @@ make dev</pre>
 <tr><td><code>/api/v1/kv/{key}</code></td><td>GET/PUT</td><td>read/write</td></tr>
 <tr><td><code>/api/v1/vectorize/query</code></td><td>POST</td><td>read</td></tr>
 </table>
+</section>
+
+<section id="agent-surfaces">
+<h2>Agent surfaces</h2>
+<p class="body">These belong to the product — <a href="https://checker.lazynext.com/" style="color:var(--accentSoft)">Accessibility Checker</a>, not the platform API above. They answer without a key, and scans share the free-tier quota of 3 rendered scans per day per IP; Pro is $9/mo.</p>
+<p class="body"><strong>Agent-ready — verified live, not on a roadmap:</strong></p>
+<div class="tablewrap">
+<table>
+<tr><th>Surface</th><th>Where</th><th>What it gives you</th></tr>
+<tr><td><strong>MCP</strong></td><td><code>POST https://checker.lazynext.com/mcp</code></td><td>JSON-RPC tools <code>scan_url</code>, <code>scan_html</code>, <code>get_report</code>, <code>list_rules</code></td></tr>
+<tr><td><strong>A2A</strong></td><td><code>POST https://checker.lazynext.com/a2a</code></td><td>JSON-RPC agent-to-agent calls, plus <code>/a2a/tasks/:id</code>; the task id is the report id</td></tr>
+<tr><td><strong>OpenAPI 3.1</strong></td><td><a href="https://api.lazynext.com/openapi.json" style="color:var(--accentSoft)"><code>/openapi.json</code></a></td><td>21 documented paths, 3 declared security schemes</td></tr>
+<tr><td><strong>agent.json</strong></td><td><a href="https://checker.lazynext.com/.well-known/agent.json" style="color:var(--accentSoft)"><code>/.well-known/agent.json</code></a></td><td>A2A 0.3.0 discovery card, 3 skills</td></tr>
+<tr><td><strong>llms.txt</strong></td><td><a href="https://checker.lazynext.com/llms.txt" style="color:var(--accentSoft)"><code>/llms.txt</code></a></td><td>Plain-text orientation for LLM crawlers</td></tr>
+<tr><td><strong>REST</strong></td><td><code>/scan</code>, <code>/report/:id</code>, <code>/rules</code>, <code>/badge/:id.svg</code>, <code>/health</code></td><td>The same scanner over plain HTTP</td></tr>
+<tr><td><strong>GitHub Action</strong></td><td><a href="https://github.com/Lazynext-AI/accessibility-checker/blob/main/action.yml" style="color:var(--accentSoft)"><code>uses: Lazynext-AI/accessibility-checker@v1</code></a></td><td>Fail the build below a score threshold</td></tr>
+</table>
+</div>
+<p class="body">No demo call. Scan a page now, or call the API — free tier included, $9/mo Pro, cancel any time.</p>
 </section>
 
 </main>
