@@ -2,7 +2,7 @@
 
 **Nothing in this file has been sent.** Every draft waits for founder approval. Do not click unsubscribe links; do not sign in anywhere; do not pay anything.
 
-**DECISIONS 2026-11-04:** Item A (Startup Zone) — **HOLD, founder will handle manually** (do NOT send). Item B (Microsoft) — still pre-authorized for 11-06/07. The 5 recommended Gmail filter rules were **APPROVED + APPLIED 2026-11-04** (verified: helper lists 5 filters) — newsletter noise now auto-archives to labels instead of burying the inbox.
+**DECISIONS 2026-11-04:** Item A (Startup Zone) — **REMOVED FROM ALL LISTS. FOUNDER HANDLES IT PERSONALLY.** Do not reply, draft, remind, or mention it again. Never touch this thread. Item B (Microsoft) — still pre-authorized for 11-06/07. The 5 recommended Gmail filter rules were **APPROVED + APPLIED 2026-11-04** (verified: helper lists 5 filters) — newsletter noise now auto-archives to labels instead of burying the inbox.
 
 ## Founder alert (read this first)
 
@@ -22,43 +22,9 @@
 
 ---
 
-## A. SEND — Startup Zone: draft Board minutes for review & signature
+## A. Startup Zone — REMOVED (founder handles personally)
 
-- **Thread:** `1a0f75b2fa439ec1` (ticket `[## 26153 ##]`)
-- **From:** The Startup Zone `<support@thestartupzone.zohodesk.com>`
-- **Subject:** `Re:[## 26153 ##] UNITED GLOBAL VENTURES PRIVATE LIMITED - Post Incorporation`
-- **Date:** 2026-11-02 20:47 PT (latest message; thread since 2026-10-01)
-- **Unread:** 1 (latest message)
-
-**Quoted core content (verbatim):**
-
-> Dear Avas,
->
-> Good Morning !!
->
-> Please find attached the draft minutes of the 1st Board Meeting of M/s. UNITED GLOBAL VENTURES PRIVATE LIMITED for the financial year 2026-2027, for your review and signature.
->
-> Kindly inform us of any special activities, if any, so that the Board Minutes can be updated accordingly.
-
-**What they want:** review the attached draft minutes, tell them about any special activities to record, sign, and return. They are the company-secretarial vendor handling post-incorporation compliance.
-
-**Draft reply:**
-
-> To: support@thestartupzone.zohodesk.com
-> Subject: Re: [## 26153 ##] UNITED GLOBAL VENTURES PRIVATE LIMITED - Post Incorporation
->
-> Dear Varsha,
->
-> Thank you — we have received the draft minutes of the 1st Board Meeting for FY 2026-27.
->
-> We are reviewing the document now and will revert with any corrections or additional special activities to be recorded. Could you confirm how you would like the signed minutes returned — a scanned signed copy by email, or an electronic signature — and whether you also need the signed ADT-1 or any other forms filed alongside?
->
-> Thanks,
-> Avas Patel
-> UNITED GLOBAL VENTURES PRIVATE LIMITED (Lazynext)
-> support@lazynext.com
-
-**Assessment: SEND (recommended).** The reply only acknowledges receipt and asks a procedural question — it commits to nothing and does not approve the minutes. **Caveat:** this sweep did not open the PDF attachment; the founder must review the minutes and confirm "special activities" before signing anything.
+- **Status: NO AGENT CONTACT, EVER.** Founders decided 2026-11-04: they handle this thread themselves. No reply, no draft, no reminder, no mention. This thread (`1a0f75b2fa439ec1`) is permanently out of scope for every automated session and every future agent. Do not re-read it into scope, do not "check in" on it, do not flag its due date anywhere.
 
 ---
 
