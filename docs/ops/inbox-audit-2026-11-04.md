@@ -103,7 +103,9 @@ Headline: this mailbox is **~91% newsletter/noise**. There are **no customer or 
 5. **Spam folder reviewed, not deleted.** 2 threads, logged above; left for founder review.
 6. **No Gmail filter or label changes were made.** The helper exposes `list_filters` but **no create/modify route**; per the task rules, filter rules are logged instead (below) rather than half-applied through an unsupported path.
 
-## Recommended Gmail filter rules (for a follow-up; not applied)
+> **UPDATE 2026-11-04 (founder-approved, APPLIED):** all 5 rules below are now **live** — created directly against the Gmail API with the same local OAuth token (helper has no create route, so a one-off script did it: `POST /gmail/v1/users/me/settings/filters`). Labels `News`, `Vendor-Noise`, `Vendor-Watch`, `OTP`, `CI` were created and attached. Verified: `node ~/.cursor/gmail-filters-mcp.mjs --list` → `{"ok":true,"count":5}`. Rules 1/2/4/5 archive (skip Inbox) + label; rule 3 only labels and **keeps in Inbox** (watch threads must stay visible). Two API limits noted honestly: the "never send to Spam" checkbox and "auto-delete after 7 days" are **not** expressible as Gmail API filter actions, so neither is set.
+
+## Recommended Gmail filter rules (APPLIED 2026-11-04)
 
 Creating these needs `gmail.settings.basic` (the helper's token has it) but a create function the helper does not have. Add via Gmail UI or extend the helper:
 

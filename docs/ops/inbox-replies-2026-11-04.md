@@ -2,6 +2,8 @@
 
 **Nothing in this file has been sent.** Every draft waits for founder approval. Do not click unsubscribe links; do not sign in anywhere; do not pay anything.
 
+**DECISIONS 2026-11-04:** Item A (Startup Zone) — **HOLD, founder will handle manually** (do NOT send). Item B (Microsoft) — still pre-authorized for 11-06/07. The 5 recommended Gmail filter rules were **APPROVED + APPLIED 2026-11-04** (verified: helper lists 5 filters) — newsletter noise now auto-archives to labels instead of burying the inbox.
+
 ## Founder alert (read this first)
 
 1. **Microsoft Partner Center: still no verdict.** Whole-mailbox check (2026-11-04) shows nothing newer than the **2026-10-27** tracking email (TrackingID#2610070060003196) — that predates attempt 3 and is already answered. Watch item 1 stays open; the **email-only follow-up is pre-authorized for 2026-11-06/07** and drafted below (item B). No sign-in, no OTP.
