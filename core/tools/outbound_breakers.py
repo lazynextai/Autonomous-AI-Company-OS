@@ -18,9 +18,11 @@ A persisted `tripped_reason` on the config row (written by the worker's
 THAT connector while it stands.
 
 Mode is `observe` by default (logs the would-be reason, never blocks). Set
-`CONN_BREAKER_MODE=active` to enforce. Reading state fails SOFT (post anyway)
-so a control-plane outage can never stop company posting; evidence of a real
-exceeded limit or tripped row fails closed per connector.
+`CONN_BREAKER_MODE=active` to enforce — in `os.environ` OR in `.env` (pydantic
+Settings parses the file; the fleet entrypoint has no `load_dotenv`). Reading
+state fails SOFT (post anyway) so a control-plane outage can never stop company
+posting; evidence of a real exceeded limit or tripped row fails closed per
+connector.
 """
 
 import datetime as _dt
@@ -72,9 +74,41 @@ _EMAIL_SQL = (
 )
 
 
+def _settings_mode() -> str | None:
+    """The `.env` value of CONN_BREAKER_MODE, via pydantic Settings.
+
+    The fleet entrypoint (scripts/run_agents.py) never calls `load_dotenv`, so
+    `.env` keys are NOT in `os.environ` — `Settings` is the only thing that
+    parses the file. Without this fallback the documented switch
+    (`CONN_BREAKER_MODE=active` in `.env`) silently did nothing under launchd.
+
+    Never raises: an unreadable settings object degrades to "unset" (observe).
+    """
+    try:
+        from core.config import get_settings  # local import: no import cycle
+
+        value = getattr(get_settings(), "conn_breaker_mode", None)
+    except Exception as e:  # noqa: BLE001 — config trouble must not stop posting
+        logger.warning("outbound_breaker_mode_settings_unreadable", error=str(e))
+        return None
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None  # blank in .env is "unset", not a value
+
+
 def _current_mode() -> str:
-    """CONN_BREAKER_MODE=active arms enforcement; anything else observes."""
-    return "active" if os.environ.get("CONN_BREAKER_MODE", "").strip().lower() == "active" else "observe"
+    """Resolve the breaker posture: os.environ > .env (Settings) > observe.
+
+    `active` arms enforcement; unknown/blank/newer-scope values observe. An
+    explicit (even blank) os.environ value wins outright so launchd/plist and
+    ad-hoc runs can always override the checked-in file. Synchronous and cheap
+    — `get_settings()` is lru_cached, no I/O or network.
+    """
+    raw = os.environ.get("CONN_BREAKER_MODE")
+    if raw is None:
+        raw = _settings_mode()
+    return "active" if str(raw or "").strip().lower() == "active" else "observe"
 
 
 def _int(value: Any, fallback: int, minimum: int = 1) -> int:

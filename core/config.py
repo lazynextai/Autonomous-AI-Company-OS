@@ -46,6 +46,13 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     environment: str = "development"
     founder_email: str = ""
+    # Outbound breaker posture for the local fleet (core/tools/outbound_breakers.py):
+    # "active" arms enforcement, anything else observes. This exists because the
+    # fleet entrypoint (scripts/run_agents.py) never calls load_dotenv — pydantic
+    # is the only thing that reads .env, so `CONN_BREAKER_MODE=active` there has
+    # to be a declared field to take effect. An explicit os.environ value still
+    # wins (launchd plist / ad-hoc runs).
+    conn_breaker_mode: str = "observe"
     # Orchestration intervals (seconds). Shorter = more responsive, more API calls.
     ceo_loop_interval: int = 60   # 1 min (optimized for speed)
     cto_loop_interval: int = 30  # 30 seconds (optimized for speed)
