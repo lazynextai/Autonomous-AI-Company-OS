@@ -1,0 +1,78 @@
+# Market Intelligence Opportunity Scan — Autonomous AI Company OS
+
+**Reviewed:** 2026-11-03 (IST)
+**List:** Market Intelligence (17) at https://github.com/stars/lazynextai/lists/market-intelligence
+**Source:** GitHub GraphQL API via authenticated `gh` CLI (stars, forks, pushed_at, archived, description, primary language, topics, license) + README-level review of the api-evangelist profiles and product-shape repositories
+**Baseline:** Sister report `github-star-list-autonomous-ai-company-os-2026-11-02.md` (list split; this is the follow-up business/market scan, not an implementation audit)
+**Scope:** Everything below is market intelligence against Lazynext's *business and surfaces* — no code, no ops, no deploys, no listings bought.
+
+---
+
+## 1. Why the market list, re-read as a market
+
+The 2026-11-02 audit treated this bucket as "Adjacent / research". Re-read for business signal, it is actually the clearest picture of how the **"AI company OS" category is being marketed right now** — because seven of the seventeen repos are `api-evangelist/*` **third-party API-surface profiles** (Kin Score, agent-readiness rubrics, apis.io listings) of real funded startups, and the other ten are indie attempts at the same category name. Two structural facts dominate:
+
+1. **Every serious entry is sales-led enterprise.** Pango (YC S26, logistics), Juna.ai (Kleiner Perkins / Norrsken / John Doerr, factories), AI Build (Seedcamp/SuperSeed, manufacturing), Absurd (YC F25, video), ARX (€42M raised, defense), Applied Intuition (archived profile, vehicle OS). None offers self-serve signup. Absurd's *entire* public web surface is four routes and **no pricing page**. Pango is the only one with a public pricing page — and its primary CTA is `book-demo`.
+2. **None of them are agent-ready where it counts.** Under API Evangelist's published Kin rubric, the best score in this set is Pango at **20.0 ("emerging")**, and even Pango scores **0.0 on contract quality** — the company *markets* "API-first architecture" while publishing no OpenAPI, no SDK, no API reference. Juna 8.2, AI Build 18.5, ARX 10.9, Absurd 3.0, Alphabet 3.3; Applied Intuition is unrated/archived. Only two agent artifacts exist across all seven profiled companies: **Pango publishes one MCP server** on apis.io, and **ARX publishes an `llms.txt`** for AI agents.
+
+Lazynext already ships, publicly and test-pinned: an OpenAPI 3.1 spec with declared security schemes, a JSON-RPC MCP endpoint, an A2A surface, `/.well-known/agent.json`, `llms.txt`, and a `/health` status. **In this exact peer group, that is a category outlier.** The gap between what these companies *claim* (OS-name + agentic) and what they *publish* (nothing a developer or agent can call) is the entire opportunity.
+
+## 2. Per-repo market signal
+
+| Repository | Stars/Forks | Lang · License | Last push | Archived | Market signal (positioning / pricing / vertical) | Lazynext surface it maps to |
+|---|---|---|---|---|---|---|
+| `api-evangelist/pango` | 1/0 | — · — | 2026-10-31 | — | **Kin 20.0 (best in set, "emerging")**. "Agentic OS" for e-commerce post-purchase + logistics; YC S26; 100+ carriers; claims API-first with **zero published docs**; publishes 1 MCP server + a pricing page (sales-led `book-demo` funnel). | Marketing site + agent surfaces: the "claims vs publishes" contrast is our copy; Pango's MCP listing is the only peer artifact we beat. |
+| `api-evangelist/junaai` | 2/0 | — · — | 2026-10-30 | — | **Kin 8.2**. "Agentic Factory OS", Berlin; heavy industry verticals (chemicals, cement, pharma, F&B); enterprise integrations (SAP/Siemens); no public API/SDK/docs; no pricing page. | Dashboard capability/readiness view: human-in-the-loop + traceability is the same story our `human_only` decision gate tells. |
+| `api-evangelist/ai-build` | 1/0 | — · — | 2026-10-28 | — | **Kin 18.5.** Additive-manufacturing "Aibuild OS"; computer-use AI operating CAD/CAE/CAM; Seedcamp/SuperSeed; no public API/docs. | None (vertical hardware/design tooling). Competitor-lens only. |
+| `api-evangelist/absurd` | 1/0 | — · — | 2026-10-28 | — | **Kin 3.0.** "Creative OS for AI video"; YC F25; customers Hims/Kalshi/Replit/Brex/Whop/Reforge; **deliberately sales-led: 4-route sitemap, no pricing page, no dev portal, no GitHub org.** | Marketing copy: the "no pricing page" posture legitimizes our public free tier + transparent pricing as a wedge. |
+| `api-evangelist/arx` | 1/0 | — · — | 2026-10-29 | — | **Kin 10.9.** "Mithra OS" defense autonomy; €42M raised; publishes an **`llms.txt`** (only agent artifact besides Pango's MCP); no public API. | `llms.txt`/agent-discovery precedent: validates serving `llms.txt` + `agent.json` as a differentiator, not a nicety. |
+| `api-evangelist/alphabet` | 1/0 | — · — | 2026-10-28 | — | **Kin 3.3.** Alphabet/Google surface; broad Fortune-100 profile; near-zero agent artifacts. | None. Control repo for the rubric method. |
+| `api-evangelist/applied-intuition` | 1/0 | — · — | 2026-08-08 | **YES** | **Unrated (archived).** Physical-AI/vehicle-OS profile; the archived item from the 11-02 audit. | None. Historical. |
+| `Zenieverse/EmpireOS` | 2/0 | TypeScript · MIT | 2026-06-09 | — | "Startup-in-a-Box": **Notion as source of truth + audit trail**, agents (Gemini) execute from human decisions; MCP-pattern tooling. Human-AI cohabitation is the pitch. | Dashboard/governance narrative: our decision packages + readiness matrix are the stronger version; borrow the "humans read/approve in their workspace" framing. |
+| `Eginn-33/VIATREE-site` | 3/0 | HTML · — | 2026-08-11 | — | "VIATREE OS": 7 departments / 27+ agents, **each department locked to a different model vendor**; live site `viatreebot.com` + 15 blog posts. Vendor diversity as a differentiator. | Dashboard capability matrix + marketing: per-department provider routing is a claim we can make truthfully (provider-agnostic dispatch), or consciously drop. |
+| `BigRaj01/ArcOS` | 1/0 | TS · — | 2026-08-04 | — | "OS for Autonomous Companies": agents **pay each other in USDC on Circle Arc** (blockchain). Vercel demo. | **Non-opportunity** (house rule: no blockchain/payments). Watch for economic-agent framing only. |
+| `ChaitanyaJoshi1769/ServiceOS` | 1/0 | TS · — | 2026-06-19 | — | "OS for Autonomous AI-Native Service Companies"; README is all-buzzword enterprise stack (K8s/Kafka/LangGraph). Positioning target: service businesses. | Marketing copy: "AI-native service company" buyers exist; our CAT/CRM/sequence surfaces can be pitched to them directly. |
+| `gagan114662/os1-samantha` | 1/0 | Swift · MIT | 2026-05-18 | — | 19.5 MB **desktop voice** "AI office" fork of hermes-desktop-os1; 147 open issues (low-maintenance). Consumer desktop runtime. | **Non-opportunity** (desktop stack, out of Cloudflare-first scope). |
+| `grunewaldtheo9-coder/AilaAI-OS` | 1/0 | JS · — | 2026-07-10 | — | Gemini-controlled **secure Linux VM** ("AI-powered OS"). Computer-use/VM concept, single file commit. | **Non-opportunity** (VM/computer-use infra mismatch, security weight). |
+| `walid-khalafi/AICompanyOS` | 1/0 | C# · MIT | 2026-05-26 | — | "Autonomous multi-agent software company platform" on **.NET + Microsoft Agent Framework**; Clean Architecture. | None (stack-island). Alternative-ecosystem reference only. |
+| `xingzihai/crazy-pumpkin-os` | 1/1 | Python · MIT | 2026-03-30 | — | "Install, configure, and run your own AI-powered software company" — DIY self-host pitch; 1 fork; no issues enabled; single-day activity. | None. Illustrates the self-host hobbyist lane we deliberately don't own. |
+| `zer0-A1/N8N-Agent` | **17/0** | Python · — | 2025-10-17 | — | **Highest-starred repo in the entire list** — and it's a stale (1 yr) **personal-administration** agent ("Clique": calendar/email/CRM/teams via text/voice). | Watch-signal: consumer personal-assistant automation out-tractions company-OS; we stay company-scoped, but it sizes the "text-driven ops assistant" demand. |
+| `kirtidhi/job-search-os` | 1/0 | Python · — | 2026-06-28 | — | Consumer **job-search vertical**: 5-stage autonomous application pipeline + Google Workspace sync. | None (B2C vertical, not company ops). Vertical-agent taxonomy example only. |
+
+> Kin Scores: independent API Evangelist ratings (rubric 0.24–0.25, scored 2026-10-17/10-23), drawn from each profile README. "0.0 contract quality" across the board means none of these companies publish a machine-consumable API contract — even where they market one.
+> Star counts are GitHub metadata at scan time; the api-evangelist profiles are index artifacts, so their 1–2 stars are noise, not traction.
+
+## 3. Opportunity layers, ranked by fit to existing Lazynext surfaces
+
+Fit = leverage of what already ships. Nothing below requires a new product, a paid signup, or protected-file changes.
+
+1. **P1 — "We publish what they only claim": agent-readiness as the front-door claim.** Every peer with an OS-name scores 0.0 on published contract quality; only Pango (1 MCP server) and ARX (`llms.txt`) have *any* agent artifact. Lazynext ships OpenAPI 3.1 (security-scheme-declared), `/mcp`, `/a2a`, `agent.json`, `llms.txt`, `/health`. Rewrite the marketing-site + checker landing value props and the SaaSHub/AlternativeTo/directree descriptions around a "fully agent-readable" checklist — and list the product worker's `/openapi.json` on **apis.io** (free provider listing; free corrections per API Evangelist's own policy — no partnership, no payment). *Surfaces: marketing site, checker positioning, listings. Zero code; the artifacts are already live and route-parity-tested.*
+
+2. **P1 — Claim the self-serve white space the OS-market gives us.** The whole peer set is book-a-demo (Pango → `book-demo` even with a pricing page; Absurd → no pricing page; Juna/AI Build → enterprise engagements). No one competes on price, free tier, or public benchmark. Lazynext's free 3/day scans, 30-day trial offer, transparent US$9–39 Pro, and the public `benchmark` percentile should be the *contrast*, not just the offering. Add one line to listing/marketing copy: "self-serve, transparent pricing, public benchmarks — the vertical-OS players route you to a demo." *Surfaces: checkout/funnel, marketing site, SaaSHub/AlternativeTo/directree copy. Copy-only.*
+
+3. **P2 — Adopt the category's naming grammar without renaming the product.** The market names by vertical: Agentic Factory OS, Creative OS, Mithra OS, Vehicle OS, agentic OS for logistics. Our product is "Accessibility Checker" — a point-tool name in an OS-name category. Ship the category language in positioning copy ("the accessibility OS for the AI era", "company OS that ships a checker, not a deck") on the marketing site, checker tagline, and social bios — no product rename, no URL churn. *Surfaces: marketing site, checker tagline, post-office desk bios. Copy-only.*
+
+4. **P2 — Surface the governance story the peers advertise but we actually run.** Juna sells "human-in-the-loop + full traceability"; EmpireOS sells a transparent audit trail in the founder's workspace. Lazynext *runs* the stronger version (`human_only` decision gate, decision packages, readiness matrix, observer, breaker visibility, audit rows). The gap is narrative: capture the EmpireOS "humans read/approve in their workspace" framing on the dashboard Governance page and in a short operator-facing doc ("decisions you can audit; gate blocks you can see"). *Surfaces: dashboard `/governance`, docs/, marketing copy. Docs/copy.*
+
+5. **P2 — Standardize the agent-discovery badges (ARX's `llms.txt` precedent).** ARX is scored partly because it publishes `llms.txt`. Make Lazynext's participation explicit: a small "Agent-ready: MCP · A2A · OpenAPI · llms.txt · agent.json" badge line on the marketing site footer / status page, and keep these artifacts linked from the homepage (`/.well-known/agent.json` is already served). *Surfaces: marketing site footer/status. Copy-only.*
+
+6. **P3 — Fold this corpus into a standing market-intel digest.** The api-evangelist profiles refresh weekly (pushed 10-28 → 10-31) and now carry scored rubrics, MCP-server counts, and pricing-page presence. Convert the 11-02 report's "research/market watch digest" recommendation into a concrete monthly scan: Kin Scores, published agent artifacts, new YC "OS" companies, pricing-page deltas. *Surfaces: `docs/research/` + founder briefing. Maintenance task, not a build.*
+
+## 4. Explicit non-opportunities
+
+1. **Economic agents / blockchain payments (`BigRaj01/ArcOS`)** — agents paying each other in USDC on Circle Arc. House rule forbids blockchain and crypto-payments; there is no fit with the billing stack (Dodo test-mode + Stripe-adjacent CC flows) or any business case that passes the rule. Watch framing only; never adopt.
+2. **Physical-AI verticals — logistics, factory, manufacturing, defense, vehicles (`pango`, `junaai`, `ai-build`, `arx`, `applied-intuition`)** — these are funded enterprises (YC, Kleiner Perkins, Seedcamp, €42M defense) with 2-year+ vertical sales motions, OT/plant integrations, and compliance weight (defense). Lazynext has no domain assets in any of them, and entering one is a new product, not a surface play. Keep as competitor lens; do not build landing pages, integrations, or connectors toward them.
+3. **Desktop / consumer / personal-administration runtimes (`os1-samantha`, `AilaAI-OS`, `job-search-os`, `N8N-Agent`)** — Swift-desktop voice agents, Gemini-controlled VMs, and B2C job-search/personal-admin pipelines are individual-user products on stacks outside Cloudflare-first. Note the irony: **N8N-Agent (17 stars) is the most-starred repo in the whole 17-item list** — consumer personal-assistant automation out-tractions company-OS — but it is a year stale and squarely out of scope. Do not add a desktop/consumer lane; do not borrow the desktop pattern into any surface.
+
+## 5. What changed since 2026-11-02
+
+- **No repo moved.** No new archives (only `applied-intuition`, already archived), no star gains, no pushes after the 11-02 audit. The three counts the 11-02 audit recorded are unchanged (EmpireOS 2→2, VIATREE-site 3→3, N8N-Agent 17→17; crazy-pumpkin-os 1 and all api-evangelist 1–2 as before). The list is static 24 h later.
+- **What's new is mined, not moved.** Six of the seven api-evangelist profiles carry Kin Scores scored 2026-10-17/10-23 that the 11-02 audit did not extract: Pango 20.0, AI Build 18.5, ARX 10.9, Juna 8.2, Alphabet 3.3, Absurd 3.0. These pre-date the audit but were the missing hard signal: **every peer scores 0.0 on contract quality** — the single most actionable fact in this scan. The profile `pushed_at` bump (10-28 → 10-31) is API Evangelist's weekly index maintenance, not company activity.
+- **New detail surfaced in the enrichment pass:** Absurd's no-pricing-page 4-route footprint (sales-led by design), Pango's public pricing page + `book-demo` funnel and its single published MCP server, and ARX's `llms.txt` — three concrete points the opportunity layers above use as contrast.
+
+## 6. Method and caveats
+
+- Metadata pulled 2026-11-03 via `gh api graphql` for all 17 list members (stars, forks, pushed_at, archived, description, language, topics, license); README-level review of the seven api-evangelist profiles and the five product-shape repos.
+- Kin Scores are API Evangelist's published rubric results in each profile README — independent but third-party; treat as directional, not gospel.
+- Profile repos contain no software; star counts on them measure nothing. The business signal lives in their descriptions and rubrics.
+- No GitHub, product, or production-state changes were made for this scan; protected files untouched; nothing paid or subscribed.
