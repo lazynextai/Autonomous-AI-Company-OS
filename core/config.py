@@ -53,6 +53,11 @@ class Settings(BaseSettings):
     # to be a declared field to take effect. An explicit os.environ value still
     # wins (launchd plist / ad-hoc runs).
     conn_breaker_mode: str = "observe"
+    # Observer posture for the local fleet (core/tools/observer.py): "off"
+    # silences the P4 observation row, anything else observes. Declared here for
+    # the same reason as conn_breaker_mode — the fleet entrypoint has no
+    # load_dotenv, so only pydantic reads `.env`. os.environ still wins.
+    conn_observer_mode: str = "observe"
     # Orchestration intervals (seconds). Shorter = more responsive, more API calls.
     ceo_loop_interval: int = 60   # 1 min (optimized for speed)
     cto_loop_interval: int = 30  # 30 seconds (optimized for speed)

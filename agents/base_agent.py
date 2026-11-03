@@ -22,6 +22,7 @@ from core.messaging.schemas import (
     TaskMessage,
 )
 from core.operations.task_tracker import TaskTracker
+from core.tools.observer import observe_task
 
 if TYPE_CHECKING:
     from core.evaluation.reward_engine import RewardEngine
@@ -111,6 +112,9 @@ class BaseAgent(ABC):
         self._last_status_update: float = 0
         self._last_status_value: tuple[str, str] = ("", "")
         self._status_throttle_seconds: int = 60
+        # Strong refs to in-flight observer passes: a bare `create_task` result
+        # can be garbage-collected mid-flight (see `_observe_dispatch`).
+        self._observer_tasks: set[asyncio.Task] = set()
 
     @abstractmethod
     async def execute_task(self, task: TaskMessage) -> TaskResult:
@@ -235,6 +239,20 @@ class BaseAgent(ABC):
             self.agent_id, "stopped", ""
         )
 
+    async def _observe_dispatch(self, task: TaskMessage) -> None:
+        """Fire-and-forget observer pass for one task dispatch.
+
+        Wraps `observe_task` so that even a raising/monkeypatched observer can
+        never surface as an unretrieved task exception — the observation is
+        additive evidence, never a failure mode of the task it describes.
+        """
+        try:
+            await observe_task(task.task_id, self.agent_id, task.description)
+        except Exception as e:  # noqa: BLE001 — deliberately swallowed
+            self.logger.warning(
+                "observer_pass_failed", task_id=task.task_id, error=str(e)
+            )
+
     async def handle_task(self, task: TaskMessage) -> None:
         """Full retry-diversify-escalate protocol."""
         self.current_task = task
@@ -242,6 +260,19 @@ class BaseAgent(ABC):
         await self.episodic_memory.add_event(
             self.agent_id, "task_started", task.description
         )
+
+        # Observer pass (P4). The worker's `observeTaskDispatch` sits before
+        # `executeTask` in `agentTick`, but production execution is fleet-side
+        # (`get_tasks_by_status` has no callers), so that seam never sees real
+        # work. This mirrors the same verdict onto the path that dispatches.
+        # Scheduled, NEVER awaited: an observation that is slow, failing, or
+        # absent must not delay, block, or alter this task.
+        try:
+            obs = asyncio.create_task(self._observe_dispatch(task))
+            self._observer_tasks.add(obs)
+            obs.add_done_callback(self._observer_tasks.discard)
+        except Exception as e:  # noqa: BLE001 — observation is additive only
+            self.logger.warning("observer_schedule_failed", error=str(e))
 
         prompts = await self.agent_memory.get_pending_prompts(self.agent_id)
         await self.agent_memory.mark_prompts_consumed(self.agent_id)
