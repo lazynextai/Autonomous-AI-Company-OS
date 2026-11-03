@@ -152,3 +152,29 @@ post, and the row is parked terminal (`status='failed'`) rather than retried.
   `connector/discord/passed` row. Recording → dispatch → close → ledger all intact.
 - Migration `011` applied before deploy, so the fail-closed record write could not break
   dispatch; `ensureDecisionSchema()` also self-heals a missing table.
+
+## 9. Status update — ARMED at `approval` (2026-11-03, founder-authorized)
+
+**Status: ARMED at `approval` (2026-11-03, KV `config:decision_enforce = "approval"`, `ttl:0` JSON number).**
+
+- **Seeded:** 32 approved decision packages, one per configured external connector (ids **5–36**:
+  5 x, 6 meta, 7 facebook, 8 instagram, 9 threads, 10 bluesky, 11 mastodon, 12 reddit,
+  13 pinterest, 14 vk, 15 youtube, 16 gmb, 17 line, 18 devto, 19 hashnode, 20 medium,
+  21 wordpress, 22 github, 23 gitlab, 24 tumblr, 25 ghost, 26 beehiiv, 27 lemmy, 28 listmonk,
+  29 nostr, 30 ayrshare, 31 postiz, 32 buffer, 33 letmepost, 34 twilio, 35 whatsapp, 36 brevo),
+  each `authority=approval`, `expiry_at=2026-12-31T23:59:59Z`, created via internal
+  `POST /decision/packages` then moved draft→approved via `/decision/packages/{id}/decide
+  {"outcome":"approved"}`. Read-back verified: exactly 32 approved, no missing, no extras.
+- **Deliberately unseeded:** `signwell` (human_only class — no standing approval, preserving the
+  human-only boundary; its connector-dispatch route is a local 400 short-circuit anyway, and the
+  real signing route `/api/v1/signwell/send` is not gated). The 8 internal-messaging
+  (auto-class) connectors need no package: discord, slack, telegram, matrix, teams, mattermost,
+  zulip, webhook.
+- **Live verification (no external network touched):** discord dispatch → 200/204 with
+  `decision_id` 37 (auto-class, not gated); youtube dispatch (approved external) → passed the
+  gate then local 400 `youtube requires media_url` (`decision_id` 38, zero network);
+  signwell dispatch → **503** `no approved decision package for 'signwell' (authority human_only,
+  scope approval)`, block row visible at `/decision/blocks` (id 425070). `cron:last_tick` fresh,
+  breaker `tripped_reason` null.
+- **Rollback:** set `config:decision_enforce` back to `human_only` (or `off`) via internal
+  `POST /kv/put {"key":"config:decision_enforce","value":"human_only","ttl":0}` (JSON number `0`).
