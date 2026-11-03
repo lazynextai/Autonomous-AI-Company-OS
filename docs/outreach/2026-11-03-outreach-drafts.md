@@ -93,7 +93,7 @@ human-fired send is **not** blocked by `config:decision_enforce` today.
 ## 2. Variant A — "shipped-stack" (qualified + engaged · 32 addresses)
 
 - **DB row:** `email_campaigns` id **9** — `outreach-shipped-stack-2026-11-03` (status `draft`,
-  segment `subscribed`)
+  segment `subscribed`, **`consent_basis` `prospect`** — cold audience, footer must not claim signup)
 - **Subject:** `Your site vs 75 accessibility checks — free scan`
 
 **Body (plain text as sent, footer appended automatically by the platform):**
@@ -172,13 +172,31 @@ as a same-day second touch.**
    suppression (e.g. inbound ticket opt-outs), and confirm none is a personal address.
 7. **Suppression count.** Acknowledge 19 `unsub:` keys, 14 intersecting the eligible list, and that
    the send loop re-checks `unsub:<email>` per recipient anyway.
-8. **Footer/consent.** `config:company_address` is the registered Bengaluru address and the
-   `marketingFooter` + `List-Unsubscribe`/`List-Unsubscribe-Post` headers are appended
-   automatically — confirm that is the intended legal block. (It is; no manual footer in the copy.)
+8. **Footer/consent.** **DEFECT FOUND AND CORRECTED (2026-11-04, smoke send to `support@lazynext.com`).**
+   The footer at the time hardcoded one consent sentence — *"You're receiving this because you signed
+   up at Accessibility Checker for product updates and a discount code."* That is TRUE for
+   sequence/waitlist recipients (they used `/leads` or `/api/v1/waitlist`) and FALSE for this 32-
+   address campaign audience, which was Serper-discovered: their emails were published on their
+   company websites and they never signed up. The false consent line is exactly what a spam
+   complaint cites, so it could not ship.
+   **Fix landed (code only, not deployed):** `marketingFooter(env, email, basis)` with
+   `basis: "opt_in" | "prospect"`, defaulting to `opt_in` (sequence callers byte-identical, no
+   behaviour change); the basis is persisted per campaign via `db/migrations/013_campaign_consent.sql`
+   (`email_campaigns.consent_basis TEXT NOT NULL DEFAULT 'opt_in'`, PRAGMA-guarded self-heal in the
+   worker) and read by the campaign send loop. Campaign 9 is stamped `consent_basis='prospect'`, so
+   the cold audience gets the accurate source line on first touch — no consent claim, same
+   unsubscribe affordance, same postal block. `config:company_address` is the registered Bengaluru
+   address; `List-Unsubscribe`/`List-Unsubscribe-Post` headers are still appended automatically.
+   **Founder decision needed (from the smoke send):** Brevo rewrites the in-body unsubscribe `<a
+   href>` through its link-tracking domain (`sendibt2.com`) so the mail client sees a third-party
+   URL, while the `List-Unsubscribe` header stays first-party (`checker.lazynext.com`). Decide
+   whether to disable Brevo link tracking to keep the in-body unsubscribe fully first-party.
 9. **Billing truthfulness.** Dodo remains in test mode. The copy promises a 30-day trial and
    `WELCOME20` only — confirm you are comfortable inviting trial signups while payments stay test.
-10. **Smoke test.** Fire one send to `support@lazynext.com` (or a seed address) and inspect the
-    rendered footer + unsubscribe link before the list send. That smoke send is a human action.
+10. **Smoke test.** A smoke send was already fired to `support@lazynext.com` (2026-11-03/04) — it
+    surfaced the footer defect above, the Brevo `sendibt2.com` href rewrite (decision in item 8),
+    and confirmed deliverability. Re-inspect the rendered footer once on a pre-send check before
+    the list send; that re-check is a human action.
 11. **Governance.** Campaign sends are `approval`-class; the decision gate is armed at
     `human_only`, so a human-fired send is not blocked. No decision package is required for a
     human send today.

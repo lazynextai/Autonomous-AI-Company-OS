@@ -200,15 +200,30 @@ export async function handleServices(
     if (!b.name || !b.subject || !b.html) return json({ error: "name + subject + html required" }, 400);
     const s = campaignSegment(b.segment);
     if (s.error) return json({ error: s.error }, 400);
+    // Acquisition basis is part of the campaign record, not the copy — a
+    // cold list must carry 'prospect' from creation. Unknown values are
+    // rejected rather than silently downgraded to a consent claim.
+    const cb = b.consent_basis == null
+      ? "opt_in"
+      : String(b.consent_basis).trim().toLowerCase();
+    if (cb !== "opt_in" && cb !== "prospect")
+      return json({ error: "consent_basis must be 'opt_in' or 'prospect'" }, 400);
+    await ensureCampaignConsentColumn(env);
     return insert(env, "email_campaigns",
-      ["name", "subject", "html", "segment"],
-      [b.name, b.subject, b.html, s.seg]);
+      ["name", "subject", "html", "segment", "consent_basis"],
+      [b.name, b.subject, b.html, s.seg, cb]);
   }
   if (path.match(/^\/api\/v1\/marketing\/campaigns\/\d+\/send$/) && req.method === "POST" && id) {
     if (!(await brevoCred(env))) return json({ error: "brevo not connected — set it in Settings → Connector library" }, 503);
+    // The consent disclosure must match how this audience was acquired —
+    // cold prospect lists must not receive the opt-in sentence.
+    await ensureCampaignConsentColumn(env);
     const camp = await env.DB.prepare(
       "SELECT * FROM email_campaigns WHERE id = ?").bind(id).first<Record<string, unknown>>();
     if (!camp) return json({ error: "campaign not found" }, 404);
+    // Stamped per campaign at creation; every row that predates migration
+    // 013 defaults 'opt_in', so existing campaigns send exactly as before.
+    const consentBasis = campaignConsentBasis(camp);
     // Send-time body segment overrides the stored one; the stored default
     // is 'subscribed'. A draft created for a warm audience can't drift into
     // a cold blast unless the operator says so explicitly.
@@ -223,7 +238,7 @@ export async function handleServices(
       try {
         const r = await brevoSend(
           env, c.email, String(camp.subject),
-          String(camp.html) + await marketingFooter(env, c.email),
+          String(camp.html) + await marketingFooter(env, c.email, consentBasis),
           undefined, await unsubHeaders(env, c.email), `campaign:${id}`);
         if (r.ok) sent++;
       } catch {}
@@ -231,7 +246,7 @@ export async function handleServices(
     await env.DB.prepare(
       "UPDATE email_campaigns SET status='sent', sent_count=?, sent_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?",
     ).bind(sent, id).run();
-    return json({ ok: true, id, sent, total: contacts.length, segment: s.seg });
+    return json({ ok: true, id, sent, total: contacts.length, segment: s.seg, consent_basis: consentBasis });
   }
   // Engagement roll-up over email_events — every Brevo transactional webhook
   // callback lands there, tagged by the send path (campaign:<id>, seq:<stage>,
@@ -594,21 +609,79 @@ export async function unsubUrl(env: Env, email: string): Promise<string> {
     encodeURIComponent(email.toLowerCase())}&sig=${await unsubSig(env, email)}`;
 }
 
+// Consent basis for a marketing send — the axis the footer disclosure must
+// match. Sequence/waitlist mail is 'opt_in' (the recipient used /leads or
+// /api/v1/waitlist and asked for it). A campaign audience can be a COLD list
+// of prospects whose address was published on their company's website; they
+// never signed up, so an opt-in sentence there is a false consent line — the
+// exact claim a spam complaint cites. Persisted per campaign in
+// email_campaigns.consent_basis (migration 013); unknown/absent values fall
+// back to 'opt_in' so every pre-existing row keeps its behaviour.
+export type ConsentBasis = "opt_in" | "prospect";
+
+export function campaignConsentBasis(
+  row: Record<string, unknown> | null | undefined,
+): ConsentBasis {
+  const raw = String(row?.consent_basis ?? "").trim().toLowerCase();
+  return raw === "prospect" ? "prospect" : "opt_in";
+}
+
+// Why-they-got-it disclosures. 'opt_in' is the original sentence, kept
+// byte-identical so sequence mail is unchanged. 'prospect' states the real
+// source (a published business email), claims no consent, keeps the same
+// unsubscribe affordance and the same postal block — softer opening, never a
+// weaker opt-out or legal address. {url} is substituted with the signed link.
+const CONSENT_LINE: Record<ConsentBasis, string> = {
+  opt_in: `You're receiving ` +
+    `this because you signed up at Accessibility Checker for product updates ` +
+    `and a discount code. <a href="{url}">Unsubscribe</a> anytime — these ` +
+    `emails stop immediately.`,
+  prospect: `A short outreach note, not a newsletter. You're receiving it ` +
+    `because your business email is published on your company's website and ` +
+    `this looked relevant to your work. <a href="{url}">Unsubscribe</a> and ` +
+    `we won't contact you again.`,
+};
+
 // Footer appended to marketing html — opt-out mechanism + why-they-got-it
 // disclosure + sender identity/physical postal address (CAN-SPAM). The
 // address comes from the COMPANY_ADDRESS worker secret or KV
 // config:company_address — ops sets the real value, we never invent one.
 // Transactional mail (confirm/verify/reset/report/alerts/trial notices) is
 // exempt and deliberately does NOT get this.
-export async function marketingFooter(env: Env, email: string): Promise<string> {
+export async function marketingFooter(
+  env: Env, email: string, basis: ConsentBasis = "opt_in",
+): Promise<string> {
   const url = await unsubUrl(env, email);
   const addr = env.COMPANY_ADDRESS ??
     await env.EPHEMERAL.get("config:company_address");
+  const line = CONSENT_LINE[basis] ?? CONSENT_LINE.opt_in;
   return `<hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0 12px">` +
-    `<p style="font-size:12px;color:#64748b;line-height:1.5">You're receiving ` +
-    `this because you signed up at Accessibility Checker for product updates ` +
-    `and a discount code. <a href="${url}">Unsubscribe</a> anytime — these ` +
-    `emails stop immediately.<br>Lazynext${addr ? ` · ${addr}` : ""}</p>`;
+    `<p style="font-size:12px;color:#64748b;line-height:1.5">${line.replace("{url}", url)}` +
+    `<br>Lazynext${addr ? ` · ${addr}` : ""}</p>`;
+}
+
+// Self-heal guard — migration 013 owns the column; this is only for deploys
+// that land before the migration runs. SQLite has no ADD COLUMN IF NOT
+// EXISTS, so the guard is a PRAGMA read. One DDL check per isolate; errors
+// are swallowed (a racing isolate may have added it, and the read path
+// defaults to 'opt_in' when the column is absent) so a schema gap can never
+// block a send.
+let campaignConsentReady = false;
+
+export async function ensureCampaignConsentColumn(env: Env): Promise<void> {
+  if (campaignConsentReady) return;
+  try {
+    const { results } = await env.DB.prepare(
+      "PRAGMA table_info(email_campaigns)").all<{ name?: string }>();
+    if (!(results ?? []).some((c) => c?.name === "consent_basis")) {
+      await env.DB.prepare(
+        "ALTER TABLE email_campaigns ADD COLUMN consent_basis TEXT NOT NULL DEFAULT 'opt_in'",
+      ).run();
+    }
+    campaignConsentReady = true;
+  } catch {
+    // Never fatal: the send path reads consent_basis with an opt_in default.
+  }
 }
 
 // List-Unsubscribe headers give mail clients a native unsubscribe affordance;

@@ -14,14 +14,17 @@ import re
 import sqlite3
 from pathlib import Path
 
+from tests.unit.migration_helpers import apply_all_migrations
+
 ROOT = Path(__file__).resolve().parents[2]
 MIGRATIONS = ROOT / "db" / "migrations"
 WORKER_SRC = ROOT / "worker" / "src"
 
 
 def _apply_all(conn: sqlite3.Connection) -> None:
-    for path in sorted(MIGRATIONS.glob("*.sql")):
-        conn.executescript(path.read_text())
+    # Migration 013 adds a column (SQLite has no ADD COLUMN IF NOT EXISTS); the
+    # shared applier tolerates only that duplicate-column no-op on a re-run.
+    apply_all_migrations(conn)
 
 
 def _schema(conn: sqlite3.Connection) -> sqlite3.Connection:
