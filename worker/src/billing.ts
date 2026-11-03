@@ -4,6 +4,7 @@
 // Host: test.dodopayments.com (test mode) or live.dodopayments.com.
 import { Env, json, listAll } from "./gateway";
 import { signwellSendFromTemplate } from "./services";
+import { countExternalReports } from "./scanprovenance";
 
 const DODO_API_DEFAULT = "https://test.dodopayments.com"; // set env.DODO_API_BASE to https://live.dodopayments.com when the account leaves test mode
 
@@ -509,8 +510,17 @@ export async function handleBilling(
         .first<{ c: number }>()
         .then((r) => r?.c ?? 0)
         .catch(() => null);
+    // Provenance-aware companion to scans_30d. `scans_30d` is raw scan VOLUME
+    // (every stored report, including our dogfood monitor, the CI canary,
+    // pasted-HTML payloads and fixtures — measured 125 of 132). This counts
+    // the same records but only those whose scanned URL passes the same
+    // external-host test as the benchmark corpus (benchHost in
+    // ./scanprovenance), i.e. outside traffic. Keep both: volume is real,
+    // it just isn't demand.
+    const reportValues = await Promise.all(reports.map((k) => env.EPHEMERAL.get(k.name)));
     return json({
       scans_30d: reports.length,
+      scans_external_30d: countExternalReports(reportValues),
       leads: leadCount,
       waitlist: await count("waitlist"),
       email_contacts: await count("email_contacts"),

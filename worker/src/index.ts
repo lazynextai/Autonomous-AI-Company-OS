@@ -27,6 +27,7 @@ import { handleLedgerRoutes, ledgerSummary, buildOutcomeLedger } from "./ledger"
 import { capabilityMatrix, refreshCapabilityReadiness } from "./readiness";
 import { handleObserverRoutes, listObserverReviews, observeTaskDispatch } from "./observer";
 import { handleManifestRoutes, listManifests, latestManifest } from "./manifests";
+import { scanStatsHostViolation } from "./scanprovenance";
 
 export { Env };
 
@@ -49,6 +50,15 @@ function isReadQuery(sql: string): boolean {
 }
 
 async function handleQuery(env: Env, ctx: ExecutionContext, body: { sql: string; params?: unknown[] }) {
+  // Benchmark-corpus hygiene: the product worker writes scan_stats rows as raw
+  // SQL through this route, and the corpus drives the user-visible benchmark
+  // percentile. Reject a row whose host is not a real external site (malformed
+  // hostnames, our own hosts, reserved test domains, bare IPs) before D1 sees
+  // it — the same rule the product's benchHost() applies at scan time, so a
+  // regressed product build cannot pollute the corpus. See
+  // docs/research/scan-traffic-provenance-2026-11-03.md.
+  const badHost = scanStatsHostViolation(body.sql, body.params);
+  if (badHost) return json({ error: "scan_stats row rejected", reason: badHost }, 400);
   const stmt = env.DB.prepare(body.sql).bind(...(body.params ?? []));
   if (isReadQuery(body.sql)) {
     const res = await stmt.all();
@@ -76,6 +86,12 @@ async function handleQuery(env: Env, ctx: ExecutionContext, body: { sql: string;
 }
 
 async function handleBatch(env: Env, ctx: ExecutionContext, body: { statements: { sql: string; params?: unknown[] }[] }) {
+  // Same corpus-hygiene guard as /query — a batch is a second write door into
+  // scan_stats and must not evade the host check.
+  for (const s of body.statements) {
+    const badHost = scanStatsHostViolation(s.sql, s.params);
+    if (badHost) return json({ error: "scan_stats row rejected", reason: badHost, batch: true }, 400);
+  }
   const stmts = body.statements.map((s) => env.DB.prepare(s.sql).bind(...(s.params ?? [])));
   const results = await env.DB.batch(stmts);
   // Same write-audit as /query — a DELETE through /batch must not evade it.
