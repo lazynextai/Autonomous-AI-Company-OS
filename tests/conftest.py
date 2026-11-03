@@ -30,3 +30,36 @@ def _observer_never_writes_production(monkeypatch):
         return None
 
     monkeypatch.setattr(base_agent, "observe_task", _never)
+
+
+@pytest.fixture(autouse=True)
+def _decision_gate_never_writes_production(monkeypatch):
+    """Tests must never reach production KV/D1 through the fleet decision gate.
+
+    core/tools/decision_gate.check_decision constructs a real CloudflareClient
+    (KV + D1). An unstubbed call from a test would read production KV and —
+    if a block fired — write a real `decision_gate` row into production
+    episodic_events. This autouse fixture swaps the client factory for one
+    whose every call raises, which makes an unstubbed check_decision fail
+    SOFT (allow + log) with zero network. Tests that exercise the gate
+    (tests/unit/test_decision_gate.py) patch `decision_gate.CloudflareClient`
+    themselves inside the test body, which runs after this fixture, so their
+    fake client still wins.
+    """
+
+    class _NoNetworkClient:
+        async def kv_get(self, key):  # pragma: no cover - guard only
+            raise RuntimeError("tests must not read production KV")
+
+        async def aquery(self, sql, params=None):  # pragma: no cover - guard only
+            raise RuntimeError("tests must not read production D1")
+
+        async def aexecute(self, sql, params=None):  # pragma: no cover - guard only
+            raise RuntimeError("tests must not write production D1")
+
+        async def close(self):  # pragma: no cover - guard only
+            return None
+
+    import core.tools.decision_gate as decision_gate
+
+    monkeypatch.setattr(decision_gate, "CloudflareClient", lambda *a, **k: _NoNetworkClient())

@@ -13,6 +13,7 @@ import httpx
 import structlog
 
 from core.config import get_settings
+from core.tools.decision_gate import check_decision
 from core.tools.outbound_breakers import check_outbound
 
 logger = structlog.get_logger(__name__)
@@ -1343,6 +1344,17 @@ async def call_connector(connector_id: str, payload: dict[str, Any] | str) -> di
     gate = await check_outbound(connector_id)
     if not gate["allow"]:
         return {"ok": False, "error": f"blocked by outbound breaker: {gate['reason'] or 'tripped'}", "breaker": True}
+    # --- Decision gate (mirrors worker/src/decisions.ts) --------------------
+    # Same seam as the breaker: after credential resolution, before BOTH
+    # dispatch paths (the ayrshare early-return and the generic fn call).
+    # Unlike the breaker there is no separate observe mode here: this IS real
+    # posting, so the gate enforces whenever `config:decision_enforce` covers
+    # the action. Infrastructure read failures fail soft (allow) — only a
+    # readable scope with no approved package blocks.
+    decision = await check_decision(connector_id)
+    if not decision["allow"]:
+        reason = decision.get("reason") or "missing approval"
+        return {"ok": False, "error": f"blocked by decision gate — missing approval: {reason}", "gate": True}
     if cred == "ayrshare":
         # Routed through the approved Ayrshare app — used for networks whose
         # native app review is blocked (reddit karma-gate, pinterest trial
