@@ -1,0 +1,45 @@
+# Ops watch calendar
+
+**Status:** authoritative future-action table. Every row is a date-driven watch item —
+something that changes state on its own and will cost money, access, or standing if nobody
+looks at it. Newest verification is recorded at the bottom.
+
+Rules that apply to every row:
+
+- A watch item is **read-only** until a row says otherwise. Checking an inbox, a dashboard, or
+  a public page never authorizes a submission, sign-in, payment, or cancellation.
+- Anything that needs a **sign-in code, personal ID, or a card** waits for an explicit founder
+  decision. Do not loop an OTP flow to "just check" a page.
+- When a provider asks for a decision, one founder sentence closes it. Record the sentence
+  here instead of re-deriving the question next month.
+
+## Future actions
+
+| # | Item | Key date | What to do | Blocked on |
+|---|---|---|---|---|
+| 1 | **Microsoft Partner Center — seller `96466040`, verification attempt 3 of 3** | Decision due **2026-11-04**; recheck **2026-11-05**; email follow-up window **2026-11-06 / 11-07** | Read `support@lazynext.com` for a review-result mail. Nothing new → no action. Still silent on 11-06/07 → founder approves an **email-only** follow-up. Never a browser or code-flow retry; the MSA `prompt=login` + `acr_values=mfa` chain demands a fresh code at every hop and cannot be read unattended. | Decision email; then founder approval for the follow-up |
+| 2 | **Cloudflare monthly renewal** | ~**2026-12-01** (last invoice `IN-86694892`, **$5.53 Paid**) | Open the Stripe invoice link in the "Confirm your payment to Cloudflare" mail. A **Visa Secure bank-OTP popup** can time out on the first confirm, which leaves a scary "overdue balance" / "payment failed" alert — both are pre-settlement noise. Re-click **Pay** on the invoice page; that clears it. Treat the later "[Confirmation] Purchase confirmed" mail as authoritative. | Nothing — re-click is enough. Only escalate if a re-click also fails |
+| 3 | **directree — owner-edit review** | ~**2026-12-06** (review scheduled 35 days from 2026-11-01) | Check `directree.io/tool/accessibility-checker` for approval. On approval the do-follow badge activates. Do **not** re-edit the listing and do **not** pay Fast Lane ($19) / Plus ($49) to skip the review. Badge is deliberately not embedded on our site (marketing CSP would block it). | Their review queue |
+| 4 | **M365 Business Basic trial ends** | **2026-11-27** | **No action.** Auto-renew was cancelled 2026-10-27, so the tenant (`lazynext.onmicrosoft.com`) simply lapses. Teams delivery is webhook-based via Power Automate, so confirm after the lapse that Teams dispatch still returns 202 if the tenant survives in read-only mode. | Nothing |
+| 5 | **Power Automate Premium trial auto-converts to paid** | ~**2027-01-28** (90-day trial started 2026-10-30). **Start watching 2027-01-01** | Decide cancel vs keep before conversion. The Request trigger is Premium, so cancelling removes the Teams webhook path — plan a replacement (tenant Teams Webhook V2 cannot be anonymous) before pulling it. Cancellation itself needs the founder's **email code** at the final step. | Founder decision + founder email code |
+| 6 | **Dodo Payments — stay in test mode?** | Open-ended. **Founder answer pending** | One-word answer closes this forever: either "stay" (test mode permanently, no KYC, no live product/webhook/WELCOME20 rebuild) or "go live" (KYC → live key → live base URL → recreate product + webhook + discount). Until answered: test mode, do not start KYC, do not propose it again. | Founder's one word |
+
+## Secondary watches (no action unless the founder asks)
+
+These are logged so they are not rediscovered from scratch; none of them is a decision sitting
+on the founder's desk today.
+
+| Item | Date | Note |
+|---|---|---|
+| NuGet `lazynext-ci-push` key expiry | ~2026-11-05 | **Let it expire.** Audited 2026-10-25: no `*.csproj`/`*.sln`/`*.nuspec`, no `dotnet nuget push` in any workflow, zero published packages — nothing consumes the key. Do not log in, do not mint a replacement. |
+| mcp.so free listing — GitHub issue [#6529](https://github.com/chatmcp/mcpso/issues/6529) | Watch for comment/closure | Free community path for the remote MCP server. The web form only sells a $39 fast lane — do not pay it. |
+| apis.io submission | Batched into their next catalog build | Submitted 2026-11-03, confirmation received, no listing URL yet. Do not resubmit; reply only if they email `support@`. |
+| Aikido AGPL-3.0 finding on `postiz@1.0.0` | Snoozed until **2027-10-31** | Accepted risk on file (issue 54902341). Upstream image run unmodified, internal use only, not part of the proprietary product. Re-evaluate at expiry; do not delete `ops/postiz/package-lock.json`. |
+| LinkedIn merge / company Page creation | **Closed permanently** | No company-document path exists — recovery is government ID + selfie only, and the founder's standing rule forbids personal ID. Do not re-file, do not loop the support chat. |
+
+## Verification log
+
+| Date (IST) | What was checked | Result |
+|---|---|---|
+| 2026-11-04 | Microsoft inbox sweep (`from:supportmail@techsupport.microsoft.com`, `subject:verification newer_than:2d`, seller / Partner Center / vetting `newer_than:3d`, SellerId `96466040`) | **No decision mail.** Newest message from that address is still the 2026-10-27 context email (TrackingID#2610070060003196) — the vetting-ops request that attempt 3 already answered. Nothing new since the 01:26 check; no action. |
+| 2026-11-04 | Stale September draft campaign cleanup | `email_campaigns` id 8 (`sales-outreach-2026-09-29`, "Make Your Website Accessible to All", `draft`, `sent_count` 0, created 2026-09-28) deleted — 1 row. It duplicated subjects already fired by ids 5 and 7 to the same list, so it could never be safely sent. |
