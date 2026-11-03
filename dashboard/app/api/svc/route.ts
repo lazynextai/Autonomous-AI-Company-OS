@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 const ALLOWED = /^\/api\/v1\/(crm\/leads|support\/tickets|booking|store\/products|store\/orders|marketing\/contacts|marketing\/campaigns|signwell\/documents|signwell\/send|signwell\/events)(\/\d+(\/send)?)?$|^\/api\/v1\/connectors(\/[a-z]+)?$|^\/api\/v1\/sign\/requests(\/[0-9a-f-]{36}(\/remind)?)?$/;
 
 const READ_PATHS =
-  /^\/api\/v1\/(?:ops\/breakers|crm\/evidence\/summary)$|^\/api\/v1\/crm\/leads\/\d+\/evidence$|^\/(?:capability\/matrix|decision\/packages)$/;
+  /^\/api\/v1\/(?:ops\/breakers|crm\/evidence\/summary)$|^\/api\/v1\/crm\/leads\/\d+\/evidence$|^\/(?:capability\/matrix|decision\/packages)$|^\/decision\/blocks(?:\?limit=\d{1,3})?$/;
 
 export async function GET(req: NextRequest) {
   const path = req.nextUrl.searchParams.get("path") ?? "";

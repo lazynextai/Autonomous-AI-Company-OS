@@ -312,7 +312,7 @@ const specSource = readFileSync(join(HERE, "..", "src", "openapi.ts"), "utf8");
 test("every new operator route is wired in index.ts behind the bearer gate", () => {
   const surface = indexSource.slice(indexSource.indexOf("async function route("), indexSource.indexOf("export default {"));
   for (const path of [
-    "/decision/packages", "/ledger/summary", "/ledger/append", "/capability/matrix",
+    "/decision/packages", "/decision/blocks", "/ledger/summary", "/ledger/append", "/capability/matrix",
     "/observer/review", "/observer/reviews", "/manifests", "/manifests/latest",
     "/manifests/validate", "/manifests/activate",
   ]) {
@@ -334,7 +334,7 @@ test("the cron sweeps ride the existing tick instead of a new scheduler", () => 
 
 test("the OpenAPI table declares every new path as internal", () => {
   for (const path of [
-    "/decision/packages", "/decision/packages/{id}/decide", "/decision/packages/{id}/void",
+    "/decision/packages", "/decision/blocks", "/decision/packages/{id}/decide", "/decision/packages/{id}/void",
     "/ledger/append", "/ledger/summary", "/observer/review", "/observer/reviews",
     "/capability/matrix", "/manifests", "/manifests/latest", "/manifests/validate", "/manifests/activate",
   ]) {

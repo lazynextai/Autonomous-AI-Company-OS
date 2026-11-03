@@ -710,6 +710,16 @@ export const OPENAPI_SPEC = {
         responses: { "201": { description: "Package created (draft)" }, "400": { description: "invalid package" } },
       },
     },
+    "/decision/blocks": {
+      get: {
+        summary: "Recent decision-gate blocks (read-only, bounded)",
+        description: "Bounded window (limit <= 50, default 20) over episodic_events scope 'decision_gate' — one row per blocked dispatch carrying target, authority, scope and reason. Read-only: a block row is written by the gate, never by this route.",
+        "x-internal": true,
+        security: [{ internalAuth: [] }],
+        parameters: [{ name: "limit", in: "query", schema: { type: "integer", default: 20, maximum: 50 } }],
+        responses: { "200": { description: "{blocks:[{id,payload,created_at}]}" } },
+      },
+    },
     "/decision/packages/{id}/decide": {
       post: {
         summary: "Advance a decision package (approve/reject/execute/void/expire)",
