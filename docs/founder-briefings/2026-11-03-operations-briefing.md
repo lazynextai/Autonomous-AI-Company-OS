@@ -1,7 +1,7 @@
 # Founder Operations Briefing — 2026-11-03
 
 **Status:** REAL briefing — every figure below was read live from production D1 / KV /
-internal endpoints on 2026-11-03 (~22:xx IST). This replaces the hallucinated
+internal endpoints on 2026-11-03 between 22:15 and 22:55 IST. This replaces the hallucinated
 [lazynextai/accessibility-checker PR #112](https://github.com/lazynextai/accessibility-checker/pull/112) —
 which was closed 2026-11-03T17:22:25Z because its figures ($10,000 revenue, 1,000 visitors,
 20 paid conversions…) were codegen invention, not data.
