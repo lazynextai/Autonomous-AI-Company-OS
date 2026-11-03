@@ -373,3 +373,77 @@ test("evidence rendering reads provenance without writing it", async () => {
   assert.deepEqual(rows, [{ claim: "Uses Workers", disposition: "verified", package_id: 3 }]);
   assert.equal(db.calls.some((c) => c.kind !== "all"), false, "evidenceForLead is read-only");
 });
+
+// --- visible block signal ---------------------------------------------------
+// A blocked dispatch used to look exactly like any other dispatch error: the
+// reason lived only in the 503 body. Every block now writes ONE
+// `episodic_events` row (scope `decision_gate`) so the dashboard/D1 shows
+// "blocked, not broken" — and a non-block must never write one.
+const gateRows = (db) => db.calls.filter((c) => /VALUES \('decision_gate',/.test(c.sql));
+
+test("a blocked gate writes one decision_gate episodic row naming target, authority, scope and reason", async () => {
+  const kv = fakeKv({ "config:decision_enforce": "approval" });
+  const db = fakeDb([{ match: /FROM decision_packages/, handle: () => null }]);
+  const gate = await mod.decisionGate({ DB: db, EPHEMERAL: kv }, { type: "connector.dispatch", connector: "x", target: "x" });
+  assert.equal(gate.allow, false);
+
+  const rows = gateRows(db);
+  assert.equal(rows.length, 1, "exactly one block row per blocked dispatch");
+  const payload = JSON.parse(rows[0].params[0]);
+  assert.equal(payload.event, "decision_gate_blocked");
+  assert.equal(payload.target, "x");
+  assert.equal(payload.connector, "x");
+  assert.equal(payload.type, "connector.dispatch");
+  assert.equal(payload.authority, "approval");
+  assert.equal(payload.scope, "approval");
+  assert.match(payload.reason, /no approved decision package for 'x'/);
+  assert.ok(payload.ts, "the row carries when it was blocked");
+  assert.ok(!Number.isNaN(Date.parse(payload.ts)), "ts is a real timestamp");
+});
+
+test("a passing or ungated check writes no decision_gate row", async () => {
+  const kv = fakeKv({ "config:decision_enforce": "approval" });
+
+  // Approved package for the target -> allow, no block row.
+  const approved = fakeDb([{ match: /FROM decision_packages/, handle: () => ({ id: 7 }) }]);
+  const pass = await mod.decisionGate({ DB: approved, EPHEMERAL: kv }, { type: "connector.dispatch", connector: "x", target: "x" });
+  assert.equal(pass.allow, true);
+  assert.equal(gateRows(approved).length, 0);
+
+  // Outside the scope entirely (auto action under approval) -> allow, no row.
+  const scoped = fakeDb([{ match: /FROM decision_packages/, handle: () => null }]);
+  const auto = await mod.decisionGate({ DB: scoped, EPHEMERAL: kv }, { type: "ledger.append", target: "ledger" });
+  assert.equal(auto.allow, true);
+  assert.equal(gateRows(scoped).length, 0);
+
+  // Gate off -> allow, no row.
+  const off = fakeDb([{ match: /FROM decision_packages/, handle: () => null }]);
+  const disabled = await mod.decisionGate({ DB: off, EPHEMERAL: fakeKv() }, { type: "connector.dispatch", connector: "x", target: "x" });
+  assert.equal(disabled.allow, true);
+  assert.equal(gateRows(off).length, 0);
+});
+
+test("the KV-unreadable block is recorded too, with an explicit unavailable scope", async () => {
+  const kv = { get: async () => { throw new Error("KV down"); } };
+  const db = fakeDb();
+  const gate = await mod.decisionGate({ DB: db, EPHEMERAL: kv }, { type: "connector.dispatch", connector: "signwell", target: "signwell" });
+  assert.equal(gate.allow, false);
+
+  const rows = gateRows(db);
+  assert.equal(rows.length, 1);
+  const payload = JSON.parse(rows[0].params[0]);
+  assert.equal(payload.scope, "unavailable");
+  assert.equal(payload.authority, "human_only");
+  assert.match(payload.reason, /decision_gate_unavailable/);
+});
+
+test("a failing audit write never changes the gate result", async () => {
+  const kv = fakeKv({ "config:decision_enforce": "human_only" });
+  const db = fakeDb([
+    { match: /FROM decision_packages/, handle: () => null },
+    { match: /INSERT INTO episodic_events/, handle: () => { throw new Error("D1 write boom"); } },
+  ]);
+  const gate = await mod.decisionGate({ DB: db, EPHEMERAL: kv }, { type: "connector.dispatch", connector: "signwell", target: "signwell" });
+  assert.equal(gate.allow, false, "the block still stands");
+  assert.match(gate.reason, /no approved decision package for 'signwell'/);
+});
