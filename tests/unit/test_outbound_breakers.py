@@ -17,6 +17,21 @@ from core.tools import outbound_breakers as ob
 
 DEFAULTS = dict(ob.DEFAULT_POLICY)
 
+# Captured before any monkeypatch so a test can exercise the REAL resolution.
+_REAL_SETTINGS_MODE = ob._settings_mode
+
+
+@pytest.fixture(autouse=True)
+def _isolate_dotenv_mode(monkeypatch):
+    """Neutralize the `.env` fallback unless a test opts in.
+
+    The repo's `.env` is the fleet's real config surface, so once operators set
+    `CONN_BREAKER_MODE` there every test that asserted the default would flip
+    with it. Each test therefore starts from "unset everywhere" and states the
+    source it wants explicitly.
+    """
+    monkeypatch.setattr(ob, "_settings_mode", lambda: None, raising=True)
+
 
 def _policy(**overrides) -> dict:
     policy = {**DEFAULTS, "tripped_reason": None, "tripped_at": None}
@@ -192,3 +207,113 @@ async def test_close_failure_posts_anyway(monkeypatch):
     monkeypatch.setattr(ob, "CloudflareClient", lambda *a, **k: _Client())
     res = await ob.check_outbound("x")
     assert res["allow"] is True
+# --- Mode resolution: os.environ > .env (Settings) > observe -----------------
+# Regression-locked defect: `scripts/run_agents.py` has no `load_dotenv`, so
+# `.env` keys never reach `os.environ` under launchd, and the old `_current_mode`
+# (os.environ only) silently ignored the documented `CONN_BREAKER_MODE=active`
+# switch. The fallback now reads the pydantic Settings object that parses `.env`.
+
+def test_mode_env_wins_over_dotenv(monkeypatch):
+    """An explicit os.environ value beats the `.env` value in both directions."""
+    monkeypatch.setenv("CONN_BREAKER_MODE", "active")
+    monkeypatch.setattr(ob, "_settings_mode", lambda: "observe")
+    assert ob._current_mode() == "active"
+
+    monkeypatch.setenv("CONN_BREAKER_MODE", "observe")
+    monkeypatch.setattr(ob, "_settings_mode", lambda: "active")
+    assert ob._current_mode() == "observe"
+
+
+def test_mode_dotenv_honored_when_env_unset(monkeypatch):
+    """The `.env`-only value (via pydantic Settings) arms the gate — this is
+    the launchd fleet's config surface."""
+    monkeypatch.delenv("CONN_BREAKER_MODE", raising=False)
+    monkeypatch.setattr(ob, "_settings_mode", lambda: "active")
+    assert ob._current_mode() == "active"
+
+
+def test_mode_dotenv_resolution_uses_real_settings_path(monkeypatch):
+    """The real `_settings_mode` reads `get_settings().conn_breaker_mode` —
+    proving the wiring is to the Settings object, not the stubbed helper."""
+    import core.config as config
+
+    class _FakeSettings:
+        conn_breaker_mode = "active"
+
+    monkeypatch.setattr(ob, "_settings_mode", _REAL_SETTINGS_MODE)
+    monkeypatch.setattr(config, "get_settings", lambda: _FakeSettings())
+    monkeypatch.delenv("CONN_BREAKER_MODE", raising=False)
+    assert ob._current_mode() == "active"
+
+
+def test_mode_absent_observes(monkeypatch):
+    """No env, no `.env` value -> observe."""
+    monkeypatch.delenv("CONN_BREAKER_MODE", raising=False)
+    monkeypatch.setattr(ob, "_settings_mode", lambda: None)
+    assert ob._current_mode() == "observe"
+
+
+def test_mode_unknown_and_blank_observe(monkeypatch):
+    """'active', case/space-insensitively, is the only arming value; unknown
+    or blank values observe from either source."""
+    monkeypatch.setattr(ob, "_settings_mode", lambda: "observe")
+    for armed in ("active", " ACTIVE ", "Active\n"):
+        monkeypatch.setenv("CONN_BREAKER_MODE", armed)
+        assert ob._current_mode() == "active", armed
+    for bogus in ("", "1", "enforce", "human_only"):
+        monkeypatch.setenv("CONN_BREAKER_MODE", bogus)
+        assert ob._current_mode() == "observe", bogus
+
+    monkeypatch.delenv("CONN_BREAKER_MODE", raising=False)
+    for bogus in ("approval", "   ", "All", "ENFORCE"):
+        monkeypatch.setattr(ob, "_settings_mode", lambda: bogus)
+        assert ob._current_mode() == "observe", bogus
+
+
+def test_mode_unreadable_settings_observes(monkeypatch):
+    """A settings object that blows up degrades to observe, never to a fatal."""
+    monkeypatch.setattr(ob, "_settings_mode", _REAL_SETTINGS_MODE)
+    monkeypatch.delenv("CONN_BREAKER_MODE", raising=False)
+
+    def _boom():
+        raise RuntimeError("pydantic misconfigured")
+
+    import core.config as config
+
+    monkeypatch.setattr(config, "get_settings", _boom)
+    assert ob._current_mode() == "observe"
+
+
+def test_settings_model_declares_conn_breaker_mode(monkeypatch, tmp_path):
+    """The Settings model has conn_breaker_mode and pydantic picks it up from
+    a .env file (the field is what makes the documented switch work)."""
+    from pydantic_settings import BaseSettings
+
+    from core.config import Settings
+
+    env_file = tmp_path / ".env"
+    env_file.write_text("CONN_BREAKER_MODE=active\n")
+    monkeypatch.delenv("CONN_BREAKER_MODE", raising=False)
+
+    class _Probe(BaseSettings):
+        model_config = Settings.model_config
+        conn_breaker_mode: str = "observe"
+
+    probe = _Probe(_env_file=str(env_file))
+    assert probe.conn_breaker_mode == "active"
+
+    # The real model carries the field and declares a default.
+    assert "conn_breaker_mode" in Settings.model_fields
+    assert Settings.model_fields["conn_breaker_mode"].default == "observe"
+
+
+@pytest.mark.asyncio
+async def test_dotenv_active_blocks_in_check_outbound(monkeypatch):
+    """End-to-end: with NO env var but a `.env`-resolved active, check_outbound
+    reports mode=active and blocks an exceeded window."""
+    monkeypatch.delenv("CONN_BREAKER_MODE", raising=False)
+    monkeypatch.setattr(ob, "_settings_mode", lambda: "active")
+    _stub_reads(monkeypatch, dispatch=(DEFAULTS["volume_limit"], 0, None))
+    res = await ob.check_outbound("x")
+    assert res["mode"] == "active" and res["allow"] is False
+    assert "volume:" in res["reason"]

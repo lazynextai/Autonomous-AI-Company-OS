@@ -417,6 +417,35 @@ export function scopeCovers(scope: DecisionScope, authority: AuthorityClass): bo
   return (SCOPE_RANK[scope] ?? 0) >= (AUTHORITY_RANK[authority] ?? 2);
 }
 
+/**
+ * Fire-and-forget block audit: a gated dispatch must be visible to operators
+ * in `episodic_events` (scope `decision_gate`), not only in a 503 body. The
+ * write must NEVER change the gate result — a failing audit write is caught
+ * and logged, the block stands on its own evidence.
+ */
+async function recordGateBlock(env: Env, action: ActionRef, info: {
+  authority: AuthorityClass;
+  scope: string;
+  reason: string;
+}): Promise<void> {
+  try {
+    await env.DB.prepare(
+      "INSERT INTO episodic_events (scope, payload) VALUES ('decision_gate', ?)",
+    ).bind(JSON.stringify({
+      event: "decision_gate_blocked",
+      type: String(action?.type ?? ""),
+      connector: action?.connector == null ? null : String(action.connector),
+      target: String(action?.target ?? action?.connector ?? ""),
+      authority: info.authority,
+      scope: info.scope,
+      reason: info.reason.slice(0, 500),
+      ts: new Date().toISOString(),
+    })).run();
+  } catch (err) {
+    console.error(`[decision_gate] block audit write failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 export async function decisionGate(env: Env, action: ActionRef): Promise<{ allow: boolean; enforced: boolean; scope?: DecisionScope; reason?: string; package_id?: number }> {
   const { authority } = classifyAuthority(action);
   let flag: string | null = null;
@@ -433,6 +462,11 @@ export async function decisionGate(env: Env, action: ActionRef): Promise<{ allow
       return { allow: true, enforced: false };
     }
     console.error(`[decision_gate] config read failed; blocking ${authority} action`);
+    await recordGateBlock(env, action, {
+      authority,
+      scope: "unavailable",
+      reason: "decision_gate_unavailable: KV read failed",
+    });
     return { allow: false, enforced: true, reason: "decision_gate_unavailable: KV read failed" };
   }
   const scope = parseDecisionScope(flag);
@@ -446,9 +480,13 @@ export async function decisionGate(env: Env, action: ActionRef): Promise<{ allow
         ORDER BY id DESC LIMIT 1`,
     ).bind(target).first<{ id: number }>();
     if (row) return { allow: true, enforced: true, scope, package_id: row.id };
-    return { allow: false, enforced: true, scope, reason: `no approved decision package for '${target}' (authority ${authority}, scope ${scope})` };
+    const reason = `no approved decision package for '${target}' (authority ${authority}, scope ${scope})`;
+    await recordGateBlock(env, action, { authority, scope, reason });
+    return { allow: false, enforced: true, scope, reason };
   } catch (err) {
-    return { allow: false, enforced: true, scope, reason: `decision_gate_failed: ${err instanceof Error ? err.message : String(err)}`.slice(0, 300) };
+    const reason = `decision_gate_failed: ${err instanceof Error ? err.message : String(err)}`.slice(0, 300);
+    await recordGateBlock(env, action, { authority, scope, reason });
+    return { allow: false, enforced: true, scope, reason };
   }
 }
 
