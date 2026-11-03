@@ -16,7 +16,7 @@ const mod = loadModule(
     "normalizeEvidence", "parseExpiry", "canTransition", "createDecisionPackage",
     "decideDecisionPackage", "openDispatchDecision", "closeDispatchDecision",
     "expireDecisionPackages", "decisionGate", "parseDecisionScope", "scopeCovers",
-    "handleDecisionRoutes", "listDecisionPackages", "evidenceForLead",
+    "handleDecisionRoutes", "listDecisionPackages", "listDecisionBlocks", "evidenceForLead",
   ],
 );
 
@@ -446,4 +446,40 @@ test("a failing audit write never changes the gate result", async () => {
   const gate = await mod.decisionGate({ DB: db, EPHEMERAL: kv }, { type: "connector.dispatch", connector: "signwell", target: "signwell" });
   assert.equal(gate.allow, false, "the block still stands");
   assert.match(gate.reason, /no approved decision package for 'signwell'/);
+});
+
+// --- gate-block visibility (GAP B) ----------------------------------------
+// The audit rows exist; this is the read surface that makes them visible. It
+// is bounded and read-only: no route here may write episodic_events.
+test("recent gate blocks are readable, bounded and read-only", async () => {
+  const rows = [
+    { id: 2, payload: JSON.stringify({ event: "decision_gate_blocked", target: "signwell" }), created_at: "2026-11-03T08:00:00Z" },
+  ];
+  const db = fakeDb([{ match: /FROM episodic_events/, handle: () => ({ results: rows }) }]);
+  const res = await mod.listDecisionBlocks({ DB: db }, new URL("https://x.test/decision/blocks?limit=9999"));
+  assert.equal(res.status, 200);
+  const body = await readJson(res);
+  assert.deepEqual(body.blocks, rows);
+
+  const call = db.calls.find((c) => /FROM episodic_events/.test(c.sql));
+  assert.match(call.sql, /scope = 'decision_gate'/, "only gate rows, never the whole event table");
+  assert.match(call.sql, /ORDER BY id DESC/);
+  assert.deepEqual(call.params, [50], "the limit is clamped to 50");
+  assert.equal(db.calls.some((c) => c.kind !== "all"), false, "the read surface never writes");
+});
+
+test("the blocks default limit is 20 and bad values clamp, never bind NaN", async () => {
+  const cases = [["", 20], ["?limit=abc", 20], ["?limit=9999", 50], ["?limit=-4", 1], ["?limit=7", 7]];
+  for (const [q, want] of cases) {
+    const db = fakeDb([{ match: /FROM episodic_events/, handle: () => ({ results: [] }) }]);
+    await mod.listDecisionBlocks({ DB: db }, new URL(`https://x.test/decision/blocks${q}`));
+    assert.deepEqual(db.calls[0].params, [want], q || "(no query)");
+  }
+});
+
+test("a failing D1 read returns an empty list rather than an error state", async () => {
+  const db = { prepare() { throw new Error("D1 down"); } };
+  const res = await mod.listDecisionBlocks({ DB: db }, new URL("https://x.test/decision/blocks"));
+  assert.equal(res.status, 200);
+  assert.deepEqual((await readJson(res)).blocks, []);
 });

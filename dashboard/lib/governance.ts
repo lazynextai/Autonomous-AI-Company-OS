@@ -141,3 +141,14 @@ export async function govGet<T>(path: string): Promise<T> {
   if (!res.ok || data == null) throw new Error(errorMessage(data, res.status));
   return data as T;
 }
+
+/** One `episodic_events` row, scope `decision_gate` — payload is a JSON string. */
+export interface GateBlock {
+  id: number;
+  payload: string;
+  created_at: string;
+}
+
+export interface GateBlocksResponse {
+  blocks?: GateBlock[];
+}

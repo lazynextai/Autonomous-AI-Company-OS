@@ -4,7 +4,12 @@
 // connector dependency to act with.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { loadModule, fakeDb, readJson } from "./helpers/lift.mjs";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+import { loadModule, fakeDb, fakeKv, fakeCtx, readJson } from "./helpers/lift.mjs";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
 
 const jsonFn = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json" } });
@@ -12,7 +17,10 @@ const jsonFn = (data, status = 200) =>
 const mod = loadModule(
   "observer.ts",
   { json: jsonFn },
-  ["OBSERVER_LIMITS", "reviewPlan", "observerReview", "listObserverReviews", "handleObserverRoutes"],
+  [
+    "OBSERVER_LIMITS", "reviewPlan", "observerReview", "listObserverReviews", "handleObserverRoutes",
+    "recordObserverVerdict", "observerModeEnabled", "observeTaskDispatch",
+  ],
 );
 
 const flagCodes = (r) => r.policy_flags.map((f) => f.code);
@@ -151,4 +159,106 @@ test("recent reviews are readable and the limit is clamped", async () => {
   const db = fakeDb([{ match: /FROM episodic_events WHERE scope = 'observer'/, handle: () => ({ results: [] }) }]);
   await mod.listObserverReviews({ DB: db }, new URL("https://x.test/observer/reviews?limit=9999"));
   assert.deepEqual(db.calls[0].params, [100]);
+});
+
+// --- GAP A: observe-only wiring at the task dispatch boundary --------------
+// The whole point of this pass is that it is a consumer, not an enforcer: it
+// records exactly one row and can never block, delay, or alter the dispatch.
+const observerRows = (db) => db.calls.filter((c) => /VALUES \('observer', \?\)/.test(c.sql));
+
+const task = {
+  id: 7,
+  task_id: "task-abc",
+  agent_id: "cto_1",
+  description: "Add a docs note describing the existing rules manifest.",
+  attempts: 0,
+};
+
+test("the mode gate defaults to on and only an explicit 'off' disables it", async () => {
+  assert.equal(await mod.observerModeEnabled({ EPHEMERAL: fakeKv() }), true, "absent config means logging on");
+  for (const value of ["on", "on ", "ON", "1", "true", "", "banana"]) {
+    assert.equal(await mod.observerModeEnabled({ EPHEMERAL: fakeKv({ "config:observer_mode": value }) }), true, value);
+  }
+  assert.equal(await mod.observerModeEnabled({ EPHEMERAL: fakeKv({ "config:observer_mode": "off" }) }), false);
+  assert.equal(await mod.observerModeEnabled({ EPHEMERAL: fakeKv({ "config:observer_mode": " OFF " }) }), false);
+});
+
+test("an unreadable config keep logging rather than going dark", async () => {
+  const kv = { get: async () => { throw new Error("KV down"); } };
+  assert.equal(await mod.observerModeEnabled({ EPHEMERAL: kv }), true);
+});
+
+test("a task dispatch records exactly one observer verdict naming the task", async () => {
+  const db = fakeDb();
+  const ctx = fakeCtx();
+  const id = await mod.observeTaskDispatch({ DB: db, EPHEMERAL: fakeKv() }, ctx, task);
+  assert.equal(id, 1);
+  await ctx.flush();
+
+  const rows = observerRows(db);
+  assert.equal(rows.length, 1, "exactly one observer row per dispatch");
+  const payload = JSON.parse(rows[0].params[0]);
+  assert.equal(payload.task_id, "task-abc");
+  assert.equal(payload.source, "task_dispatch");
+  assert.equal(payload.recommendation, "safe");
+  assert.deepEqual(payload.flags, []);
+  assert.match(payload.digest, /^[0-9a-f]{16}$/);
+  assert.ok(payload.at);
+});
+
+test("a risky task description is classified, not censored", async () => {
+  const db = fakeDb();
+  await mod.observeTaskDispatch({ DB: db, EPHEMERAL: fakeKv() }, fakeCtx(), {
+    ...task, description: "Edit package.json to add a dependency and post it to the vendor webhook.",
+  });
+  const payload = JSON.parse(observerRows(db)[0].params[0]);
+  assert.equal(payload.recommendation, "policy_concern");
+  assert.ok(payload.flags.includes("protected_file"));
+});
+
+test("config:observer_mode = off writes no observer row at all", async () => {
+  const db = fakeDb();
+  const ctx = fakeCtx();
+  const id = await mod.observeTaskDispatch({ DB: db, EPHEMERAL: fakeKv({ "config:observer_mode": "off" }) }, ctx, task);
+  assert.equal(id, null);
+  await ctx.flush();
+  assert.equal(observerRows(db).length, 0);
+});
+
+test("a throwing review is swallowed and never reaches the dispatch", async () => {
+  const db = { prepare() { throw new Error("D1 down"); } };
+  const ctx = fakeCtx();
+  await assert.doesNotReject(() => mod.observeTaskDispatch({ DB: db, EPHEMERAL: fakeKv() }, ctx, task));
+  await ctx.flush();
+});
+
+test("the hook never touches task_log — status and result stay untouched", async () => {
+  const db = fakeDb();
+  await mod.observeTaskDispatch({ DB: db, EPHEMERAL: fakeKv() }, fakeCtx(), task);
+  const touched = db.calls.filter((c) => /task_log/.test(c.sql));
+  assert.deepEqual(touched, [], "the observer pass is not allowed to write task state");
+  const writes = db.calls.filter((c) => c.kind === "run" && !/VALUES \('observer'/.test(c.sql));
+  assert.deepEqual(writes, [], "one observer row is the only side effect");
+});
+
+test("the hook is fire-and-forget: it resolves before its work has to finish", async () => {
+  const db = fakeDb([{ match: /VALUES \('observer'/, handle: () => { throw new Error("slow/hung D1"); } }]);
+  const ctx = fakeCtx();
+  // await it to prove the call itself never rejects; registration is waitUntil.
+  await mod.observeTaskDispatch({ DB: db, EPHEMERAL: fakeKv() }, ctx, task);
+  await ctx.flush();
+});
+
+// --- wiring: the tick calls it before executing the pending row ------------
+const indexSource = readFileSync(join(HERE, "..", "src", "index.ts"), "utf8");
+
+test("agentTick runs the observer pass at the dispatch boundary, before executeTask", () => {
+  const tick = indexSource.slice(indexSource.indexOf("async function agentTick"), indexSource.indexOf("function safeJson"));
+  const observe = tick.indexOf("observeTaskDispatch(env, ctx, pending)");
+  const execute = tick.indexOf("await executeTask(env, ctx, brain, urls, pending)");
+  assert.ok(observe > -1, "agentTick must consult the observer");
+  assert.ok(execute > -1);
+  assert.ok(observe < execute, "the review is registered before the task runs");
+  assert.equal(/await observeTaskDispatch/.test(tick), false, "it must never be awaited — no delay path");
+  assert.equal(/if \(await observerModeEnabled|observerModeEnabled\(/.test(tick), false, "mode gating lives in the hook, not inline");
 });

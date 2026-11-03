@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/ui";
 import { BreakersPanel } from "@/components/governance/BreakersPanel";
 import { ReadinessPanel } from "@/components/governance/ReadinessPanel";
 import { DecisionsPanel } from "@/components/governance/DecisionsPanel";
+import { GateBlocksPanel } from "@/components/governance/GateBlocksPanel";
 import { EvidencePanel } from "@/components/governance/EvidencePanel";
 
 export default function GovernancePage() {
@@ -9,13 +10,14 @@ export default function GovernancePage() {
     <>
       <PageHeader
         title="Governance"
-        subtitle="Read-only view of outbound breakers, capability readiness, decision packages, and CRM evidence provenance."
+        subtitle="Read-only view of outbound breakers, capability readiness, decision packages, gate blocks, and CRM evidence provenance."
       />
 
       <div className="space-y-5 max-w-6xl">
         <BreakersPanel />
         <ReadinessPanel />
         <DecisionsPanel />
+        <GateBlocksPanel />
         <EvidencePanel />
       </div>
 

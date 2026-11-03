@@ -22,10 +22,10 @@ import { handleServices, handleSignwellWebhook, handleBrevoWebhook, handleBrevoI
 import { handleSignApi, handleSignPublic, createSignRequest } from "./sign";
 import { handleConnect, refreshConnectorTokens } from "./connect_oauth";
 import { recordLeadEvidence, listLeadEvidence, evidenceSummary } from "./evidence";
-import { handleDecisionRoutes, listDecisionPackages, expireDecisionPackages } from "./decisions";
+import { handleDecisionRoutes, listDecisionPackages, listDecisionBlocks, expireDecisionPackages } from "./decisions";
 import { handleLedgerRoutes, ledgerSummary, buildOutcomeLedger } from "./ledger";
 import { capabilityMatrix, refreshCapabilityReadiness } from "./readiness";
-import { handleObserverRoutes, listObserverReviews } from "./observer";
+import { handleObserverRoutes, listObserverReviews, observeTaskDispatch } from "./observer";
 import { handleManifestRoutes, listManifests, latestManifest } from "./manifests";
 
 export { Env };
@@ -174,6 +174,7 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, path: string
   // which are operator surfaces, not customer data.
   if (req.method === "GET") {
     if (path === "/decision/packages") return listDecisionPackages(env, new URL(req.url));
+    if (path === "/decision/blocks") return listDecisionBlocks(env, new URL(req.url));
     if (path === "/ledger/summary") return ledgerSummary(env, new URL(req.url));
     if (path === "/capability/matrix") return capabilityMatrix(env);
     if (path === "/observer/reviews") return listObserverReviews(env, new URL(req.url));
@@ -816,7 +817,12 @@ async function agentTick(env: Env, ctx: ExecutionContext) {
   // Deploy the product worker — or redeploy until the rendered-scan build is
   // live (api_full: repo module shipped, api_rendered=2: env bindings used).
   if (!urls.api || !urls.api_full || urls.api_rendered !== "3") out.api = await deployProduct(env, ctx, brain, urls);
-  if (pending) out.executed = await executeTask(env, ctx, brain, urls, pending);
+  if (pending) {
+    // Observe-only P4 pass at the dispatch boundary: review the task, record
+    // one `observer` episodic row, and never block/delay the execution below.
+    observeTaskDispatch(env, ctx, pending);
+    out.executed = await executeTask(env, ctx, brain, urls, pending);
+  }
   if ((remaining?.c ?? 0) < 5) out.generated = await operate(env, ctx, brain, urls);
   return out;
 }

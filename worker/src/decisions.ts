@@ -390,6 +390,31 @@ export async function listDecisionPackages(env: Env, url: URL): Promise<Response
 }
 
 /**
+ * Bounded read-only view of `decision_gate` audit rows. Read-only by
+ * construction: it only ever selects `episodic_events` scope `decision_gate` —
+ * the dashboard panel that shows "blocked, not broken".
+ */
+export async function listDecisionBlocks(env: Env, url: URL): Promise<Response> {
+  const raw = Number(url.searchParams.get("limit") ?? 20);
+  const limit = Number.isFinite(raw) ? Math.min(Math.max(Math.trunc(raw), 1), 50) : 20;
+  let results: { id: number; payload: string; created_at: string }[] = [];
+  try {
+    const res = await env.DB.prepare(
+      `SELECT id, payload, created_at
+         FROM episodic_events
+        WHERE scope = 'decision_gate'
+        ORDER BY id DESC
+        LIMIT ?`,
+    ).bind(limit).all<{ id: number; payload: string; created_at: string }>();
+    results = res.results ?? [];
+  } catch {
+    // A read surface must render "no blocks" rather than an error page.
+    results = [];
+  }
+  return json({ blocks: results });
+}
+
+/**
  * Opt-in enforcement. Default OFF so dispatch keeps its existing semantics.
  * `config:decision_enforce` is now scope-aware: instead of a bare on/off flag
  * it accepts `human_only` | `approval` | `all` (legacy `"1"` == `all`), so a

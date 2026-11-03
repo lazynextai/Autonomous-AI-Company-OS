@@ -148,28 +148,124 @@ async function digest(text: string): Promise<string> {
   return [...new Uint8Array(buf)].slice(0, 8).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** Review + one audit row (scope `observer`). Never executes the plan. */
-export async function observerReview(env: Env, input: ObserverInput): Promise<Response> {
+/** Caller-supplied context that rides the audit row (never the plan body). */
+export interface ObserverAuditMeta {
+  task_id?: string | null;
+  source?: string;
+}
+
+/**
+ * Review + one audit row (scope `observer`). The single write format for every
+ * caller — the operator route and the observe-only task-dispatch hook share it,
+ * so there is exactly one `observer` row shape to read.
+ */
+export async function recordObserverVerdict(
+  env: Env,
+  input: ObserverInput,
+  meta: ObserverAuditMeta = {},
+): Promise<{ id: number | null; review: ObserverReview }> {
   const review = reviewPlan(input);
+  let payload: string;
+  try {
+    payload = JSON.stringify({
+      recommendation: review.recommendation,
+      gaps: review.gaps.length,
+      gap_codes: review.gaps.map((g) => g.code),
+      flags: review.policy_flags.map((f) => f.code),
+      digest: await digest(planText(input.plan)),
+      action: input.action ?? null,
+      authority: input.authority ?? null,
+      task_id: meta.task_id ?? null,
+      source: meta.source ?? "review",
+      at: Date.now(),
+    }).slice(0, 4000);
+  } catch {
+    payload = JSON.stringify({ recommendation: "unknown", source: meta.source ?? "review", at: Date.now() });
+  }
   const id = await (async () => {
     try {
       const res = await env.DB.prepare(
         "INSERT INTO episodic_events (scope, payload) VALUES ('observer', ?)",
-      ).bind(JSON.stringify({
-        recommendation: review.recommendation,
-        gaps: review.gaps.length,
-        flags: review.policy_flags.map((f) => f.code),
-        digest: await digest(planText(input.plan)),
-        action: input.action ?? null,
-        authority: input.authority ?? null,
-        at: Date.now(),
-      }).slice(0, 4000)).run();
+      ).bind(payload).run();
       return Number(res.meta.last_row_id);
     } catch {
       return null;
     }
   })();
+  return { id, review };
+}
+
+/** Review + one audit row (scope `observer`). Never executes the plan. */
+export async function observerReview(env: Env, input: ObserverInput): Promise<Response> {
+  const { id, review } = await recordObserverVerdict(env, input);
   return json({ id, ...review, executes: false }, 200);
+}
+
+/**
+ * OBSERVE-ONLY mode gate. `config:observer_mode` defaults to `on` — the pass
+ * records a verdict and nothing else. `off` writes no row. A future
+ * enforcement mode would need its own decision; this module never blocks.
+ */
+export async function observerModeEnabled(env: Env): Promise<boolean> {
+  let mode: string | null | undefined;
+  try {
+    mode = await env.EPHEMERAL.get("config:observer_mode");
+  } catch (err) {
+    // KV unreadable: the pass is logging-only, so keep logging rather than
+    // silently going dark. This can never block or delay a task.
+    console.error(`[observer] config read failed; defaulting to on: ${err instanceof Error ? err.message : String(err)}`);
+    return true;
+  }
+  return String(mode ?? "on").trim().toLowerCase() !== "off";
+}
+
+export interface DispatchTaskRef {
+  task_id?: unknown;
+  agent_id?: unknown;
+  description?: unknown;
+}
+
+/**
+ * Task-dispatch boundary hook (GAP A). Fire-and-forget: registered with
+ * `ctx.waitUntil` so a slow review can never stall the tick, and every failure
+ * is swallowed — it must never block, delay, alter `task_log.status`, or write
+ * a task result. Its only effect is one `episodic_events` row, scope `observer`.
+ */
+export function observeTaskDispatch(
+  env: Env,
+  ctx: ExecutionContext | undefined,
+  task: DispatchTaskRef,
+): Promise<number | null> {
+  const run = (async (): Promise<number | null> => {
+    try {
+      if (!(await observerModeEnabled(env))) return null;
+      const taskId = task?.task_id == null ? null : String(task.task_id);
+      const { id } = await recordObserverVerdict(
+        env,
+        {
+          plan: {
+            task_id: taskId,
+            agent_id: task?.agent_id == null ? null : String(task.agent_id),
+            description: task?.description == null ? "" : String(task.description),
+          },
+          action: { type: "task.execute", target: taskId ?? "task" },
+          authority: "approval",
+        },
+        { task_id: taskId, source: "task_dispatch" },
+      );
+      return id;
+    } catch (err) {
+      // Observation must never become a failure mode of dispatch.
+      console.error(`[observer] task-dispatch review swallowed: ${err instanceof Error ? err.message : String(err)}`);
+      return null;
+    }
+  })();
+  try {
+    ctx?.waitUntil(run);
+  } catch {
+    /* a test double without waitUntil must not break the hook */
+  }
+  return run;
 }
 
 export async function listObserverReviews(env: Env, url: URL): Promise<Response> {
