@@ -68,7 +68,7 @@ export function isExternalScanUrl(url: unknown): boolean {
 }
 
 /** Shape of a stored `report:*` record, as far as provenance cares. */
-export type ScanReport = { url?: unknown; ts?: number };
+export type ScanReport = { url?: unknown; ts?: number; src?: unknown };
 
 /**
  * Count the report records that came from an external site. Same records,
@@ -88,6 +88,50 @@ export function countExternalReports(values: (string | null)[]): number {
     }
   }
   return n;
+}
+
+/**
+ * Closed vocabulary of scan sources stamped by the product worker
+ * (canonical: `products/accessibility-checker/src/scan_src.js`). The list is
+ * the parity-tested contract between the two repos — see
+ * `worker/test/scan-provenance.test.mjs`. Change it in BOTH places.
+ */
+export const SCAN_SOURCES = ["web", "ci", "monitor", "mcp", "a2a", "fixture", "unknown"] as const;
+export type ScanSource = (typeof SCAN_SOURCES)[number];
+
+/** Vocabulary member from a stored value, or null when absent/unrecognised. */
+export function normalizeScanSource(v: unknown): ScanSource | null {
+  return typeof v === "string" && (SCAN_SOURCES as readonly string[]).includes(v)
+    ? (v as ScanSource)
+    : null;
+}
+
+/**
+ * Per-source distribution of stored reports — the one-command version of the
+ * 2026-11-03 host-classification audit (a GROUP BY instead of a manual pass).
+ * Records written before the stamp existed carry no `src` and land in
+ * `unstamped` (never dropped: the buckets always sum to the record count), and
+ * an unrecognised value lands in `other` rather than vanishing. Malformed
+ * records count as `unstamped` — an unreadable scan has no provable source.
+ */
+export function countBySource(values: (string | null)[]): Record<string, number> {
+  const out: Record<string, number> = { unstamped: 0, other: 0 };
+  for (const s of SCAN_SOURCES) out[s] = 0;
+  for (const v of values) {
+    if (v == null) { out.unstamped++; continue; }
+    let rec: ScanReport;
+    try {
+      rec = JSON.parse(v) as ScanReport;
+    } catch {
+      out.unstamped++;
+      continue;
+    }
+    const src = normalizeScanSource(rec?.src);
+    if (src) out[src]++;
+    else if (rec?.src == null) out.unstamped++;
+    else out.other++;
+  }
+  return out;
 }
 
 /**

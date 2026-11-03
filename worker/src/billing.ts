@@ -4,7 +4,7 @@
 // Host: test.dodopayments.com (test mode) or live.dodopayments.com.
 import { Env, json, listAll } from "./gateway";
 import { signwellSendFromTemplate } from "./services";
-import { countExternalReports } from "./scanprovenance";
+import { countExternalReports, countBySource } from "./scanprovenance";
 
 const DODO_API_DEFAULT = "https://test.dodopayments.com"; // set env.DODO_API_BASE to https://live.dodopayments.com when the account leaves test mode
 
@@ -521,6 +521,13 @@ export async function handleBilling(
     return json({
       scans_30d: reports.length,
       scans_external_30d: countExternalReports(reportValues),
+      // Additive provenance stamp distribution — the machine-readable form of
+      // the 2026-11-03 traffic audit. The product worker stamps each stored
+      // report with a closed `src` vocabulary (web/ci/monitor/mcp/a2a/fixture/
+      // unknown); records that predate the stamp are counted as `unstamped`.
+      // `scans_by_src` never feeds scans_external_30d — the metric stays
+      // purely host-based.
+      scans_by_src: countBySource(reportValues),
       leads: leadCount,
       waitlist: await count("waitlist"),
       email_contacts: await count("email_contacts"),
