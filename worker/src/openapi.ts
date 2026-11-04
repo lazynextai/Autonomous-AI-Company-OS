@@ -294,7 +294,11 @@ export const OPENAPI_SPEC = {
       },
     },
     "/api/v1/marketing/stats": {
-      get: { summary: "Marketing funnel counters + email events", responses: { "200": { description: "Stats" } } },
+      get: {
+        summary: "Marketing funnel counters + email events (raw totals plus honest click/opens fields)",
+        description: "Raw event totals/by_tag/recent are unchanged. Additive honesty fields: human_clicks (clicks that passed the bot/prefetch filter), bot_clicks (scanner prefetches incl. unsubscribe fetches), unsubscribe_clicks, and opens_are_proxy_inflated (true — image proxies fire open events server-side).",
+        responses: { "200": { description: "Stats" } },
+      },
     },
     "/api/v1/connectors": {
       get: {

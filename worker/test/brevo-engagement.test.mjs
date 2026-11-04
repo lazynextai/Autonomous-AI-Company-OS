@@ -14,11 +14,17 @@ const src = readFileSync(
   join(dirname(fileURLToPath(import.meta.url)), "../src/services.ts"),
   "utf8",
 );
-const m = src.match(/export function leadEngagement[\s\S]*?\n}/);
-assert.ok(m, "leadEngagement not found in src/services.ts");
-const js = ts.transpileModule(m[0].replace(/^export /, ""), {
-  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-}).outputText;
+const liftFn = (name) => {
+  const m = src.match(new RegExp(`export function ${name}[\\s\\S]*?\\n}`));
+  assert.ok(m, `${name} not found in src/services.ts`);
+  return m[0].replace(/^export /, "");
+};
+const patterns = src.match(/const BOT_UA_PATTERNS = \[[\s\S]*?\n\];/);
+assert.ok(patterns, "BOT_UA_PATTERNS not found in src/services.ts");
+const js = ts.transpileModule(
+  patterns[0] + "\n" + liftFn("classifyClick") + "\n" + liftFn("leadEngagement"),
+  { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } },
+).outputText;
 const leadEngagement = new Function(`${js}; return leadEngagement;`)();
 
 const DAY = "2026-09-28";
