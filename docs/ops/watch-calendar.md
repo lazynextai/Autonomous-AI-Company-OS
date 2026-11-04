@@ -54,6 +54,14 @@ on the founder's desk today.
 | 2026-11-04 05:20–05:40 | **Final completion sweep (A–D)** — Microsoft due-date, four directory listings, platform health + breakers + governance, fleet count | Full detail in the section below. Headline: **no Microsoft verdict**, no directory moved, everything green, one fleet process. Nothing sent, nothing signed in, no money moved, no config changed. |
 | 2026-11-04 | **Two completion-sweep fixes (`feat/final-two-fixes`, no deploy)** | (a) **X readiness probe**: `worker/src/readiness.ts` sent `Bearer <cred>` for `conn:x`, but the stored credential is a durable **OAuth1 quad** (`ck|cs|at|ats`) — a guaranteed 401, so the matrix reported `x: probe-failed` while dispatch worked. Now a quad is recorded **`probe_supported = 0`** with a truthful `last_error` (dispatch verified separately); a bearer-shaped credential still gets a real `/2/users/me` probe, and unsupported rows clear stale verdicts. (b) **Finance-report fabrication**: the generator prompt labelled `licenses_pro=1` as users, so a report claimed a paid Pro subscription at $0 revenue. `core/operations/report_facts.py` now emits a D1-quoted VERIFIED FACTS block prepended to both the weekly finance report and the founder briefing, with hard no-fabrication rules. Wording corrected in `docs/ops/inbox-full-read-2026-11-04.md`. Verified: pytest `244 passed, 5 skipped`; worker `node --test` `267 passed`; `npx tsc --noEmit` clean. |
 
+## 2026-11-05 recheck (scheduled — done)
+
+| Check | Result |
+|---|---|
+| Microsoft verdict (the calendar's 11-05 recheck) | **Still none.** `from:supportmail@techsupport.microsoft.com` → 3 threads total, all older: 27 Oct (the answered context email), 14 Oct, 7 Oct. `from:msftpc@microsoft.com newer_than:3d` → 0; `subject:verification newer_than:3d` → 0. **Nothing new since attempt 3.** Follow-up email stays pre-authorized for **11-06/11-07** — that is the next action, and it needs no founder input. |
+| Unread mail | **0** (broadened News filter is holding — no accumulation). |
+| Next action | 2026-11-06/07 email-only follow-up to the vetting thread (runbook §1), *after* re-checking no verdict landed. |
+
 ## 2026-11-04 evening verification
 
 | Check | Result |
