@@ -51,3 +51,64 @@ on the founder's desk today.
 |---|---|---|
 | 2026-11-04 | Microsoft inbox sweep (`from:supportmail@techsupport.microsoft.com`, `subject:verification newer_than:2d`, seller / Partner Center / vetting `newer_than:3d`, SellerId `96466040`) | **No decision mail.** Newest message from that address is still the 2026-10-27 context email (TrackingID#2610070060003196) — the vetting-ops request that attempt 3 already answered. Nothing new since the 01:26 check; no action. |
 | 2026-11-04 | Stale September draft campaign cleanup | `email_campaigns` id 8 (`sales-outreach-2026-09-29`, "Make Your Website Accessible to All", `draft`, `sent_count` 0, created 2026-09-28) deleted — 1 row. It duplicated subjects already fired by ids 5 and 7 to the same list, so it could never be safely sent. |
+| 2026-11-04 05:20–05:40 | **Final completion sweep (A–D)** — Microsoft due-date, four directory listings, platform health + breakers + governance, fleet count | Full detail in the section below. Headline: **no Microsoft verdict**, no directory moved, everything green, one fleet process. Nothing sent, nothing signed in, no money moved, no config changed. |
+
+## 2026-11-04 final completion sweep
+
+Read-only sweep run on the founder's instruction that everything completable today be finished.
+Constraints honoured throughout: **no sends, no sign-ins, no payments, no deployments, no config
+changes, no code edits** — this ledger entry is the only artifact.
+
+### A. Microsoft Partner Center — verdict due today
+
+**NO VERDICT as of 2026-11-04 05:35 IST.** Three queries against `support@lazynext.com`, all empty:
+
+| Query | Threads |
+|---|---|
+| `from:supportmail@techsupport.microsoft.com newer_than:2d` | **0** |
+| `from:msftpc@microsoft.com newer_than:5d` | **0** |
+| `subject:(verification OR "Partner Center") newer_than:2d` | **0** |
+
+Newest message from the vetting address is still 2026-10-27 16:44 UTC, `Swasthik b
+<supportmail@techsupport.microsoft.com>`, *"Partner Center account verification rejected; email
+OTP service fails with EmailToken_Verification_P…"* — the pre-attempt-3 context email that
+attempt 3 already answered. The only Microsoft mail in the last 48 h is promotional (Azure
+×2, Microsoft Advertising ×1).
+
+**Actions deliberately not taken:** the follow-up email is pre-authorized for **2026-11-06 / 11-07
+only** — sending today would be premature, so it was not sent. No sign-in was attempted; the
+MSA `prompt=login` + `acr_values=mfa` chain needs a fresh code at every hop. Row 1 above still
+owns the next step.
+
+### B. Directory + listing watch
+
+| Listing | Live result | Reading |
+|---|---|---|
+| **apis.io** | `/api/v1/search?q=lazynext` → `apis.total: 0`, `providers.total: 0`; `/api/v1/providers?q=lazynext` → `meta.total: 0`, `data: []` | Not in the catalog yet — expected; the 2026-11-03 submission is batched into their next build. Do not resubmit. |
+| **mcp.so** ([#6529](https://github.com/chatmcp/mcpso/issues/6529)) | `state: open`, `comments: 0`, `created_at` **=** `updated_at` = `2026-11-01T03:22:32Z` | Untouched since filing — **no maintainer reply**. Keep watching the issue only. |
+| **directree** | `directree.io/tool/accessibility-checker` → 308 → `www.directree.io/…` **200** (187 KB) | Public and healthy, **"Claimed by owner"**, "Founder-edited" provenance labels present, "Last updated: 1 November 2026". **Edits still pending:** primary category is still *Monitoring & Observability* (the Developer Tools change has not landed), and no gold Verified badge is rendered in the hero — "verified owner" appears only in the facts legend. Review window still ~**2026-12-06**. |
+| **AlternativeTo** | Page itself is a 403 Cloudflare interstitial ("Just a moment…"); resolved instead through AlternativeTo's own catalog search: `q="Lazynext Accessibility Checker"` → **`total_count: 0`**; `q=lazynext` → `total_count: 2`, both unrelated (**LazyNotes**, **Lazy Nezumi Pro**) | **Still unlisted / pending review.** No owner-only view read, no account interaction. Free queue stays free — do not pay $5/$15. |
+
+### C. Health, breakers, governance
+
+| Check | Result |
+|---|---|
+| Platform `/health` (bearer) | `{"ok":true}`; bare GET → **401** as designed |
+| `cron:last_tick` | `1793749815576` = **2026-11-03T23:50:15Z**, 7.4 min old at check — cron healthy |
+| `config:decision_enforce` | **`approval`** (rank-based; `human_only` also covered, `auto` internal exempt) |
+| `config:observer_mode` | absent → default **on** (logging only, enforces nothing) |
+| `outbound_breaker_config` (D1 row 1) | `enabled: 1`, **`tripped_reason: null`**, `tripped_at: null` (updated 2026-11-02T20:01:36Z) |
+| Breaker-denial events | **0.** Four `scope='connector'` rows in 48 h, all app-level: discord 204 ×2, youtube 400 (media-only), signwell 400 |
+| `/api/v1/billing/funnel` | 200 — **scans_30d 137**, **scans_external_30d 7**, leads 1, waitlist 1, email_contacts 49, crm_leads 68, crm_engaged 15, trials_active 0, licenses_pro 1, licenses_free 0, subscriptions_active 0, monitors 1 |
+| `/decision/packages` | 200 — 32 approved (all unexpired, `expiry_at` 2026-12-31), 2 executed, 2 failed, 2 voided |
+| `/capability/matrix` | 200 — 45 connectors: 3 `probe-ok`, 2 `probe-failed`, 36 `configured-unprobed`, 4 `documented-only`, 0 absent. **`x` probe reads HTTP 401** from the worker-side probe while fleet-side X dispatch works — probe-scope only, not a dispatch failure |
+| `/decision/blocks` | 200 — only the known **signwell `human_only`** rows (3 `decision_gate` rows in 7 d, all 2026-11-03 probes). Nothing new today; the boundary is holding |
+| `scope='observer'` rows (48 h) | **8** — 7 `fleet_dispatch` + 1 `task_dispatch`, every recommendation `safe`, no gaps/flags. First real fleet-side observer evidence (the earlier runs were 0) |
+| Public sites | `checker.lazynext.com/health` **200** `{"ok":true,"service":"accessibility-checker"}` · `lazynext.com` **200** · `dashboard.lazynext.com` **307** (auth gate, normal) · `penpot.lazynext.com` **200** · `marketing.lazynext.com` **200** |
+| Fleet | **Exactly one** `run_agents.py` (pid 569, up 1 h 35 m), log active at 05:27 (`company_brain_updated`, `fetched_failed_workflows count=5`) |
+| Workflow health | Latest 8 CI runs on `main` **all success** (newest 2026-11-03T23:53Z). The `count=5` above is the monitor's historic Sept failure list, not a new outage |
+
+### D. Not due today (deliberately untouched)
+
+- **Microsoft follow-up email** — pre-authorized window is **2026-11-06 / 11-07**; sending earlier is premature. Not sent.
+- **Power Automate cancellation** — Premium trial converts ~**2027-01-28**; cancelling early kills the anonymous Teams webhook path. Not attempted.
