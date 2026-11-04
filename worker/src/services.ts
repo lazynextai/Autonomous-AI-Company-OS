@@ -233,12 +233,16 @@ export async function handleServices(
     if (!contacts?.length) return json({ error: `no recipients in segment '${s.seg}'` }, 400);
     await update(env, "email_campaigns", id, { status: "sending" });
     let sent = 0;
+    // Stamp product links with the campaign marker before send — a click that
+    // comes back carrying utm_campaign:<id> is provably attributable, which
+    // is what lets scanner prefetches be told apart from real interest.
+    const body = addCampaignUtm(String(camp.html), id);
     for (const c of contacts as { email: string }[]) {
       if (await env.EPHEMERAL.get(`unsub:${c.email.toLowerCase()}`)) continue;
       try {
         const r = await brevoSend(
           env, c.email, String(camp.subject),
-          String(camp.html) + await marketingFooter(env, c.email, consentBasis),
+          body + await marketingFooter(env, c.email, consentBasis),
           undefined, await unsubHeaders(env, c.email), `campaign:${id}`);
         if (r.ok) sent++;
       } catch {}
@@ -251,7 +255,10 @@ export async function handleServices(
   // Engagement roll-up over email_events — every Brevo transactional webhook
   // callback lands there, tagged by the send path (campaign:<id>, seq:<stage>,
   // ticket:<id>, trial:reminder, monitor:alert, manual). Unique recipients
-  // dedup repeated opens by the same address.
+  // dedup repeated opens by the same address. Clicks are classified before
+  // they are recorded (see classifyClick): only human product clicks land as
+  // 'click', so the added human_clicks/bot_clicks fields are honest where the
+  // raw totals mix in mail-scanner prefetches.
   if (path === "/api/v1/marketing/stats" && req.method === "GET") {
     const { results: totals } = await env.DB.prepare(
       "SELECT event, COUNT(*) c, COUNT(DISTINCT email) uniq FROM email_events GROUP BY event",
@@ -262,7 +269,7 @@ export async function handleServices(
     const { results: recent } = await env.DB.prepare(
       "SELECT event, email, tag, ts_epoch, link, created_at FROM email_events ORDER BY id DESC LIMIT 20",
     ).all();
-    return json({ totals, by_tag: byTag, recent });
+    return json(marketingStatsBody(totals, byTag, recent));
   }
 
   // --- Connector invocation -------------------------------------------------
@@ -781,19 +788,135 @@ const BREVO_SUPPRESS_EVENTS = new Set([
   "blocked", "unsubscribed",
 ]);
 
-// Lead promotion from raw Brevo events — click is the only high-intent
-// signal worth acting on (opens are Apple-MPP inflated). Returns the
-// crm_leads notes stamp or null. The stamp mirrors the format ops used when
-// this ran manually ("clicked-trial:<date>"), so old and new rows read the
-// same; non-trial links get plain "clicked:<date>".
-export function leadEngagement(
-  ev: { event?: string; link?: string | null }, date?: string,
-): string | null {
+// Server-side link fetchers that arrive looking like clicks: mailbox image
+// proxies and security scanners prefetch every URL in a message before (or
+// without) a human ever seeing it. Deliberately a small explicit list, not
+// heuristics or ML — extend it when ops observes a new signature. Matching is
+// case-insensitive substring against the User-Agent the webhook saw.
+const BOT_UA_PATTERNS = [
+  "googleimageproxy", "ggpht", // Gmail image proxy / link fetch
+  "yahoomailproxy", "yandex", // Yahoo / Yandex mail proxies
+  "outlook", "exchange", // Outlook / Exchange Safe Links style fetches
+  "proofpoint", "barracuda", "mimecast", // mail gateways that detonate URLs
+  "mailchimp", "bot", "crawler", "spider", "urlscan", // link checkers
+  "python-requests", "httpx/", "curl/", "wget", // scripting clients
+  "headlesschrome", "phantomjs", "prefetch", // headless / prefetch clients
+];
+
+// Classify one Brevo event. `click` is the only high-intent signal we act on;
+// this decides whether a click is real product interest, an unsubscribe
+// footer fetch (opt-out housekeeping — never engagement), or a bot/prefetch.
+// Proven live 2026-11-05: campaign 9's only "click" was a mail scanner
+// fetching /unsubscribe 4m17s after send — the recipient stayed subscribed,
+// so the handler was never reached. Counting that as engagement is a lie.
+export function classifyClick(
+  ev: { event?: string; link?: string | null; ts_epoch?: number },
+  meta: { method?: string; userAgent?: string | null; sentAtEpoch?: number } = {},
+  date?: string,
+): { kind: "not_click" } | { kind: "human"; stamp: string }
+  | { kind: "unsubscribe" } | { kind: "bot"; reason: string } {
   const name = (ev.event ?? "").toLowerCase().replace(/[_-]/g, "");
-  if (name !== "click") return null;
+  if (name !== "click") return { kind: "not_click" };
+  // A HEAD probe is a prefetch by definition — no human "clicks" via HEAD.
+  if ((meta.method ?? "").toUpperCase() === "HEAD")
+    return { kind: "bot", reason: "head-request" };
+  const ua = (meta.userAgent ?? "").toLowerCase();
+  const uaHit = BOT_UA_PATTERNS.find((p) => ua.includes(p));
+  if (uaHit) return { kind: "bot", reason: `scanner-user-agent:${uaHit}` };
+  const link = ev.link ?? "";
+  const unsubTarget = /\/unsubscribe\b|%2funsubscribe/i.test(link);
+  if (unsubTarget) {
+    // An unsubscribe hit within ~10s of the send is an automated
+    // "safe unsubscribe" fetch — nobody opens, reads, and opts out that fast.
+    // Later unsubscribe clicks stay classified 'unsubscribe' (possibly a real
+    // human opting out, still not product engagement) so the two are
+    // distinguishable in the event log.
+    if (typeof ev.ts_epoch === "number" &&
+        typeof meta.sentAtEpoch === "number" &&
+        ev.ts_epoch - meta.sentAtEpoch >= 0 &&
+        ev.ts_epoch - meta.sentAtEpoch < 10)
+      return { kind: "bot", reason: "unsubscribe-within-10s-of-send" };
+    return { kind: "unsubscribe" };
+  }
   const day = (date ?? new Date().toISOString()).slice(0, 10);
-  return /trial|checkout/i.test(ev.link ?? "")
-    ? `clicked-trial:${day}` : `clicked:${day}`;
+  return {
+    kind: "human",
+    stamp: /trial|checkout/i.test(link) ? `clicked-trial:${day}` : `clicked:${day}`,
+  };
+}
+
+// Lead promotion from raw Brevo events. Returns the crm_leads notes stamp or
+// null; only a click classified 'human' promotes. The stamp mirrors the format
+// ops used when this ran manually ("clicked-trial:<date>"), so old and new
+// rows read the same; non-trial links get plain "clicked:<date>".
+export function leadEngagement(
+  ev: { event?: string; link?: string | null; ts_epoch?: number },
+  date?: string,
+  meta: { method?: string; userAgent?: string | null; sentAtEpoch?: number } = {},
+): string | null {
+  const verdict = classifyClick(ev, meta, date);
+  return verdict.kind === "human" ? verdict.stamp : null;
+}
+
+// Honest engagement roll-up for GET /api/v1/marketing/stats. After the
+// classifier above, email_events records a filtered-out click as its own
+// event value: 'click_bot' (UA/HEAD/timing) or 'click_unsubscribe' (the
+// opt-out footer link). Rows still recorded as 'click' passed the filter —
+// historical rows predate it, so the field is as honest as the record.
+export function engagementSummary(
+  totals: { event?: string | null; c?: number | null }[] | null | undefined,
+): { human_clicks: number; bot_clicks: number; unsubscribe_clicks: number } {
+  let human = 0, bot = 0, unsub = 0;
+  for (const row of totals ?? []) {
+    const n = Number(row.c ?? 0);
+    if (row.event === "click") human += n;
+    else if (row.event === "click_bot") bot += n;
+    else if (row.event === "click_unsubscribe") unsub += n;
+  }
+  return { human_clicks: human, bot_clicks: bot, unsubscribe_clicks: unsub };
+}
+
+// The stats response body, kept pure so the route and its tests share one
+// shape. Additive only: totals/by_tag/recent are byte-for-byte the raw rows.
+export function marketingStatsBody(
+  totals: unknown, byTag: unknown, recent: unknown,
+): Record<string, unknown> {
+  return {
+    totals, by_tag: byTag, recent,
+    ...engagementSummary(totals as { event?: string; c?: number }[]),
+    // Gmail (and friends) proxy images server-side, so unique_opened fires
+    // when the proxy fetches a pixel — whether or not a human ever looked at
+    // the message. Open counts are inflated by construction; treat them as a
+    // delivery signal, not attention.
+    opens_are_proxy_inflated: true,
+  };
+}
+
+// Campaign bodies advertise product links; stamp them so a real click is
+// unambiguous and attributable to the campaign it came from. Only the product
+// host is rewritten, and the unsubscribe footer link is deliberately excluded
+// — it stays a clean, first-party, HMAC-signed URL (rewriting it would make
+// an opt-out look like tracked engagement). Idempotent: re-running the same
+// send path cannot double-stamp.
+const UTM_PRODUCT_HOST = "checker.lazynext.com";
+
+export function addCampaignUtm(html: string, campaignId: number | string): string {
+  return String(html ?? "").replace(
+    /href=("|')([^"']+)\1/gi,
+    (whole: string, quote: string, rawHref: string) => {
+      // HTML attributes escape '&' as '&amp;'; decode for parsing, re-escape
+      // on output so the markup stays valid.
+      const href = rawHref.replace(/&amp;|&#38;/g, "&");
+      let u: URL;
+      try { u = new URL(href); } catch { return whole; }
+      if (u.hostname.toLowerCase() !== UTM_PRODUCT_HOST) return whole;
+      if (u.pathname.replace(/\/+$/, "") === "/unsubscribe") return whole;
+      u.searchParams.set("utm_source", "email");
+      u.searchParams.set("utm_medium", "campaign");
+      u.searchParams.set("utm_campaign", String(campaignId));
+      return `href=${quote}${u.toString().replace(/&/g, "&amp;")}${quote}`;
+    },
+  );
 }
 
 export async function handleBrevoWebhook(
@@ -820,6 +943,31 @@ export async function handleBrevoWebhook(
   const list = JSON.parse(
     (await env.EPHEMERAL.get("brevo:events")) ?? "[]") as unknown[];
   let suppressedAny = false;
+  // What the click classifier needs beyond the payload: the request shape
+  // (webhook only accepts POST, but the check is cheap and explicit) and the
+  // caller's UA — Brevo forwards the recipient's fetch UA when available.
+  const method = req.method;
+  const userAgent = req.headers.get("user-agent");
+  // Send time per campaign tag, fetched lazily at most once per batch. Used
+  // only by the "unsubscribe within 10s of send" prefetch heuristic; a tag
+  // that isn't campaign:<id> or a missing row simply skips that check.
+  const sentAtByTag = new Map<string, number | undefined>();
+  const sentAtFor = async (tag: string | null): Promise<number | undefined> => {
+    if (!tag) return undefined;
+    if (sentAtByTag.has(tag)) return sentAtByTag.get(tag);
+    let epoch: number | undefined;
+    const m = tag.match(/^campaign:(\d+)$/);
+    if (m) {
+      const row = await env.DB.prepare(
+        "SELECT sent_at FROM email_campaigns WHERE id = ?")
+        .bind(Number(m[1])).first<{ sent_at?: string | null }>()
+        .catch(() => null);
+      const ms = row?.sent_at ? Date.parse(row.sent_at) : NaN;
+      if (Number.isFinite(ms)) epoch = ms / 1000;
+    }
+    sentAtByTag.set(tag, epoch);
+    return epoch;
+  };
   for (const ev of events) {
     const email = (ev.email ?? "").trim().toLowerCase();
     const name = (ev.event ?? "").toLowerCase().replace(/[_-]/g, "");
@@ -831,16 +979,32 @@ export async function handleBrevoWebhook(
     // seq:<stage>, ticket:<id>, trial:reminder, monitor:alert, manual.
     const tag = ev.tag
       ?? (Array.isArray(ev.tags) ? ev.tags[0] : ev.tags) ?? null;
+    // A raw 'click' is not automatically a human. Classify first, then record
+    // the verdict as a distinct event value so the event log never claims
+    // engagement a mail scanner produced: 'click' (human, passed the filter),
+    // 'click_bot' (UA/HEAD/timing prefetch) or 'click_unsubscribe' (the
+    // opt-out footer link — housekeeping, never product engagement).
+    const isClick = name === "click";
+    const verdict = classifyClick(ev, {
+      method,
+      userAgent,
+      sentAtEpoch: isClick ? await sentAtFor(tag) : undefined,
+    });
+    const eventValue = verdict.kind === "bot" ? "click_bot"
+      : verdict.kind === "unsubscribe" ? "click_unsubscribe"
+      : (ev.event ?? "unknown");
     await env.DB.prepare(
       "INSERT INTO email_events (event, email, tag, ts_epoch, link) VALUES (?, ?, ?, ?, ?)",
-    ).bind(ev.event ?? "unknown", email || null, tag,
+    ).bind(eventValue, email || null, tag,
       typeof ev.ts_epoch === "number" ? ev.ts_epoch : null,
       ev.link ?? null).run().catch(() => {});
     // Clickers are hot leads — promote them in crm_leads so the funnel +
     // briefings see engagement without a manual stamp. Guarded so a late
     // click can't demote a converted/customer/unsubscribed row and a second
-    // click on the same lead doesn't double-stamp the notes.
-    const stamp = email ? leadEngagement(ev) : null;
+    // click on the same lead doesn't double-stamp the notes. ONLY a human
+    // product click promotes: a prefetch or an unsubscribe fetch must never
+    // turn a lead 'engaged' (that is how campaign 9's numbers lied).
+    const stamp = email && verdict.kind === "human" ? verdict.stamp : null;
     if (stamp) {
       const promoted = await env.DB.prepare(
         "UPDATE crm_leads SET status='engaged', "
@@ -857,8 +1021,8 @@ export async function handleBrevoWebhook(
         })).run().catch(() => {});
       }
     }
-    list.unshift({ event: ev.event, email, tag, suppressed: suppress,
-      received_at: new Date().toISOString() });
+    list.unshift({ event: ev.event, classified: eventValue, email, tag,
+      suppressed: suppress, received_at: new Date().toISOString() });
   }
   await env.EPHEMERAL.put("brevo:events", JSON.stringify(list.slice(0, 50)));
   return json({ ok: true, suppressed: suppressedAny });
