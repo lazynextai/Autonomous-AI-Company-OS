@@ -107,6 +107,8 @@ Headline: this mailbox is **~91% newsletter/noise**. There are **no customer or 
 >
 > **UPDATE 2026-11-04 (evening, re-applied):** the 4 archive filters now ALSO **remove `UNREAD`** (`removeLabelIds: ["UNREAD","INBOX"]`), so newsletters that arrive are **automatically marked read** and the unread counter stays at zero instead of accumulating filtered-but-unread mail (the cause of repeated "still some emails left" checks that day). Gmail's filter API has no PUT/update — each filter was DELETEd and recreated. Vendor-Watch deliberately still keeps mail **visible and unread-worthy** (it has NO remove actions), so real threads (Microsoft, Cloudflare, Spaceship, directories) land in the inbox normally. Verified after recreate: 5 filters present, News/Vendor-Noise/OTP/CI all `remove UNREAD+INBOX`, Vendor-Watch untouched, unread 0.
 
+> **UPDATE 2026-11-04 23:50 (broadened):** the News filter's sender list was too narrow (14 senders) so unfamiliar newsletters (Render, Countly, Confluent, Alibaba Cloud…) still arrived unread. It now covers **57 bulk senders** (dev/AI newsletters, product digests, social platforms, hosting/SEO/email tools), still `remove UNREAD+INBOX` + label `News` so nothing is lost. **Vendor-Watch is unchanged and has NO remove actions** — Microsoft, Cloudflare, Spaceship, nuget, directree and AlternativeTo still land in the inbox as unread, so real mail can never be silently swallowed. Verified: 5 filters, unread 0.
+
 ## Recommended Gmail filter rules (APPLIED 2026-11-04)
 
 Creating these needs `gmail.settings.basic` (the helper's token has it) but a create function the helper does not have. Add via Gmail UI or extend the helper:
