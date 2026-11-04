@@ -131,3 +131,35 @@ owns the next step.
 
 - **Microsoft follow-up email** — pre-authorized window is **2026-11-06 / 11-07**; sending earlier is premature. Not sent.
 - **Power Automate cancellation** — Premium trial converts ~**2027-01-28**; cancelling early kills the anonymous Teams webhook path. Not attempted.
+
+## 2026-11-05 university send (campaign 12)
+
+Founder-approved first-touch send of `email_campaigns` id 12 (`outreach-universities-2026-11-05`,
+subject `A free WCAG 2.2 scan for university web teams`) to the five university accessibility
+offices, using the §5.2 **surgical swap**: snapshot the 30 subscribed rows → insert the 5
+universities (`source='outreach-universities-2026-11-05'`, ids 54–58) → temporarily unsubscribe
+the 30 → verify the segment resolves to exactly 5 → send → **restore the 30**.
+
+| Check | Result |
+|---|---|
+| Pre-send audience | **5 subscribed**, exact university set, 0 old-30 leaked (snapshot `/tmp/lz_pre_send.json`: 30 subscribed / 49 total) |
+| Decision package | id **39** `approved` for `campaign:12` (expiry 2026-11-20), then closed to **`executed`** after the send so a repeat send cannot pass the gate |
+| Send result | HTTP **200** `{sent:5, total:5, segment:"subscribed", consent_basis:"prospect"}`; campaign 12 `status='sent'`, `sent_count=5`, `sent_at=2026-11-04T21:19:29.787Z` |
+| Delivered | **5 / 5** unique (`email_events` tagged `campaign:12`, first at 21:19:32Z) |
+| Bounces / complaints | **0** (no hard/soft bounce, blocked, spam or invalid event) |
+| Engagement | 3 `unique_opened`, 4 `click` across 2 institutions within ~40 s of delivery |
+| Restored 30 | **yes** — all 30 snapshot addresses subscribed again, ids unchanged, `changes:30`; campaign 9 and 11 untouched |
+| Subscribed total after | **33**, not 35 — see the finding below |
+
+**Finding — two link-scanner unsubscribes.** `click_unsubscribe` fired for `accessibility@uh.edu`
+(21:19:51Z, 19 s after delivery) and `accessibility@psu.edu` (21:19:56Z, 14 s after delivery), and
+both **did** take effect: KV `unsub:` = `1` and `subscribed=0` on rows 56/58. The timing is far too
+fast for a human reading the mail at two institutions — this is the documented mail-security
+scanner prefetch pattern (the same class as campaign 9's `info@aph.org` "click"). The opt-outs were
+**left in place deliberately**: a recorded unsubscribe through the legitimate signed mechanism is
+not something ops may reverse, and CAN-SPAM/GDPR compliance outweighs a wobbly two more addresses.
+Consequence: 3 universities remain contactable (Arizona, UT Austin, Illinois), 2 are suppressed
+(uh.edu, psu.edu) and must **not** be re-contacted. Underlying platform weakness worth a deliberate
+fix later (not done here, no deploy): the public `/unsubscribe` GET performs the mutation, so an
+automated link prefetch can unsubscribe a recipient who never clicked. A confirm-then-POST step
+(the `/cancel` + `/monitor` token pattern) would close it.
