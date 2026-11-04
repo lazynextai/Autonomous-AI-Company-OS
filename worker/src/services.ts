@@ -229,6 +229,23 @@ export async function handleServices(
     // a cold blast unless the operator says so explicitly.
     const s = campaignSegment(b.segment ?? camp.segment);
     if (s.error) return json({ error: s.error }, 400);
+    // Decision gate — same scope-aware opt-in as connector dispatch and
+    // scheduled social posts (config:decision_enforce). A campaign send is the
+    // largest external side effect the platform performs: one call blasts every
+    // address in the segment. It therefore needs an approved, unexpired package
+    // for `campaign:<id>` before a single message leaves — and the check runs
+    // before the audience query, before the row is flipped to 'sending' and
+    // before any brevoSend, so a block changes nothing. The gate is reached on
+    // both branches: the body `segment` override is resolved above, never
+    // around it, so widening the audience cannot dodge the approval.
+    const gate = await decisionGate(env, { type: "campaign.send", target: `campaign:${id}` });
+    if (!gate.allow) {
+      return json({
+        error: "blocked by decision gate — missing approval",
+        reason: gate.reason,
+        scope: gate.scope,
+      }, 503);
+    }
     const { results: contacts } = await env.DB.prepare(s.sql!).all();
     if (!contacts?.length) return json({ error: `no recipients in segment '${s.seg}'` }, 400);
     await update(env, "email_campaigns", id, { status: "sending" });
