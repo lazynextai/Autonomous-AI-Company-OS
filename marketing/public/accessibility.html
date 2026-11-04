@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Accessibility statement — Lazynext</title>
+<meta name="description" content="Lazynext's accessibility statement for lazynext.com: our WCAG 2.1 Level AA target, the measures we take, known limitations, and how to report a barrier."/>
+<link rel="canonical" href="https://lazynext.com/accessibility"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%238B5CF6'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='sans-serif'>◆</text></svg>"/>
+<style>
+:root{--bg:#0A0A0B;--card:#141419;--border:#26262E;--accent:#8B5CF6;--accentSoft:#A78BFA;--accentBg:#1E1B2E;--text:#FAFAFA;--muted:#9C9CAA}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,sans-serif;line-height:1.8;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+code{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:1px 5px;font-family:ui-monospace,monospace;font-size:13px;overflow-wrap:anywhere;color:var(--text)}
+p a,li a{color:var(--accentSoft);text-decoration:underline;text-underline-offset:3px}
+p a:hover,li a:hover{color:var(--text)}
+a:focus-visible,button:focus-visible{outline:3px solid var(--accentSoft);outline-offset:3px;border-radius:4px}
+.wrap{max-width:760px;margin:0 auto;padding:0 24px}
+nav.top{display:flex;justify-content:space-between;align-items:center;padding:28px 0;border-bottom:1px solid var(--border)}
+.logo{font-size:20px;font-weight:700}.logo span{color:var(--accentSoft)}
+nav.top a.btn{padding:9px 18px;border-radius:10px;border:1.5px solid #6B7280;font-size:13px;font-weight:700}
+header{padding:48px 0 24px}
+h1{font-size:34px;font-weight:800;margin-bottom:10px;line-height:1.2}
+.sub{color:var(--muted);font-size:15px}
+.meta{color:var(--muted);font-size:13px;margin-top:14px}
+.toc{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 24px;margin:8px 0 8px}
+.toc h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px}
+.toc ul{list-style:none;display:flex;flex-wrap:wrap;gap:6px 20px}
+.toc li{font-size:14px}
+.toc a{color:var(--accentSoft);text-decoration:underline;text-underline-offset:3px;padding:6px 0;display:inline-block}
+.toc a:hover{color:var(--text)}
+section{padding:24px 0;border-bottom:1px solid var(--border)}
+h2{font-size:18px;font-weight:700;margin-bottom:12px}
+p{font-size:14px;color:var(--muted);line-height:1.8;margin-bottom:10px}
+strong{color:var(--text)}
+ul,ol{margin:0 0 12px 22px}
+li{font-size:14px;color:var(--muted);line-height:1.8;margin-bottom:8px}
+li strong{color:var(--text)}
+.callout{background:var(--accentBg);border:1px solid var(--accent);border-radius:12px;padding:18px 22px;margin:14px 0 4px}
+.callout p{margin:0;color:var(--text);font-size:14px}
+footer{border-top:1px solid var(--border);padding:28px 0;color:var(--muted);font-size:12px;text-align:center}
+footer a{color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+footer a:hover{color:var(--text)}
+.skip{position:absolute;left:-9999px;top:0;background:#6D28D9;color:#fff;padding:10px 18px;border-radius:0 0 10px 0;font-size:13px;font-weight:700;z-index:999}.skip:focus{left:0}
+@media(max-width:700px){h1{font-size:28px}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="wrap">
+<nav class="top" aria-label="Primary">
+  <a class="logo" href="/"><span aria-hidden="true">◆</span> Lazynext</a>
+  <a class="btn" href="https://dashboard.lazynext.com">Dashboard</a>
+</nav>
+
+<main id="main">
+<header>
+  <h1>Accessibility statement</h1>
+  <p class="sub">For <strong>lazynext.com</strong> — what we commit to, what we have done, what still falls short, and how to tell us.</p>
+  <p class="meta">Last reviewed: <time datetime="2026-11-05">5 November 2026</time></p>
+</header>
+
+<nav class="toc" aria-labelledby="toc-heading">
+  <h2 id="toc-heading">On this page</h2>
+  <ul>
+    <li><a href="#commitment">Commitment</a></li>
+    <li><a href="#conformance">Conformance target</a></li>
+    <li><a href="#scope">Scope</a></li>
+    <li><a href="#measures">Measures taken</a></li>
+    <li><a href="#limitations">Known limitations</a></li>
+    <li><a href="#report">Report an issue</a></li>
+    <li><a href="#feedback">How we respond</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<section id="commitment">
+<h2>Our commitment</h2>
+<p>Lazynext is an accessibility company: our product is a WCAG scanner. We hold this website to the same standard we sell, and we would rather state our gaps plainly than publish a claim we have not earned.</p>
+<p>We want everyone to be able to read this site and use it, including people who navigate by keyboard, use a screen reader, magnify the screen, dictate instead of type, or turn off animation. Accessibility is treated as a defect class here, not a feature request.</p>
+</section>
+
+<section id="conformance">
+<h2>Conformance target</h2>
+<p><strong>This site aims to conform to WCAG 2.1 Level AA, and we are committed to reaching it; we do not claim verified conformance.</strong></p>
+<p>WCAG 2.1 is the standard referenced by the European Accessibility Act, the US Section 508 refresh, and most public-sector procurement questionnaires. We have not yet completed an independent third-party audit, so any statement that this site "conforms" today would overstate what we know. What we can document is below: the target, the measures in place, and the specific shortcomings we have found ourselves.</p>
+<p>Assessment approach: self-evaluation. Each page is checked automatically on a daily schedule by our own Accessibility Checker (which tests 74 WCAG criteria plus a rendered keyboard and focus trace, not only static markup), and new page patterns are reviewed manually before they ship. Where an automated check and a human judgement disagree, the human judgement is recorded in the limitations section below.</p>
+</section>
+
+<section id="scope">
+<h2>Scope</h2>
+<p>This statement covers the marketing site served from <code>lazynext.com</code>, including <code>www.lazynext.com</code> and <code>marketing.lazynext.com</code>, and the pages listed in the sitemap.</p>
+<p>It does not cover separate properties we link to: the dashboard at <code>dashboard.lazynext.com</code>, the product at <code>checker.lazynext.com</code>, the design system at <code>penpot.lazynext.com</code>, our GitHub organisation, or transactional email. Those are maintained separately and each needs its own statement.</p>
+<p>Technologies relied upon: HTML, CSS, and — on a few pages only — JavaScript for progressive enhancement. This page uses no JavaScript at all. The site publishes no audio or video content, so captions and audio description do not currently apply.</p>
+</section>
+
+<section id="measures">
+<h2>Measures taken</h2>
+<ul>
+  <li><strong>Semantic structure.</strong> HTML5 landmarks (<code>header</code>, <code>nav</code>, <code>main</code>, <code>footer</code>), one <code>h1</code> per page, headings in logical order, and a real <code>lang</code> attribute on every page.</li>
+  <li><strong>Keyboard access.</strong> Everything can be reached and operated without a pointer, a visible skip link is the first focusable element, and focus is drawn with a 3px outline that is never removed without replacement.</li>
+  <li><strong>Contrast.</strong> Body text, links and interface text are set above the 4.5:1 minimum for normal text; decorative colour is never the only way information is conveyed.</li>
+  <li><strong>Reflow and zoom.</strong> The layout is responsive down to 320px, text can be resized to 200% without loss, and wide tables scroll inside their own container rather than forcing the page sideways.</li>
+  <li><strong>No motion or distraction.</strong> No autoplaying media, no carousels, no animation on this site, and no time limits on any page.</li>
+  <li><strong>Plain language.</strong> Page titles, link text and form labels describe their destination or purpose; navigation is consistent across pages.</li>
+  <li><strong>Continuous checking.</strong> The site is rescanned daily by our own monitoring, and issues it reports are triaged like any other bug — this statement is reviewed at the same time.</li>
+</ul>
+</section>
+
+<section id="limitations">
+<h2>Known limitations</h2>
+<p>These are the gaps we know about as of 5 November 2026. They are listed rather than hidden, and each has an owner.</p>
+<ul>
+  <li><strong>The status page depends on JavaScript.</strong> <code>lazynext.com/status</code> builds its service list and uptime display client-side. With JavaScript disabled the rows stay at "checking…" and no change history appears. The rest of the site's content does not depend on scripting.</li>
+  <li><strong>The waitlist form has no non-JavaScript fallback and no live region.</strong> On the home page, submitting the form sends a request with JavaScript and writes the result as plain text; that message is not announced to screen reader users, and there is no fallback when scripting is off. If the form does not work for you, email <a href="mailto:support@lazynext.com">support@lazynext.com</a> and we will add you to the list by hand.</li>
+  <li><strong>Data tables and code samples can require horizontal scrolling.</strong> On the documentation page, wide tables and long code lines scroll inside their container. This is deliberate for tabular data, but it means some content is not fully readable at 400% zoom on a narrow viewport.</li>
+  <li><strong>Email and linked third-party services are outside our control.</strong> We send transactional mail through Brevo and link to GitHub and Penpot; we cannot guarantee the accessibility of interfaces we do not build.</li>
+  <li><strong>Some content is still being audited.</strong> Older pages have not all been through a manual review. Pages reviewed so far: this statement, home, docs, legal, pricing, status. The changelog is pending.</li>
+</ul>
+</section>
+
+<section id="report">
+<h2>Report an accessibility issue</h2>
+<p>If any part of this site blocks you, we want to know — including if something here is simply harder to use than it should be. Email:</p>
+<div class="callout">
+  <p><strong><a href="mailto:support@lazynext.com?subject=Accessibility%20barrier">support@lazynext.com</a></strong> — please put "Accessibility barrier" in the subject line.</p>
+</div>
+<p>Helpful, but optional: the page address, what you were trying to do, what happened instead, and the browser and assistive technology you were using. You do not need an account, and you do not need to explain your disability.</p>
+</section>
+
+<section id="feedback">
+<h2>How we respond</h2>
+<ol>
+  <li>We acknowledge every report within two business days.</li>
+  <li>We tell you what we intend to do within ten business days, or ask a clarifying question if the issue is not reproducible.</li>
+  <li>If a fix will take longer, we say so honestly and, where we can, offer another way to get the same information or complete the same task in the meantime.</li>
+  <li>When the fix ships, we reply on the same thread and update this statement if a listed limitation has changed.</li>
+</ol>
+<p>Reports are read by a person, not only by a scanner. This page is the record of what we found ourselves; your report is how the list gets more honest.</p>
+</section>
+
+<section id="contact">
+<h2>Enforcement and contact</h2>
+<p>This statement is published by <strong>UNITED GLOBAL VENTURES PRIVATE LIMITED</strong>, trading as Lazynext, Aspire Coworks, No. 472/7 Balaji Arcade, 2nd &amp; 3rd Floor, A.V.S. Compound, 20th L Cross Road, AVS Layout, Ejipura, Koramangala 4th Block, Bengaluru, Karnataka 560095, India.</p>
+<p>Accessibility contact: <a href="mailto:support@lazynext.com">support@lazynext.com</a>. If you are not satisfied with our response, reply on the same thread and ask for it to be escalated; the request is reviewed by the person accountable for this statement, not by the agent that answered first.</p>
+<p>Statement prepared on 5 November 2026 and reviewed on the same date. We review it whenever the site's structure changes and at least every six months, or sooner if a report tells us something here is wrong.</p>
+</section>
+
+</main>
+<footer>◆ Lazynext · Accessibility · lazynext.com · <a href="/">Home</a> · <a href="/legal">Legal</a> · <a href="/sitemap.xml">Sitemap</a></footer>
+</div>
+</body>
+</html>
