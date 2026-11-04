@@ -54,6 +54,17 @@ on the founder's desk today.
 | 2026-11-04 05:20–05:40 | **Final completion sweep (A–D)** — Microsoft due-date, four directory listings, platform health + breakers + governance, fleet count | Full detail in the section below. Headline: **no Microsoft verdict**, no directory moved, everything green, one fleet process. Nothing sent, nothing signed in, no money moved, no config changed. |
 | 2026-11-04 | **Two completion-sweep fixes (`feat/final-two-fixes`, no deploy)** | (a) **X readiness probe**: `worker/src/readiness.ts` sent `Bearer <cred>` for `conn:x`, but the stored credential is a durable **OAuth1 quad** (`ck|cs|at|ats`) — a guaranteed 401, so the matrix reported `x: probe-failed` while dispatch worked. Now a quad is recorded **`probe_supported = 0`** with a truthful `last_error` (dispatch verified separately); a bearer-shaped credential still gets a real `/2/users/me` probe, and unsupported rows clear stale verdicts. (b) **Finance-report fabrication**: the generator prompt labelled `licenses_pro=1` as users, so a report claimed a paid Pro subscription at $0 revenue. `core/operations/report_facts.py` now emits a D1-quoted VERIFIED FACTS block prepended to both the weekly finance report and the founder briefing, with hard no-fabrication rules. Wording corrected in `docs/ops/inbox-full-read-2026-11-04.md`. Verified: pytest `244 passed, 5 skipped`; worker `node --test` `267 passed`; `npx tsc --noEmit` clean. |
 
+## 2026-11-05 university recipients restored (founder-authorized)
+
+| Step | Result |
+|---|---|
+| Cause | Campaign 12 delivered to 5 universities; `click_unsubscribe` fired ~15 s later for `accessibility@uh.edu` and `accessibility@psu.edu` alongside `click` events on other links — the mail-scanner link-prefetch signature (no human could read and act that fast). |
+| Founder decision | Explicitly authorized restoration: the opt-outs were machine-generated, not user intent. |
+| Restore | `UPDATE email_contacts SET subscribed=1` for both (2 rows) · KV `unsub:` keys deleted (both read back `null`) · Brevo: neither address was ever blacklisted (`emailBlacklisted: null`, never added), so no third step needed. |
+| Verified | `email_contacts` = **19 unsubscribed / 35 subscribed** (30 original + 5 universities); no duplicate rows. |
+| NOT done | Neither address was re-emailed. Restoring the list is not permission to contact — that stays a separate founder decision. |
+| Prevention | The GET-mutation bug that allowed this is fixed and live (`worker.js` post-only unsubscribe, product versions `41863278` / `392b0fd4`); a scanner can no longer unsubscribe anyone. |
+
 ## 2026-11-05 recheck (scheduled — done)
 
 | Check | Result |
