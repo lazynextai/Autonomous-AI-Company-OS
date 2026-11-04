@@ -60,7 +60,9 @@ CREATE TABLE IF NOT EXISTS capability_readiness (
 - `POST /observer/review` — run the bounded observer pass on a proposed plan; returns `{recommendation: safe|evidence_gap|policy_concern, gaps:[...]}` and **never executes**.
 - `GET /capability/matrix` — join the readiness table with `GET /api/v1/connectors` status to render configured / probed-ok / stale / documented-only.
 
-The `*/10` sweep refreshes `capability_readiness` for connected connectors with a zero-side-effect probe (head request against the provider base URL, or `GET /2/users/by/username/Lazynextai`-style read probes where no post is required).
+The `*/10` sweep refreshes `capability_readiness` for connected connectors with a zero-side-effect probe (head request against the provider base URL, or `GET /2/users/me`-style read probes where no post is required).
+
+**Corrected 2026-11-04 (`feat/final-two-fixes`):** the X probe used to send `authorization: Bearer <cred>` unconditionally, but `conn:x` is a **durable OAuth1 user quad** (`ck|cs|at|ats`) — the same quad that posts successfully through `_x()`'s HMAC-SHA1 signing. `Bearer ck|cs|at|ats` is a guaranteed 401, so `/capability/matrix` reported `x: probe-failed HTTP 401` while dispatch was demonstrably working. A quad now yields **`probe_supported = 0`** with `last_error` explaining why (`probeSupport()`), which is the honest state — a readiness pass cannot obtain an OAuth1-signed request cheaply, so dispatch is verified separately through the gated connector path. A genuinely bearer-shaped `conn:x` still gets a real probe against `/2/users/me`. Probe-unsupported rows also **clear** any stored `last_probe_*` verdict, so a stale 401 cannot outlive the fix.
 
 ## Test strategy
 

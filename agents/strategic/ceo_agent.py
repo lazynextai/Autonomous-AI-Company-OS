@@ -7,6 +7,7 @@ from agents.base_agent import BaseAgent, TaskResult
 from core.config import get_settings
 from core.messaging.channels import Channels
 from core.messaging.schemas import DirectiveMessage, MilestoneMessage, TaskMessage
+from core.operations.report_facts import format_verified_facts, hard_rules
 from core.tools.search_tool import search_web
 from core.tools.scrape_tool import research_topic
 
@@ -295,15 +296,14 @@ Return ONLY the JSON object."""
         now = datetime.now(timezone.utc)
         date_str = now.strftime("%B %d, %Y")
         metrics = brain.metrics
-        m_users = getattr(metrics, "users", 0) or (metrics.get("users", 0) if isinstance(metrics, dict) else 0)
-        m_revenue = getattr(metrics, "revenue", 0) or (metrics.get("revenue", 0) if isinstance(metrics, dict) else 0)
-        m_mrr = getattr(metrics, "mrr", 0) or (metrics.get("mrr", 0) if isinstance(metrics, dict) else 0)
         m_uptime = getattr(metrics, "uptime_pct", 100) or (metrics.get("uptime_pct", 100) if isinstance(metrics, dict) else 100)
         m_errors = getattr(metrics, "error_rate", 0) or (metrics.get("error_rate", 0) if isinstance(metrics, dict) else 0)
         m_deploys = getattr(metrics, "deploy_count", 0) or (metrics.get("deploy_count", 0) if isinstance(metrics, dict) else 0)
-        # brain.metrics has no writer for users/revenue — pull the live product
-        # funnel so the brief reports real counts instead of fabricated zeros.
-        funnel_line = ""
+        # brain.metrics has no writer for users/revenue — the live product funnel
+        # is the only source of those counts, and it feeds the SAME verified-facts
+        # block the finance report uses. `None` = read failed (quote nothing),
+        # never `{}` (which would print zeros as if they were measurements).
+        funnel: dict | None = None
         try:
             from core.cloudflare_client import CloudflareClient
             import httpx
@@ -313,19 +313,10 @@ Return ONLY the JSON object."""
                 def _funnel():
                     with httpx.Client(timeout=15.0, headers=client._headers) as http:
                         r = http.get(f"{client.url}/api/v1/billing/funnel")
-                        return r.json() if r.status_code == 200 else {}
+                        return r.json() if r.status_code == 200 else None
 
-                funnel = await asyncio.to_thread(_funnel)
-                if funnel:
-                    m_users = m_users or (funnel.get("licenses_pro", 0) + funnel.get("licenses_free", 0))
-                    funnel_line = (
-                        f"\n- Funnel (live): scans_30d={funnel.get('scans_30d')}, "
-                        f"leads={funnel.get('leads')}, crm_leads={funnel.get('crm_leads')}, "
-                        f"engaged={funnel.get('crm_engaged')}, "
-                        f"email_contacts={funnel.get('email_contacts')}, "
-                        f"trials={funnel.get('trials_active')}, pro={funnel.get('licenses_pro')}, "
-                        f"subs={funnel.get('subscriptions_active')}, monitors={funnel.get('monitors')}"
-                    )
+                read = await asyncio.to_thread(_funnel)
+                funnel = read if isinstance(read, dict) and read else None
         except Exception as e:
             self.logger.warning("funnel_fetch_failed", error=str(e))
         shipped = brain.shipped_features or []
@@ -343,7 +334,11 @@ COMPANY DATA:
 - Shipped: {shipped if shipped else 'None yet'}
 - Bugs: {bug_descs if bug_descs else 'None'}
 - Blockers: {blocker_descs if blocker_descs else 'None'}
-- Metrics: Users={m_users}, Revenue=${m_revenue}, MRR=${m_mrr}, Uptime={m_uptime}%, Error rate={m_errors}%, Deploys={m_deploys}{funnel_line}
+- Metrics: Uptime={m_uptime}%, Error rate={m_errors}%, Deploys={m_deploys}
+
+{format_verified_facts(funnel)}
+
+{hard_rules(funnel)}
 
 Use these section headers in order. Fill each with real content from the data above:
 - ## Founder Briefing with **Date:** {date_str}

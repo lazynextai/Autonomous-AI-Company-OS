@@ -1,8 +1,36 @@
-"""Finance Agent - weekly reports."""
+"""Finance Agent - weekly reports.
+
+Report numbers are READ FROM D1, never generated: `format_verified_facts()`
+turns the live billing funnel into a verified-facts block that is prepended to
+the LLM narrative. This exists because a previous prompt handed the model
+`licenses_pro=1` and it described that single entitlement as a paid Pro
+subscription — while the same report said $0 revenue. The one Pro license is
+the self-issued dogfood license and there are 0 subscriptions (Dodo is
+deliberately in test mode). See docs/ops/watch-calendar.md.
+"""
+
+from typing import Any
 
 from agents.base_agent import BaseAgent, TaskResult
 from core.messaging.channels import Channels
 from core.messaging.schemas import TaskMessage
+from core.operations.report_facts import (
+    format_verified_facts,
+    funnel_number,
+    hard_rules,
+)
+
+
+def build_report_prompt(funnel: dict | None) -> str:
+    """The narrative prompt. Facts are quoted in; numbers are forbidden."""
+    return f"""You are the Finance Agent. Write the 3-5 sentence narrative part of a weekly finance report.
+
+{format_verified_facts(funnel)}
+
+{hard_rules(funnel)}
+
+Cover: the metrics above, any trend that the numbers themselves show, and one concrete recommendation.
+Plain text only, no headings, no placeholders."""
 
 
 class FinanceAgent(BaseAgent):
@@ -64,49 +92,26 @@ Output concise, professional reports. Use actual data provided. Never use placeh
             return
 
         brain = await self.company_brain.get()
-        m = brain.metrics
-        users = getattr(m, "users", 0) or (m.get("users", 0) if isinstance(m, dict) else 0)
-        mrr = getattr(m, "mrr", 0) or (m.get("mrr", 0) if isinstance(m, dict) else 0)
-        revenue = getattr(m, "revenue", 0) or (m.get("revenue", 0) if isinstance(m, dict) else 0)
-        # brain.metrics has no writer for users/revenue — pull the live
-        # product funnel so the report reflects real counts.
-        funnel = {}
-        try:
-            import asyncio
-            import httpx
-            from core.cloudflare_client import CloudflareClient
-            client = CloudflareClient()
-            if client.is_configured():
-                def _funnel():
-                    with httpx.Client(timeout=15.0, headers=client._headers) as http:
-                        r = http.get(f"{client.url}/api/v1/billing/funnel")
-                        return r.json() if r.status_code == 200 else {}
-                funnel = await asyncio.to_thread(_funnel)
-                users = users or (funnel.get("licenses_pro", 0) + funnel.get("licenses_free", 0))
-        except Exception as e:
-            self.logger.warning("funnel_fetch_failed", error=str(e))
-        funnel_line = (
-            f"\nFunnel (live): scans_30d={funnel['scans_30d']}, leads={funnel['leads']}, "
-            f"crm_leads={funnel['crm_leads']}, engaged={funnel['crm_engaged']}, "
-            f"trials={funnel['trials_active']}, "
-            f"pro={funnel['licenses_pro']}, subs={funnel['subscriptions_active']}, "
-            f"monitors={funnel['monitors']}"
-        ) if funnel else ""
-        prompt = f"""You are the Finance Agent. Generate a concise weekly finance report for the founder.
+        # brain.metrics has no writer for users/revenue — read the live product
+        # funnel (D1-backed) so the report reflects real counts. `None` means
+        # the read failed: the facts block then says "unavailable" instead of
+        # letting the model fill the gap.
+        funnel = await self._fetch_funnel()
+        facts = format_verified_facts(funnel)
+        prompt = f"""{build_report_prompt(funnel)}
 
-DATA: Users={users}, MRR=${mrr}, Revenue=${revenue}{funnel_line}
-Product: {brain.product_name or 'Not defined'}
-Billing is in Dodo TEST MODE — revenue is legitimately $0 until the live flip; do not flag it as a failure.
-
-Write a professional 3-5 sentence report. Include: key metrics, trends (if inferable), and one recommendation.
-No placeholders. Use the actual numbers. Output plain text only."""
-        report = await self.call_llm(self.get_system_prompt(), prompt)
+Product: {brain.product_name or 'Not defined'}"""
+        narrative = await self.call_llm(self.get_system_prompt(), prompt)
+        # Facts first, narrative second: the numbers are quoted from D1 and the
+        # prose is explicitly labelled as commentary.
+        report = f"{facts}\n\nWhat this means:\n{str(narrative).strip()}"
         from core.operations.briefings import post_briefing
         await post_briefing("finance_report", "Weekly Finance Report", report)
         try:
             stamp = getattr(self, "_pending_report_stamp", None)
             if stamp:
-                client = CloudflareClient()
+                from core.cloudflare_client import CloudflareClient as _CF
+                client = _CF()
                 if client.is_configured():
                     await client.kv_put("brief:last:finance", stamp, ttl=0)
         except Exception as e:
@@ -121,6 +126,32 @@ No placeholders. Use the actual numbers. Output plain text only."""
             except Exception as e:
                 self.logger.warning("finance_report_email_failed", error=str(e))
     
+    async def _fetch_funnel(self) -> dict | None:
+        """Live billing funnel from the platform (`/api/v1/billing/funnel`).
+
+        Returns `None` when the read did not happen or failed — never `{}` — so
+        the facts block can say "unavailable" rather than silently reporting
+        zeros that look like real measurements.
+        """
+        try:
+            import asyncio
+            import httpx
+            from core.cloudflare_client import CloudflareClient
+            client = CloudflareClient()
+            if not client.is_configured():
+                return None
+
+            def _get():
+                with httpx.Client(timeout=15.0, headers=client._headers) as http:
+                    r = http.get(f"{client.url}/api/v1/billing/funnel")
+                    return r.json() if r.status_code == 200 else None
+
+            funnel: Any = await asyncio.to_thread(_get)
+            return funnel if isinstance(funnel, dict) and funnel else None
+        except Exception as e:
+            self.logger.warning("funnel_fetch_failed", error=str(e))
+            return None
+
     async def _has_any_milestones(self) -> bool:
         """Check if any milestones have been achieved."""
         try:

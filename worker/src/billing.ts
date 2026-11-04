@@ -483,7 +483,7 @@ export async function handleBilling(
   }
 
   // Conversion funnel — internal token. Aggregates the product funnel for
-  // the dashboard: scans → leads → trials → paying customers. Counts are
+  // the dashboard: scans → leads → trials → paid subscriptions. Counts are
   // current-state views (KV records decay by TTL), not cumulative totals.
   if (req.method === "GET" && path === "/api/v1/billing/funnel") {
     const auth = req.headers.get("authorization") ?? "";
