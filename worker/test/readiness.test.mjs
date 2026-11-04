@@ -19,7 +19,7 @@ const mod = loadModule(
   { json: jsonFn, ...stubServices },
   [
     "STALE_MS", "probeFor", "classifyCapability", "matrixSummary", "readinessBreadcrumbs",
-    "refreshCapabilityReadiness", "capabilityMatrix",
+    "refreshCapabilityReadiness", "capabilityMatrix", "probeSupport", "isXAuth1Quad", "X_AUTH1_PROBE_REASON",
   ],
 );
 
@@ -34,6 +34,120 @@ test("probe targets are read-only GETs that never touch a credential store", () 
   assert.ok(mod.probeFor("telegram", "123:abc").url.includes("/getMe"));
   for (const target of ["x", "brevo", "github", "gitlab", "telegram"].map((c) => mod.probeFor(c, "c"))) {
     assert.ok(target && !/:\/\/.*(set|post|create|send)/i.test(target.url), "probes never mutate");
+  }
+});
+
+// --- X credential shapes (regression: the false `probe-failed HTTP 401`) ----
+// `conn:x` is a durable OAuth1 user quad `ck|cs|at|ats` in production. Sending
+// it as a bearer token is a guaranteed 401 even though the same quad posts
+// successfully through OAuth1 signing — a health signal that lied.
+const X_QUAD = "ck|cs|at|ats";
+const X_BEARER = "user-access-token";
+
+function modWithCreds(map, exportNames = ["probeFor", "probeSupport", "isXAuth1Quad", "X_AUTH1_PROBE_REASON", "refreshCapabilityReadiness", "capabilityMatrix"]) {
+  return loadModule(
+    "readiness.ts",
+    {
+      json: jsonFn,
+      CONNECTOR_IDS: Object.keys(map),
+      connCred: async (_env, id) => map[id] ?? null,
+      brevoCred: async () => null,
+    },
+    exportNames,
+  );
+}
+
+test("an OAuth1 quad is recognised and never probed with a bearer header", () => {
+  assert.equal(mod.isXAuth1Quad(X_QUAD), true);
+  assert.equal(mod.isXAuth1Quad(X_BEARER), false);
+  assert.equal(mod.isXAuth1Quad("ck|cs|at"), false, "three parts is not a quad");
+
+  assert.equal(mod.probeFor("x", X_QUAD), null, "a quad has no bearer probe");
+  const support = mod.probeSupport("x", X_QUAD);
+  assert.equal(support.supported, false);
+  assert.match(support.reason, /OAuth1/);
+  assert.match(support.reason, /skipped/);
+  assert.doesNotMatch(support.reason, /^HTTP \d+/, "the reason is an explanation, not a fake status");
+
+  // The bearer form is still probed, against the authenticated user (no hardcoded handle).
+  const bearer = mod.probeFor("x", X_BEARER);
+  assert.equal(bearer.url, "https://api.x.com/2/users/me");
+  assert.equal(bearer.headers.authorization, `Bearer ${X_BEARER}`);
+  assert.equal(mod.probeSupport("x", X_BEARER).supported, true);
+});
+
+test("a quad-shaped x credential is recorded probe-unsupported, never probe-failed", async () => {
+  const calls = [];
+  globalThis.fetch = async (url, init) => {
+    calls.push(String(url));
+    return new Response("{}", { status: 200 });
+  };
+  const xmod = modWithCreds({ x: X_QUAD });
+  const db = fakeDb();
+  try {
+    const out = await xmod.refreshCapabilityReadiness({ DB: db, EPHEMERAL: fakeKv() });
+    assert.equal(out.probed, 0, "nothing was probed — the credential shape is not probeable");
+    assert.equal(out.failed, 0, "no false failure is recorded");
+    assert.equal(out.unsupported, 1);
+    assert.equal(calls.length, 0, "no external call is made for the quad");
+
+    const row = db.calls.find((c) => /INSERT INTO capability_readiness/.test(c.sql) && c.params[0] === "x");
+    assert.equal(row.params[1], null, "no probe timestamp");
+    assert.equal(row.params[2], null, "no probe verdict");
+    assert.match(String(row.params[3]), /OAuth1/, "the truthful reason is stored in last_error");
+    assert.equal(row.params[4], 0, "probe_supported = 0");
+    assert.doesNotMatch(String(row.params[3]), /HTTP 401/);
+
+    const sql = db.calls.find((c) => /INSERT INTO capability_readiness/.test(c.sql)).sql;
+    assert.match(sql, /CASE WHEN excluded\.probe_supported = 0 THEN NULL/, "a stale 401 verdict is cleared, not COALESCEd forward");
+  } finally {
+    delete globalThis.fetch;
+  }
+});
+
+test("the matrix drops the stale x 401 row instead of republishing it", async () => {
+  const xmod = modWithCreds({ x: X_QUAD });
+  const db = fakeDb([
+    {
+      match: /FROM capability_readiness/,
+      handle: () => ({
+        results: [{
+          capability: "x", last_probe_at: new Date().toISOString(), last_probe_ok: 0,
+          last_error: "HTTP 401", documented: 1, probe_supported: 1, keystore: "kv",
+        }],
+      }),
+    },
+  ]);
+  const body = await readJson(await xmod.capabilityMatrix({ DB: db, EPHEMERAL: fakeKv({ "conn:x": X_QUAD }) }));
+  const x = body.connectors.find((c) => c.capability === "x");
+  assert.equal(x.state, "configured-unprobed", "configured, but no health claim either way");
+  assert.equal(x.probe_supported, false);
+  assert.equal(x.last_probe_ok, null, "the pre-fix verdict does not survive");
+  assert.equal(x.last_probe_at, null);
+  assert.match(x.last_error, /OAuth1/);
+  assert.doesNotMatch(x.last_error, /HTTP 401/);
+  assert.equal(body.summary["probe-failed"], 0);
+});
+
+test("a bearer-shaped x credential still gets a real probe verdict", async () => {
+  const calls = [];
+  globalThis.fetch = async (url) => {
+    calls.push(String(url));
+    return new Response(JSON.stringify({ data: { id: "1", username: "Lazynextai" } }), { status: 200 });
+  };
+  const xmod = modWithCreds({ x: X_BEARER });
+  const db = fakeDb([
+    { match: /FROM capability_readiness/, handle: () => ({ results: [] }) },
+  ]);
+  try {
+    const out = await xmod.refreshCapabilityReadiness({ DB: db, EPHEMERAL: fakeKv() });
+    assert.equal(out.probed, 1);
+    assert.equal(out.ok, 1);
+    assert.deepEqual(calls, ["https://api.x.com/2/users/me"]);
+    const body = await readJson(await xmod.capabilityMatrix({ DB: db, EPHEMERAL: fakeKv({ "conn:x": X_BEARER }) }));
+    assert.equal(body.connectors[0].probe_supported, true);
+  } finally {
+    delete globalThis.fetch;
   }
 });
 

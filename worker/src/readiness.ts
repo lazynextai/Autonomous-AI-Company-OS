@@ -12,13 +12,38 @@ export const STALE_MS = 7 * 86_400_000;
 export interface ProbeTarget { url: string; headers: Record<string, string> }
 
 /**
+ * X's credential is EITHER an OAuth2 user bearer OR a durable OAuth1 user quad
+ * `ck|cs|at|ats` (consumer key|secret + access token|secret) — exactly what the
+ * dispatcher in `services.ts` / `core/tools/connectors.py` accepts. Only the
+ * bearer form can go in an `authorization: Bearer …` header; feeding the quad
+ * to that header is what produced the false `probe-failed HTTP 401` (X answers
+ * `Bearer ck|cs|at|ats` with 401 Unauthorized while the very same quad posts
+ * fine through OAuth1 HMAC-SHA1 signing).
+ */
+export function isXAuth1Quad(cred: string): boolean {
+  const parts = String(cred ?? "").split("|");
+  return parts.length >= 4 && parts.slice(0, 4).every((p) => p.trim().length > 0);
+}
+
+/** Why an OAuth1-quad X credential cannot be probed, recorded verbatim in `last_error`. */
+export const X_AUTH1_PROBE_REASON =
+  "x probe skipped: credential is an OAuth1 user quad (ck|cs|at|ats), which needs an OAuth1-signed request — " +
+  "the readiness pass only sends a bearer header, so probing it would report a false 401; " +
+  "dispatch is verified separately through the gated connector path";
+
+/**
  * Zero-side-effect GET probes only. Anything that would post, send mail, or
  * mint a credential is deliberately absent — it stays "configured, unprobed".
+ * `null` means "this credential shape cannot be probed here" (never "unhealthy").
  */
 export function probeFor(connector: string, cred: string): ProbeTarget | null {
   switch (connector) {
     case "x":
-      return { url: "https://api.x.com/2/users/by/username/Lazynextai", headers: { authorization: `Bearer ${cred}` } };
+      // A quad is not a bearer token — sending it as one is a guaranteed 401.
+      if (isXAuth1Quad(cred)) return null;
+      // `/2/users/me` (not a hardcoded handle): reads back the authenticated
+      // user, the same credential+endpoint family the dispatcher posts with.
+      return { url: "https://api.x.com/2/users/me", headers: { authorization: `Bearer ${cred}` } };
     case "brevo":
       return { url: "https://api.brevo.com/v3/account", headers: { "api-key": cred, accept: "application/json" } };
     case "github":
@@ -35,6 +60,25 @@ export function probeFor(connector: string, cred: string): ProbeTarget | null {
       // themselves; a POST is an external side effect, so we never do it here.
       return null;
   }
+}
+
+export interface ProbeSupport {
+  /** Can the credential we actually hold be probed at all? */
+  supported: boolean;
+  /** Truthful operator-facing reason when it cannot (null when it can). */
+  reason: string | null;
+}
+
+/**
+ * `probeFor` alone cannot answer "is this probeable?" — it only sees the shape
+ * of the string handed to it, and the readiness pass must decide per the REAL
+ * stored credential. This keeps the unsupportable cases explicit instead of
+ * letting them run and record a misleading `HTTP 401`.
+ */
+export function probeSupport(connector: string, cred: string | null): ProbeSupport {
+  if (!cred) return { supported: false, reason: null };
+  if (connector === "x" && isXAuth1Quad(cred)) return { supported: false, reason: X_AUTH1_PROBE_REASON };
+  return { supported: probeFor(connector, cred) != null, reason: null };
 }
 
 export type CapabilityState =
@@ -158,10 +202,11 @@ export async function refreshCapabilityReadiness(env: Env): Promise<{ skipped?: 
       ? ((await brevoCred(env))?.key ?? null)
       : await connCred(env, id);
     const configured = Boolean(cred);
-    const target = configured ? probeFor(id, String(cred)) : null;
-    if (configured && !target) unsupported++;
+    const support = probeSupport(id, configured ? String(cred) : null);
+    const target = configured && support.supported ? probeFor(id, String(cred)) : null;
+    if (configured && !support.supported) unsupported++;
     let probeOk: number | null = null;
-    let error: string | null = null;
+    let error: string | null = support.supported ? null : support.reason;
     let probedAt: string | null = null;
     if (target) {
       probedAt = new Date().toISOString();
@@ -186,8 +231,10 @@ export async function refreshCapabilityReadiness(env: Env): Promise<{ skipped?: 
          (capability, last_probe_at, last_probe_ok, last_error, documented, probe_supported, keystore, updated_at)
        VALUES (?, ?, ?, ?, 1, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
        ON CONFLICT(capability) DO UPDATE SET
-         last_probe_at = COALESCE(excluded.last_probe_at, capability_readiness.last_probe_at),
-         last_probe_ok = COALESCE(excluded.last_probe_ok, capability_readiness.last_probe_ok),
+         last_probe_at = CASE WHEN excluded.probe_supported = 0 THEN NULL
+                              ELSE COALESCE(excluded.last_probe_at, capability_readiness.last_probe_at) END,
+         last_probe_ok = CASE WHEN excluded.probe_supported = 0 THEN NULL
+                              ELSE COALESCE(excluded.last_probe_ok, capability_readiness.last_probe_ok) END,
          last_error = excluded.last_error,
          probe_supported = excluded.probe_supported,
          keystore = excluded.keystore,
@@ -213,21 +260,28 @@ export async function capabilityMatrix(env: Env): Promise<Response> {
   for (const id of CONNECTOR_IDS) {
     const cred = id === "brevo" ? (await brevoCred(env))?.key : await connCred(env, id);
     const row = stored.get(id);
+    const support = probeSupport(id, cred ? String(cred) : null);
+    // A stored verdict only counts while the credential shape is still probeable:
+    // the pre-fix X row carries a `HTTP 401` from a probe that could never work,
+    // and that must not outlive the deploy that fixed it.
+    const lastProbeOk = support.supported ? (row?.last_probe_ok ?? null) : null;
+    const lastProbeAt = support.supported ? (row?.last_probe_at ?? null) : null;
+    const lastError = support.supported ? (row?.last_error ?? null) : support.reason;
     const facts: CapabilityFacts = {
       configured: Boolean(cred),
       documented: true, // every id here is in the connector library
-      probe_supported: probeFor(id, "probe") != null,
-      last_probe_ok: row?.last_probe_ok ?? null,
-      last_probe_at: row?.last_probe_at ?? null,
+      probe_supported: support.supported,
+      last_probe_ok: lastProbeOk,
+      last_probe_at: lastProbeAt,
     };
     rows.push({
       capability: id,
       documented: true,
       configured: facts.configured,
       probe_supported: facts.probe_supported,
-      last_probe_at: row?.last_probe_at ?? null,
-      last_probe_ok: row?.last_probe_ok ?? null,
-      last_error: row?.last_error ?? null,
+      last_probe_at: lastProbeAt,
+      last_probe_ok: lastProbeOk,
+      last_error: lastError,
       keystore: facts.configured ? (row?.keystore ?? "unknown") : "none",
       state: classifyCapability(facts),
     });
