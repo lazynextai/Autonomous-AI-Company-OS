@@ -54,6 +54,16 @@ on the founder's desk today.
 | 2026-11-04 05:20–05:40 | **Final completion sweep (A–D)** — Microsoft due-date, four directory listings, platform health + breakers + governance, fleet count | Full detail in the section below. Headline: **no Microsoft verdict**, no directory moved, everything green, one fleet process. Nothing sent, nothing signed in, no money moved, no config changed. |
 | 2026-11-04 | **Two completion-sweep fixes (`feat/final-two-fixes`, no deploy)** | (a) **X readiness probe**: `worker/src/readiness.ts` sent `Bearer <cred>` for `conn:x`, but the stored credential is a durable **OAuth1 quad** (`ck|cs|at|ats`) — a guaranteed 401, so the matrix reported `x: probe-failed` while dispatch worked. Now a quad is recorded **`probe_supported = 0`** with a truthful `last_error` (dispatch verified separately); a bearer-shaped credential still gets a real `/2/users/me` probe, and unsupported rows clear stale verdicts. (b) **Finance-report fabrication**: the generator prompt labelled `licenses_pro=1` as users, so a report claimed a paid Pro subscription at $0 revenue. `core/operations/report_facts.py` now emits a D1-quoted VERIFIED FACTS block prepended to both the weekly finance report and the founder briefing, with hard no-fabrication rules. Wording corrected in `docs/ops/inbox-full-read-2026-11-04.md`. Verified: pytest `244 passed, 5 skipped`; worker `node --test` `267 passed`; `npx tsc --noEmit` clean. |
 
+## 2026-11-04 evening verification
+
+| Check | Result |
+|---|---|
+| Microsoft verdict | **Still none** — `from:supportmail@techsupport.microsoft.com newer_than:2d` → 0 threads; `from:msftpc@microsoft.com newer_than:5d` → 0. Follow-up stays gated to 11-06/07. |
+| Unread mail | **0** — and the cause of repeated accumulation is fixed: the 4 archive filters (News/Vendor-Noise/OTP/CI) now `removeLabelIds: ["UNREAD","INBOX"]` so newsletters self-mark-read. Vendor-Watch untouched (keeps watch mail visible + unread). Verified: 5 filters present, 22 threads read in the last 24h. |
+| Open PRs | 0 |
+| Fleet | exactly 1 process |
+| main | `dcaefbf` |
+
 ## 2026-11-04 final completion sweep
 
 Read-only sweep run on the founder's instruction that everything completable today be finished.
