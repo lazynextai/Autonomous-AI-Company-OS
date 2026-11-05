@@ -16,7 +16,7 @@ export const MANIFEST_NAME_RE = /^[a-z][a-z0-9-]{0,39}$/;
 export const MANIFEST_MAX_BYTES = 64 * 1024;
 export const CONNECTOR_PERMISSIONS = ["none", "read", "dispatch", "admin"] as const;
 export const RISK_LEVELS = ["low", "medium", "high"] as const;
-const TOP_KEYS = new Set(["name", "version", "goals", "roles", "connector_permissions", "review_thresholds", "schedules", "notes"]);
+const TOP_KEYS = new Set(["name", "description", "version", "goals", "roles", "connector_permissions", "review_thresholds", "schedules", "notes"]);
 
 export interface ManifestValidation { ok: boolean; errors: string[]; manifest: Record<string, unknown> | null }
 
@@ -60,6 +60,12 @@ export function validateManifest(body: unknown): ManifestValidation {
   if (typeof name !== "string" || !MANIFEST_NAME_RE.test(name)) errors.push("name must match ^[a-z][a-z0-9-]{0,39}$");
   if (body.version !== undefined && (!Number.isInteger(body.version) || Number(body.version) < 1)) {
     errors.push("version must be a positive integer");
+  }
+  // Optional human description of the company shape. Template packs carry one
+  // so the GET /templates catalogue can list a pack without parsing freeform
+  // `notes`. Declarative only — nothing in the runtime reads it.
+  if (body.description !== undefined && (typeof body.description !== "string" || body.description.trim().length < 3 || body.description.length > 200)) {
+    errors.push("description must be a 3-200 char string");
   }
 
   const goals = body.goals;

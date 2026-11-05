@@ -1,0 +1,53 @@
+{
+  "name": "agency-accessibility",
+  "description": "Accessibility consulting agency: client audit and remediation delivery, stricter client-facing review thresholds, mapped onto the same real agents and connector families.",
+  "version": 1,
+  "goals": [
+    "Deliver a WCAG 2.2 audit report to every client on the agreed date.",
+    "Remediate client findings and re-verify each fix with evidence before handover.",
+    "Keep every client-facing document reviewed by a human before it is sent.",
+    "Convert completed audits into recurring accessibility retainers."
+  ],
+  "roles": [
+    { "id": "ceo", "title": "Agency Director", "mission": "Own client commitments, delivery capacity and the audit-to-retainer pipeline.", "autonomy": "approval" },
+    { "id": "cto", "title": "Delivery Lead", "mission": "Scope each client audit into tasks and guard report quality before handover.", "autonomy": "approval" },
+    { "id": "marketing", "title": "Agency Marketing Lead", "mission": "Publish case studies and service pages only after delivery sign-off.", "autonomy": "approval" },
+    { "id": "sales", "title": "Business Development Lead", "mission": "Qualify audit requests and draft proposals that a human reviews before send.", "autonomy": "approval" },
+    { "id": "customer_success", "title": "Client Success Manager", "mission": "Run client check-ins and turn audit follow-ups into tracked support tickets.", "autonomy": "auto" },
+    { "id": "backend", "title": "Remediation Engineer", "mission": "Fix server-side accessibility defects in client stacks with tests on a branch.", "autonomy": "auto" },
+    { "id": "frontend", "title": "Accessibility Engineer", "mission": "Fix markup, focus-order and contrast findings to WCAG 2.2 AA.", "autonomy": "auto" },
+    { "id": "qa", "title": "Accessibility Auditor", "mission": "Run manual and automated WCAG checks and record per-criterion evidence.", "autonomy": "auto" },
+    { "id": "devops", "title": "Delivery Operations", "mission": "Manage client staging environments and release windows under approval.", "autonomy": "approval" },
+    { "id": "code_review", "title": "Report Reviewer", "mission": "Review client-facing reports and remediation diffs before they reach a client.", "autonomy": "auto" },
+    { "id": "knowledge", "title": "Accessibility Knowledge Lead", "mission": "Maintain the WCAG reference library and reusable audit templates.", "autonomy": "auto" },
+    { "id": "hr", "title": "Resourcing Coordinator", "mission": "Track specialist capacity and flag delivery bottlenecks early.", "autonomy": "auto" },
+    { "id": "finance", "title": "Client Finance Analyst", "mission": "Reconcile retainers, invoices and cost per engagement in the outcome ledger.", "autonomy": "auto" }
+  ],
+  "connector_permissions": {
+    "x": "dispatch",
+    "brevo": "dispatch",
+    "listmonk": "dispatch",
+    "github": "dispatch",
+    "gitlab": "read",
+    "mattermost": "dispatch",
+    "telegram": "dispatch",
+    "postiz": "dispatch",
+    "ayrshare": "dispatch",
+    "buffer": "dispatch",
+    "wordpress": "dispatch",
+    "discord": "dispatch",
+    "slack": "dispatch",
+    "webhook": "dispatch"
+  },
+  "review_thresholds": {
+    "cost_cents": 1000,
+    "min_evidence": 3,
+    "risk": "high"
+  },
+  "schedules": [
+    { "id": "agent_tick", "cron": "*/10 * * * *", "enabled": true },
+    { "id": "daily_maintenance", "cron": "0 3 * * *", "enabled": true },
+    { "id": "weekly_backup", "cron": "0 3 * * 0", "enabled": true }
+  ],
+  "notes": "Agency flavour of the lean pack: client-facing work needs a human review before anything leaves the building, so all three review thresholds are stricter than the lean-startup defaults."
+}
