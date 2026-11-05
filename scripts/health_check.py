@@ -216,6 +216,20 @@ async def main() -> int:
             await send_email(to, "[AI Company] Recovered", "Back up: " + ", ".join(recovered))
 
     STATE_FILE.write_text(json.dumps(now))
+
+    # Weekly readiness digest (C1). Self-gated to one send per 6.5 days by
+    # `digest:last_run`, so piggy-backing on this 15-minute scheduler is safe.
+    # Deliberately isolated: a digest failure is logged and swallowed so it can
+    # never change the health check's result or exit code.
+    try:
+        from scripts.weekly_digest import main as weekly_digest_main
+
+        rc = await weekly_digest_main([])
+        if rc != 0:
+            print(f"weekly-digest: exit {rc} (non-fatal)")
+    except Exception as exc:  # noqa: BLE001 — a digest must never break health checks
+        print(f"weekly-digest: skipped ({type(exc).__name__}: {exc})")
+
     print("OK" if not failed else "FAILED: " + ", ".join(failed))
     return 1 if failed else 0
 
