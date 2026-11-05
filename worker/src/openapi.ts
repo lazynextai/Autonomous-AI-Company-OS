@@ -321,9 +321,9 @@ export const OPENAPI_SPEC = {
     "/api/v1/connectors/{id}": {
       post: {
         summary: "Dispatch through a connector — acts as the company (admin scope)",
-        description: "Body is the connector's own payload: socials take {text} (devto/hashnode/medium/wordpress also {title,draft,tags}), messaging {to,text}, brevo {to,subject,html}.",
+        description: "Body is the connector's own payload: socials take {text} (devto/hashnode/medium/wordpress also {title,draft,tags}), messaging {to,text}, brevo {to,subject,html}. Optional task_id names the task this dispatch executes; when present it is stamped on the decision package at execution so GET /report/mission/{taskId} can link approval to action. It is stripped before the provider call and never invented.",
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", description: "connector id from GET /api/v1/connectors" } }],
-        requestBody: { content: { "application/json": { schema: { type: "object", properties: { text: { type: "string" }, to: { type: "string" }, subject: { type: "string" }, html: { type: "string" }, title: { type: "string" } } } } } },
+        requestBody: { content: { "application/json": { schema: { type: "object", properties: { text: { type: "string" }, to: { type: "string" }, subject: { type: "string" }, html: { type: "string" }, title: { type: "string" }, task_id: { type: "string", description: "Optional executing task id (lineage stamp on the decision package)" } } } } } },
         responses: { "200": { description: "Dispatched" }, "403": { description: "scope 'admin' required" }, "404": { description: "unknown connector" }, "503": { description: "connector not connected" } },
       },
     },
@@ -751,7 +751,7 @@ export const OPENAPI_SPEC = {
         "x-internal": true,
         security: [{ internalAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
-        requestBody: { content: { "application/json": { schema: { type: "object", required: ["outcome"], properties: { outcome: { type: "string", enum: ["approved", "rejected", "executed", "failed", "voided", "expired"] }, decided_by: { type: "string" }, reason: { type: "string" } } } } } },
+        requestBody: { content: { "application/json": { schema: { type: "object", required: ["outcome"], properties: { outcome: { type: "string", enum: ["approved", "rejected", "executed", "failed", "voided", "expired"] }, decided_by: { type: "string" }, reason: { type: "string" }, executed_task_id: { type: "string", description: "Only honored on the executed transition; stamped once (first execution wins)" } } } } } },
         responses: { "200": { description: "Decided" }, "404": { description: "not found" }, "409": { description: "illegal transition" } },
       },
     },

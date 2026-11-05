@@ -360,10 +360,17 @@ export async function handleServices(
       }, 503);
     }
     const startedAt = Date.now();
-    const out = await callConnector(env, id, cred ?? "", b);
+    // Task lineage — a caller that is executing a task passes `task_id`, so the
+    // package can be stamped with it at close (decisions.ts). Caller-supplied
+    // only, never derived: an ad-hoc API dispatch has no task and leaves the
+    // column NULL. Stripped from the payload so it never reaches the provider.
+    const taskRef = typeof b.task_id === "string" ? b.task_id.trim() : "";
+    const payload: Record<string, unknown> = taskRef ? { ...b } : b;
+    if (taskRef) delete payload.task_id;
+    const out = await callConnector(env, id, cred ?? "", payload);
     const duration = Date.now() - startedAt;
     ctx.waitUntil(recordDispatchAudit(env, id, out.ok, out.status, "direct"));
-    ctx.waitUntil(closeDispatchDecision(env, decisionId, out.ok, out.error));
+    ctx.waitUntil(closeDispatchDecision(env, decisionId, out.ok, out.error, taskRef || null));
     ctx.waitUntil(recordDispatchLedger(env, id, { ok: out.ok, duration_ms: duration, source: "direct" }));
     return json({ ...out, decision_id: decisionId }, out.ok ? 200 : out.status ?? 502);
   }
@@ -2601,6 +2608,10 @@ export async function dispatchSocialPost(env: Env, postId: number): Promise<Soci
         "UPDATE social_posts SET status = 'posted', last_error = NULL, posted_at = ? WHERE id = ?",
       ).bind(Date.now(), postId).run();
       await recordDispatchAudit(env, row.connector, true, out.status, "scheduled");
+      // No task id to stamp: `social_posts` carries no task lineage column, and
+      // the row is claimed by the queue/cron sweep — not by the task that
+      // scheduled it. Passing an id here would be invention, so the package
+      // stays unlinked and `missionReport` shows it without a task.
       await closeDispatchDecision(env, decisionId, true);
       await recordDispatchLedger(env, row.connector, {
         ok: true, retries: Math.max(row.attempts - 1, 0), source: "scheduled",

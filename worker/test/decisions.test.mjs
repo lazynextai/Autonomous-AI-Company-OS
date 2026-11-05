@@ -206,7 +206,9 @@ test("closeDispatchDecision is best-effort and keeps the recorded outcome", asyn
   await mod.closeDispatchDecision({ DB: db }, 4, true);
   const upd = db.calls.find((c) => /UPDATE decision_packages/.test(c.sql));
   assert.equal(upd.params[0], "executed");
-  assert.equal(upd.params[3], 4);
+  assert.equal(upd.params.at(-1), 4, "the id is the last bound parameter");
+  assert.equal(upd.params[2], null, "no task id means a NULL stamp, never an invented one");
+  assert.match(upd.sql, /executed_task_id = COALESCE\(executed_task_id, \?\)/);
   // A D1 failure must not throw into the dispatch path.
   await mod.closeDispatchDecision({ DB: { prepare() { throw new Error("boom"); } } }, 4, false);
 });
