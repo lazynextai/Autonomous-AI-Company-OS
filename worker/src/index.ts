@@ -28,6 +28,7 @@ import { missionReport } from "./mission";
 import { capabilityMatrix, refreshCapabilityReadiness } from "./readiness";
 import { handleObserverRoutes, listObserverReviews, observeTaskDispatch } from "./observer";
 import { handleManifestRoutes, listManifests, latestManifest } from "./manifests";
+import { listTemplatePacks } from "./templates";
 import { scanStatsHostViolation } from "./scanprovenance";
 
 export { Env };
@@ -202,6 +203,8 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, path: string
     if (path === "/observer/reviews") return listObserverReviews(env, new URL(req.url));
     if (path === "/manifests") return listManifests(env, new URL(req.url));
     if (path === "/manifests/latest") return latestManifest(env);
+    // Starter template packs — the bundle carries the packs; nothing is activated.
+    if (path === "/templates") return listTemplatePacks(new URL(req.url));
   }
 
   if (req.method !== "POST") return json({ error: "not found" }, 404);
