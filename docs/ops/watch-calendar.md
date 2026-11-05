@@ -73,6 +73,21 @@ on the founder's desk today.
 | Unread mail | **0** (broadened News filter is holding — no accumulation). |
 | Next action | 2026-11-06/07 email-only follow-up to the vetting thread (runbook §1), *after* re-checking no verdict landed. |
 
+## 2026-11-06 Google Search Console session
+
+| Step | Result |
+|---|---|
+| Duplicate-canonical validation | **Started** 2026-11-06. GSC issue report: 1 affected page (`https://lazynext.com/`), validation status "Validation Started". The duplicate-host 301 is live. |
+| Sitemap | Re-submitted `https://lazynext.com/sitemap.xml` on 2026-11-06. Google confirmation: "Sitemap submitted successfully". Status Success; **last read 6 Nov; discovered 7 pages** (previously 6). |
+| Homepage | URL Inspection says **Page is indexed**; requested a fresh crawl. |
+| Pricing | URL Inspection says **Page is indexed**; requested a fresh crawl after the truthful copy update. |
+| Docs | URL Inspection says **Page is indexed**. |
+| Accessibility statement | Live URL test: **Page can be indexed**; index status "Discovered – currently not indexed". **Requested indexing**; confirmation: "URL was added to a priority crawl queue." |
+| Status page | Inspection result did not load in this session; URL is in the successfully-read sitemap. No duplicate request sent. |
+| Changelog | GSC stale 404 example is `https://lazynext.com/changelog` (last crawl 21 Oct), but a live GET follows to **200** today. Stale report; sitemap re-read requested. |
+
+GSC's aggregate Page indexing report still shows "Last update: 23/10/2026" (29 not indexed / 6 indexed), so do **not** treat those aggregate counts as current yet. Sitemap is now read on 6 Nov and shows 7 discovered URLs. No further bulk requests made; avoid hammering GSC.
+
 ## 2026-11-04 evening verification
 
 | Check | Result |
