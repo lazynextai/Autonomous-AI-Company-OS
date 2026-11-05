@@ -5,7 +5,7 @@
  */
 import { Env, json, authorize, touchKey, listAll } from "./gateway";
 import { publishToBus } from "./webhooks";
-import { recordLeadEvidence, listLeadEvidence, evidenceSummary } from "./evidence";
+import { recordLeadEvidence, listLeadEvidence, evidenceSummary, evidenceCorroborations } from "./evidence";
 import { outboundDecision, noteBreakerTrip, recordDispatchAudit, breakerAdmin } from "./breakers";
 import { openDispatchDecision, closeDispatchDecision, decisionGate } from "./decisions";
 import { recordDispatchLedger, estimateCostCents } from "./ledger";
@@ -105,6 +105,10 @@ export async function handleServices(
   }
   if (path === "/api/v1/crm/evidence/summary" && req.method === "GET")
     return evidenceSummary(env);
+  // Claim-level corroboration across independent sources — read-only, the
+  // same computed view the summary now carries under `corroboration`.
+  if (path === "/api/v1/crm/evidence/corroborations" && req.method === "GET")
+    return evidenceCorroborations(env);
 
   // --- Support tickets ------------------------------------------------------
   if (path === "/api/v1/support/tickets" && req.method === "GET")

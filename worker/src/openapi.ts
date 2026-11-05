@@ -190,7 +190,18 @@ export const OPENAPI_SPEC = {
       },
     },
     "/api/v1/crm/evidence/summary": {
-      get: { summary: "Evidence disposition counts across all leads (read scope)", responses: { "200": { description: "Counts by disposition" } } },
+      get: {
+        summary: "Evidence disposition counts + per-claim corroboration (read scope)",
+        description: "Disposition counts across all leads plus a `corroboration` block: for every recorded claim, whether it was observed from at least two independent sources. Independence is the source URL's hostname (two pages on one site never corroborate), falling back to the provider name; an anonymous row never pairs. A claim with one observation always reports corroborated:false and corroboration_count:1.",
+        responses: { "200": { description: "{summary: [{disposition, count}], corroboration: {total_claims, corroborated_claims, claims: [{claim, normalized_claim, corroborated, corroboration_count, distinct_sources, evidence_row_ids}]}}" } },
+      },
+    },
+    "/api/v1/crm/evidence/corroborations": {
+      get: {
+        summary: "Per-claim corroboration across independent sources (read scope)",
+        description: "Read-only view over crm_lead_evidence: every claim grouped by its normalized form, with corroborated (≥2 distinct sources), corroboration_count, the distinct source identities (domain:… or provider:…), and the matching evidence row ids. Computed, never stored — a single-source claim reports corroborated:false, corroboration_count:1.",
+        responses: { "200": { description: "{corroboration: {total_claims, corroborated_claims, claims: [...]}}" } },
+      },
     },
     "/api/v1/support/tickets": {
       get: { summary: "List support tickets", responses: { "200": { description: "Tickets" } } },
@@ -694,6 +705,15 @@ export const OPENAPI_SPEC = {
         "x-internal": true,
         security: [{ internalAuth: [] }],
         responses: { "200": { description: "Evidence rows or summary" } },
+      },
+    },
+    "/evidence/corroborations": {
+      get: {
+        summary: "Fleet-facing claim corroboration — same computed view as GET /api/v1/crm/evidence/corroborations",
+        description: "Read-only, internal-bearer only. Per-claim corroboration across independent source hosts (or provider when a row has no URL). A single-source claim reports corroborated:false and corroboration_count:1; nothing is inferred.",
+        "x-internal": true,
+        security: [{ internalAuth: [] }],
+        responses: { "200": { description: "{corroboration: {total_claims, corroborated_claims, claims: [...]}}" } },
       },
     },
     // --- Governance decision packages + outcome ledger (roadmap P1/P2) ---
