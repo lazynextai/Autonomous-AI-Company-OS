@@ -1,6 +1,7 @@
 """Brevo email tool."""
 
 import re
+from typing import Any
 
 from core.config import get_settings
 
@@ -36,9 +37,21 @@ def _html_shell(subject: str, body: str, cta_label: str | None = None, cta_url: 
 
 
 async def send_email(
-    to: str, subject: str, body: str, cta_label: str | None = None, cta_url: str | None = None
+    to: str,
+    subject: str,
+    body: str,
+    cta_label: str | None = None,
+    cta_url: str | None = None,
+    tag: str | None = None,
+    html: str | None = None,
 ) -> bool:
-    """Send email via Brevo API."""
+    """Send email via Brevo API.
+
+    `tag` rides Brevo's `tags` field so the engagement webhook can attribute
+    opens/clicks (same vocabulary the worker's brevoSend uses: `seq:<stage>`,
+    `campaign:<id>`, `ticket:<id>`, `digest`, ...). `html` overrides the
+    branded shell for callers that render their own HTML body.
+    """
     settings = get_settings()
     if not settings.brevo_api_key:
         return False
@@ -46,6 +59,14 @@ async def send_email(
     frm = settings.email_from
     m = re.match(r"^(.*?)\s*<([^>]+)>\s*$", frm)
     sender = {"email": m.group(2), "name": m.group(1)} if m else {"email": frm}
+    payload: dict[str, Any] = {
+        "sender": sender,
+        "to": [{"email": to}],
+        "subject": subject,
+        "htmlContent": html or _html_shell(subject, body, cta_label, cta_url),
+    }
+    if tag:
+        payload["tags"] = [tag]
     try:
         import httpx
         async with httpx.AsyncClient() as client:
@@ -55,12 +76,7 @@ async def send_email(
                     "api-key": settings.brevo_api_key,
                     "Content-Type": "application/json",
                 },
-                json={
-                    "sender": sender,
-                    "to": [{"email": to}],
-                    "subject": subject,
-                    "htmlContent": _html_shell(subject, body, cta_label, cta_url),
-                },
+                json=payload,
             )
             return r.status_code in (200, 201)
     except Exception:
