@@ -21,7 +21,7 @@ import { fanOut, handleWebhooks, publishToBus } from "./webhooks";
 import { handleServices, handleSignwellWebhook, handleBrevoWebhook, handleBrevoInbound, brevoSend, marketingFooter, unsubHeaders, unsubscribeEmail, enrollLead, dispatchScheduledPosts, dispatchSocialPost, queueSocialPost, handleMediaServe, CONNECTOR_IDS, SEQUENCE, SEQ_DAYS } from "./services";
 import { handleSignApi, handleSignPublic, createSignRequest } from "./sign";
 import { handleConnect, refreshConnectorTokens } from "./connect_oauth";
-import { recordLeadEvidence, listLeadEvidence, evidenceSummary } from "./evidence";
+import { recordLeadEvidence, listLeadEvidence, evidenceSummary, evidenceCorroborations } from "./evidence";
 import { handleDecisionRoutes, listDecisionPackages, listDecisionBlocks, expireDecisionPackages } from "./decisions";
 import { handleLedgerRoutes, ledgerSummary, buildOutcomeLedger } from "./ledger";
 import { missionReport } from "./mission";
@@ -199,6 +199,9 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, path: string
     const mission = path.match(/^\/report\/mission\/([A-Za-z0-9_.:-]{1,120})$/);
     if (mission) return missionReport(env, mission[1]);
     if (path === "/capability/matrix") return capabilityMatrix(env);
+    // Claim-level corroboration for operators/fleet — same computed view as
+    // GET /api/v1/crm/evidence/{summary,corroborations}, without an lzk_ key.
+    if (path === "/evidence/corroborations") return evidenceCorroborations(env);
     if (path === "/observer/reviews") return listObserverReviews(env, new URL(req.url));
     if (path === "/manifests") return listManifests(env, new URL(req.url));
     if (path === "/manifests/latest") return latestManifest(env);
