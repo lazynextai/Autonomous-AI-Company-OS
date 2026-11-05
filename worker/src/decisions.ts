@@ -305,13 +305,39 @@ export async function openDispatchDecision(
   return { id, authority: r.authority };
 }
 
-/** Close a dispatch-opened package with the real outcome. Best-effort. */
-export async function closeDispatchDecision(env: Env, id: number, ok: boolean, note?: string): Promise<void> {
+/**
+ * Close a dispatch-opened package with the real outcome. Best-effort.
+ *
+ * `taskId` is the task that caused this dispatch, and this is the only moment
+ * that can honestly stamp it: the column names "the task this package
+ * executed", which is true exactly when the package becomes `executed`.
+ * The stamp rides the SAME UPDATE (no extra round trip) and only fires on
+ * `ok` — a failed dispatch describes an attempt, not an execution, so it must
+ * not claim a task. `COALESCE(executed_task_id, ?)` makes it idempotent: the
+ * first real execution wins, and a retry (same task) or a different task
+ * closing the same package can never silently rewrite the lineage the C2
+ * mission report reads.
+ *
+ * A caller with no task lineage passes nothing (cron-swept scheduled posts,
+ * operator-initiated dispatch) and the column stays NULL — honest "no task",
+ * never a fabricated id. See `dispatchSocialPost` in services.ts.
+ */
+export async function closeDispatchDecision(
+  env: Env, id: number, ok: boolean, note?: string, taskId?: string | null,
+): Promise<void> {
   if (!Number.isInteger(id) || id <= 0) return;
+  // Only an execution carries lineage; `text()` trims and caps at the column's
+  // practical width so a caller-supplied value can never be a schema surprise.
+  const stamp = ok ? text(taskId, 120) : null;
   try {
     await env.DB.prepare(
-      "UPDATE decision_packages SET outcome = ?, decided_by = ?, voided_reason = COALESCE(?, voided_reason), updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND outcome = 'draft'",
-    ).bind(ok ? "executed" : "failed", "dispatch", note ? note.slice(0, 500) : null, id).run();
+      `UPDATE decision_packages
+          SET outcome = ?, decided_by = ?,
+              executed_task_id = COALESCE(executed_task_id, ?),
+              voided_reason = COALESCE(?, voided_reason),
+              updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        WHERE id = ? AND outcome = 'draft'`,
+    ).bind(ok ? "executed" : "failed", "dispatch", stamp, note ? note.slice(0, 500) : null, id).run();
   } catch {
     /* the package already records the proposal; the outcome is best-effort */
   }
@@ -347,13 +373,23 @@ export async function decideDecisionPackage(env: Env, id: number, body: Record<s
   }
   const decidedBy = String(body.decided_by ?? "operator").slice(0, 120);
   const reason = body.reason == null ? null : String(body.reason).slice(0, 500);
+  // Execution stamp — the operator path can name the task that ran the action
+  // (`executed_task_id` in the body). Only an `executed` transition may carry
+  // lineage (approve/reject/void never ran anything), and COALESCE keeps the
+  // first execution's id, so replaying the decide call or voiding afterwards
+  // cannot repoint or clear it.
+  const execTask = next === "executed" ? text(body.executed_task_id, 120) : null;
   await env.DB.prepare(
     `UPDATE decision_packages
         SET outcome = ?, decided_by = ?, voided_reason = COALESCE(?, voided_reason),
+            executed_task_id = COALESCE(executed_task_id, ?),
             updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
       WHERE id = ?`,
-  ).bind(next, decidedBy, reason, id).run();
-  await audit(env, { action: "decided", id, from: row.outcome, to: next, decided_by: decidedBy });
+  ).bind(next, decidedBy, reason, execTask, id).run();
+  await audit(env, {
+    action: "decided", id, from: row.outcome, to: next, decided_by: decidedBy,
+    ...(execTask ? { executed_task_id: execTask } : {}),
+  });
   return json({ ok: true, id, outcome: next, decided_by: decidedBy });
 }
 

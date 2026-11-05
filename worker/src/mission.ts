@@ -292,6 +292,13 @@ export async function missionReport(env: Env, taskId: string): Promise<Response>
           expiry_at: p.expiry_at ?? null,
           cost_projection_cents: p.cost_projection_cents ?? null,
           executed_task_id: p.executed_task_id ?? null,
+          // Exact by construction: a row only joins here because it carries
+          // this task's id in `executed_task_id`, stamped at the moment the
+          // package executed (decisions.ts closeDispatchDecision /
+          // decideDecisionPackage). The join key IS the provenance — unlike a
+          // ledger row reached through a package target, nothing is inferred.
+          link: "package_direct" as const,
+          link_confidence: "exact" as const,
           created_at: p.created_at ?? null,
           updated_at: p.updated_at ?? null,
         }))
