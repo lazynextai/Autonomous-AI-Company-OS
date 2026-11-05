@@ -820,6 +820,25 @@ export const OPENAPI_SPEC = {
         responses: { "200": { description: "{days, totals, groups}" } },
       },
     },
+    "/report/mission/{taskId}": {
+      get: {
+        summary: "Mission → plan → outcome → cost report for one task (read-only)",
+        description:
+          "Roll-up over the existing ledger for a single task: the task_log row (description, agent, status, timestamps, attempts), " +
+          "its decision packages (authority, outcome, decided_by, expiry), every outcome_ledger row tied to it, and a totals block. " +
+          "`task_log` has no lineage column, so membership is derived — the `grouping` block states the rules actually used and " +
+          "`grouping.lineage.available` is false. A missing piece is null / an empty array, never a fabricated zero. " +
+          "`totals.cost_kind` is \"estimated\": `est_cost_cents` comes from the per-provider estimateCostCents table, not a bill.",
+        "x-internal": true,
+        security: [{ internalAuth: [] }],
+        parameters: [{ name: "taskId", in: "path", required: true, schema: { type: "string" } }],
+        responses: {
+          "200": { description: "{task_id, generated_at, task, grouping, decision_packages, ledger_rows, totals}" },
+          "400": { description: "task id required" },
+          "404": { description: "task not found" },
+        },
+      },
+    },
     "/observer/reviews": {
       get: {
         summary: "Recent observer reviews",

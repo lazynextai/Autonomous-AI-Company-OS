@@ -24,6 +24,7 @@ import { handleConnect, refreshConnectorTokens } from "./connect_oauth";
 import { recordLeadEvidence, listLeadEvidence, evidenceSummary } from "./evidence";
 import { handleDecisionRoutes, listDecisionPackages, listDecisionBlocks, expireDecisionPackages } from "./decisions";
 import { handleLedgerRoutes, ledgerSummary, buildOutcomeLedger } from "./ledger";
+import { missionReport } from "./mission";
 import { capabilityMatrix, refreshCapabilityReadiness } from "./readiness";
 import { handleObserverRoutes, listObserverReviews, observeTaskDispatch } from "./observer";
 import { handleManifestRoutes, listManifests, latestManifest } from "./manifests";
@@ -192,6 +193,11 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, path: string
     if (path === "/decision/packages") return listDecisionPackages(env, new URL(req.url));
     if (path === "/decision/blocks") return listDecisionBlocks(env, new URL(req.url));
     if (path === "/ledger/summary") return ledgerSummary(env, new URL(req.url));
+    // Mission roll-up: one task + the ledger/package rows that belong to it.
+    // Read-only and internal (this block sits past the API_TOKEN gate); the id
+    // charset is bounded so a crafted path cannot reach another route.
+    const mission = path.match(/^\/report\/mission\/([A-Za-z0-9_.:-]{1,120})$/);
+    if (mission) return missionReport(env, mission[1]);
     if (path === "/capability/matrix") return capabilityMatrix(env);
     if (path === "/observer/reviews") return listObserverReviews(env, new URL(req.url));
     if (path === "/manifests") return listManifests(env, new URL(req.url));
