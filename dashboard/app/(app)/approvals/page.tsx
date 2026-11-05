@@ -5,6 +5,7 @@ import { queryApi, parseJson } from "@/lib/api";
 import { PageHeader, Card, Empty, timeAgo } from "@/components/ui";
 import { toast } from "@/components/Toast";
 import { ShieldCheck, Check, X } from "lucide-react";
+import GovernanceInbox from "@/components/approvals/GovernanceInbox";
 
 interface Approval {
   id: number;
@@ -148,6 +149,8 @@ export default function ApprovalsPage() {
           </Card>
         </div>
       )}
+
+      <GovernanceInbox />
     </>
   );
 }
