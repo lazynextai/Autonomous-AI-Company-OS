@@ -5,6 +5,7 @@
   <url><loc>https://lazynext.com/docs</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://lazynext.com/status</loc><changefreq>daily</changefreq><priority>0.5</priority></url>
   <url><loc>https://lazynext.com/changelog</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://lazynext.com/blog/three-times-our-own-metrics-lied-to-us/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://lazynext.com/accessibility</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
   <url><loc>https://lazynext.com/legal</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>
 </urlset>

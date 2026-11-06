@@ -65,3 +65,9 @@ stage died.
   instance. Baked-in state (install, app pw, permalinks) survives. This makes
   WP-on-containers a *publish surface*, not a durable CMS — durable blogging
   stays on Ghost (`ghost.lazynext.com`, Admin API connector).
+  **CONFIRMED IN PRACTICE 2026-11-06**: a post published at 06:30 IST was live
+  and then **404'd ~40 minutes later**, with the default `Hello world!` post
+  back as the only one — the container had recreated and restored the baked
+  image. Never use this blog as the canonical home of an article; publish
+  durable content as a static page on `lazynext.com` (see
+  `marketing/public/blog/`) and treat the blog copy as best-effort.

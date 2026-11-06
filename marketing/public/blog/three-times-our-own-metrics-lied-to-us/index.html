@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Three times our own metrics lied to us — Lazynext</title>
+<meta name="description" content="Opens inflated by image proxies, a click that silently unsubscribed two real prospects, and a '137 scans' number that was really 7. How we found each lie and what we changed."/>
+<link rel="canonical" href="https://lazynext.com/blog/three-times-our-own-metrics-lied-to-us"/>
+<meta property="og:type" content="article"/>
+<meta property="og:title" content="Three times our own metrics lied to us (and how we caught it)"/>
+<meta property="og:description" content="Opens inflated by image proxies, a click that silently unsubscribed two real prospects, and a '137 scans' number that was really 7."/>
+<meta property="og:url" content="https://lazynext.com/blog/three-times-our-own-metrics-lied-to-us"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%238B5CF6'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='sans-serif'>◆</text></svg>"/>
+<style>
+:root{--bg:#0A0A0B;--card:#141419;--border:#26262E;--accent:#8B5CF6;--accentSoft:#A78BFA;--accentBg:#1E1B2E;--text:#FAFAFA;--muted:#9C9CAA}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,sans-serif;line-height:1.8;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+code{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:1px 5px;font-family:ui-monospace,monospace;font-size:13px;overflow-wrap:anywhere;color:var(--text)}
+p a,li a{color:var(--accentSoft);text-decoration:underline;text-underline-offset:3px}
+p a:hover,li a:hover{color:var(--text)}
+a:focus-visible,button:focus-visible{outline:3px solid var(--accentSoft);outline-offset:3px;border-radius:4px}
+.wrap{max-width:760px;margin:0 auto;padding:0 24px}
+nav.top{display:flex;justify-content:space-between;align-items:center;padding:28px 0;border-bottom:1px solid var(--border)}
+.logo{font-size:20px;font-weight:700}.logo span{color:var(--accentSoft)}
+nav.top a.btn{padding:9px 18px;border-radius:10px;border:1.5px solid #6B7280;font-size:13px;font-weight:700}
+header{padding:48px 0 24px}
+h1{font-size:34px;font-weight:800;margin-bottom:10px;line-height:1.2}
+.sub{color:var(--muted);font-size:15px}
+.meta{color:var(--muted);font-size:13px;margin-top:14px}
+.toc{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 24px;margin:8px 0 8px}
+.toc h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px}
+.toc ul{list-style:none;display:flex;flex-wrap:wrap;gap:6px 20px}
+.toc li{font-size:14px}
+.toc a{color:var(--accentSoft);text-decoration:underline;text-underline-offset:3px;padding:6px 0;display:inline-block}
+.toc a:hover{color:var(--text)}
+section{padding:24px 0;border-bottom:1px solid var(--border)}
+h2{font-size:18px;font-weight:700;margin-bottom:12px}
+p{font-size:14px;color:var(--muted);line-height:1.8;margin-bottom:10px}
+strong{color:var(--text)}
+ul,ol{margin:0 0 12px 22px}
+li{font-size:14px;color:var(--muted);line-height:1.8;margin-bottom:8px}
+li strong{color:var(--text)}
+.callout{background:var(--accentBg);border:1px solid var(--accent);border-radius:12px;padding:18px 22px;margin:14px 0 4px}
+.callout p{margin:0;color:var(--text);font-size:14px}
+footer{border-top:1px solid var(--border);padding:28px 0;color:var(--muted);font-size:12px;text-align:center}
+footer a{color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+footer a:hover{color:var(--text)}
+.skip{position:absolute;left:-9999px;top:0;background:#6D28D9;color:#fff;padding:10px 18px;border-radius:0 0 10px 0;font-size:13px;font-weight:700;z-index:999}.skip:focus{left:0}
+@media(max-width:700px){h1{font-size:28px}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="wrap">
+<nav class="top" aria-label="Primary">
+  <a class="logo" href="/"><span aria-hidden="true">◆</span> Lazynext</a>
+  <a class="btn" href="https://dashboard.lazynext.com">Dashboard</a>
+</nav>
+
+<main id="main">
+<header>
+  <h1>Three times our own metrics lied to us (and how we caught it)</h1>
+  <p class="sub">Opens that were image proxies, a click that unsubscribed two real prospects, and a "137 scans" number that was really 7.</p>
+  <p class="meta">Published 6 November 2026 · Lazynext engineering</p>
+</header>
+
+<section>
+<p>Our dashboard said our first outreach campaign hit a <strong>43% open rate</strong> with clicks within minutes. Our product showed <strong>137 scans in 30 days</strong>. Both numbers were wrong in the same direction: they were flattering.</p>
+<p>Here&#x27;s how each one lied, how we found out, and what we changed. If you run anything with analytics, email, or usage counters, you&#x27;ve probably got at least one of these in production right now.</p>
+<h2>Lie #1: &quot;opens&quot; are mostly image proxies</h2>
+<p>Email &quot;opens&quot; are tracked with a 1×1 pixel. When a mail client loads images, the pixel fires. The problem: most major mail providers don&#x27;t load images in the browser — <strong>their servers do</strong>, as a proxy, before (or without) a human ever seeing the message.</p>
+<p>So your &quot;open&quot; can fire when:</p>
+<ul><li>Gmail&#x27;s image proxy fetches the pixel on receipt</li><li>a corporate mail gateway detonates every URL in an inbound message to check it&#x27;s safe</li><li>a security scanner (Proofpoint, Mimecast, Barracuda and friends) walks the message</li></ul>
+<p>None of those are a person reading your email. We had 13 &quot;unique opens&quot; and I confidently reported them as engagement. The honest number was unknown — plausibly closer to zero.</p>
+<p><strong>What to do instead:</strong> treat opens as a <em>delivery</em> signal, not an attention signal. If you report them, label them. Ours now carry an explicit <code>opens_are_proxy_inflated: true</code> flag next to the count, so nobody downstream can quote the number as if it meant reading.</p>
+<h2>Lie #2: our one &quot;click&quot; actually unsubscribed two real prospects</h2>
+<p>This one caused actual damage.</p>
+<p>A click event came in on the unsubscribe link. We counted it as engagement — someone was interested! It wasn&#x27;t. It was a mail scanner fetching every link in the message to detonate it.</p>
+<p>Worse: our unsubscribe endpoint performed its state change on <strong>GET</strong>. So a scanner prefetching the link silently opted that recipient out. On our next campaign, two of five real recipients were unsubscribed within 20 seconds of delivery — before a human could possibly have read anything.</p>
+<p>The bug was one line: the mutation ran for both GET and POST with no method guard.</p>
+<pre><code>// before: both methods mutate
+const r = await platform(env, &#x27;/unsubscribe&#x27;, { method: &#x27;POST&#x27;, body: ... });
+if (request.method === &#x27;POST&#x27;) return respond({ ok: r.ok });
+return confirmPage(&quot;You&#x27;re unsubscribed&quot;);  // GET already mutated
+
+// after: GET renders a confirmation, only POST mutates
+if (request.method !== &#x27;POST&#x27;) {
+  return new Response(confirmPageHtml(email), { status: 200, headers: { &#x27;content-type&#x27;: &#x27;text/html&#x27; } });
+}
+const r = await platform(env, &#x27;/unsubscribe&#x27;, { method: &#x27;POST&#x27;, body: ... });
+return respond({ ok: r.ok });</code></pre>
+<p>One detail that bit us: the confirmation page needs a <code>&lt;form method=&quot;post&quot;&gt;</code> with <strong>no</strong> <code>action</code> attribute, so it re-POSTs the current URL and keeps <code>email</code>+<code>sig</code> in the query string. No JavaScript needed. And if you set a strict CSP, remember <code>form-action</code> falls back to <code>default-src</code> — <code>default-src &#x27;none&#x27;</code> will silently break your own submit button.</p>
+<p>If you run marketing email, check this today: <strong>can a GET unsubscribe someone?</strong> Mail scanners are doing exactly that on your behalf.</p>
+<h2>Lie #3: 94% of our &quot;traffic&quot; was us</h2>
+<p>Our product dashboard showed 137 scans in 30 days. Looked like traction. So I classified every single record by host:</p>
+<table><thead><tr><th>Source</th><th>Records</th><th>What it actually was</th></tr></thead><tbody><tr><td>Our own domain</td><td>35</td><td>A daily dogfood monitor on a 20-hour cadence</td></tr><tr><td>Our CI canary</td><td>33</td><td>GitHub Actions self-scans — 33/33 matched a workflow run</td></tr><tr><td>Pasted HTML payloads</td><td>47</td><td>Programmatic test traffic (5 scans in 0 seconds)</td></tr><tr><td>Reserved/example hosts</td><td>10</td><td>Fixtures</td></tr><tr><td><strong>Real external users</strong></td><td><strong>7</strong></td><td>...and nothing since the previous week</td></tr></tbody></table>
+<p>The real number was 7, not 137 — an <strong>18.9× overstatement</strong>. And with 7 real visits, &quot;0 conversion&quot; isn&#x27;t a conversion problem; it&#x27;s a sample size problem. That distinction completely changes what you should do about it.</p>
+<p><strong>How we fixed it — and why it matters:</strong></p>
+<p>If you can&#x27;t tell your own traffic from a stranger&#x27;s, every growth decision is guesswork. We added a source stamp at scan time, derived from route + client characteristics:</p>
+<ul><li><code>mcp</code> / <code>a2a</code> — the request came through an agent surface</li><li><code>monitor</code> — licensed caller, no client IP (our own sweep)</li><li><code>ci</code> — caller IP inside GitHub&#x27;s published Actions ranges</li><li><code>fixture</code> — target isn&#x27;t a real external site</li><li><code>web</code> — a real public request to a real external site</li><li><code>unknown</code> — everything else, honestly labelled</li></ul>
+<p>Two implementation notes worth stealing:</p>
+<ol><li><strong>GitHub&#x27;s IP ranges are published as JSON.</strong> Generate the table rather than hardcoding a /16 supernet — a coarse range produces false positives in both directions.</li><li><strong>Stamp the stored record, not the response.</strong> Provenance is for later analysis; it shouldn&#x27;t leak into your API contract.</li></ol>
+<h2>The pattern: flattering numbers have a shape</h2>
+<p>All three lies had the same structure — <strong>something automated was being counted as something human</strong>. Opens, clicks, visits. Each one inflated by machinery acting on its own.</p>
+<p>The fixes were all the same shape too:</p>
+<ol><li><strong>Classify before you count.</strong> Decide <em>who</em> did the thing, not just <em>that</em> it happened.</li><li><strong>Make the honest state visible.</strong> A boolean like <code>corroborated: false</code>, or <code>cost_kind: &quot;estimated&quot;</code>, beats a number that quietly means something else.</li><li><strong>Never let a GET mutate.</strong> Read and write should be different verbs, always — not just by convention, but in a way a dumb robot can&#x27;t accidentally trigger.</li></ol>
+<h2>A cheap audit you can run this week</h2>
+<ul><li>Open your email analytics. If you can&#x27;t tell whether an open was a proxy, your open rate is decoration.</li><li>Curl your unsubscribe or confirm link with <code>HEAD</code> and <code>GET</code>. If either changes state, you have the bug above.</li><li>Take your usage counter and group it by <em>source</em>: your own monitors, CI, tests, and strangers. You may find your &quot;growth&quot; was you.</li><li>Check whether anything in your dashboard reports an estimate as if it were a measurement.</li></ul>
+<p>The uncomfortable part isn&#x27;t finding the bug. It&#x27;s realizing you already made decisions on the number, and told someone it was good news.</p>
+<hr />
+<p><em>Written while building a small accessibility-checking product. The scanner, the CI canary, and the inbox that taught us all of this are all real — the inflated numbers were too.</em></p>
+</section>
+
+<section id="more">
+<h2>Run the checks yourself</h2>
+<p>If you want the scan-provenance logic described above applied to your own site, the <a href="https://checker.lazynext.com/">Lazynext Accessibility Checker</a> runs 75 WCAG checks in a real browser and is free to start. The <a href="/docs">docs</a> cover the API, MCP server, and the exact response shapes quoted here.</p>
+</section>
+
+</main>
+<footer>◆ Lazynext · Blog · lazynext.com · <a href="/">Home</a> · <a href="/docs">Docs</a> · <a href="/legal">Legal</a> · <a href="/sitemap.xml">Sitemap</a></footer>
+</div>
+</body>
+</html>
