@@ -76,6 +76,29 @@ h1{font-weight:600;font-size:1.4rem}p{color:#9696a0;font-size:.95rem}
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
+
+    // Permanent redirects for content that CANNOT survive on this blog.
+    // The container has no durable volume for WP content: a cold boot restores
+    // the baked image, so any post published at runtime disappears and the
+    // default "Hello world!" comes back (observed 2026-11-06 — a post 404'd
+    // ~40 min after publishing). These paths are therefore served from the
+    // durable static pages on the apex, so the URLs stay correct forever.
+    const REDIRECTS: Record<string, string> = {
+      "/hello-world/": "https://lazynext.com/",
+      "/three-times-our-own-metrics-lied-to-us/":
+        "https://lazynext.com/blog/three-times-our-own-metrics-lied-to-us/",
+    };
+    const target = REDIRECTS[url.pathname];
+    if (target && (req.method === "GET" || req.method === "HEAD")) {
+      return new Response(null, {
+        status: 301,
+        headers: {
+          location: target,
+          "cache-control": "public, max-age=3600",
+        },
+      });
+    }
+
     if (url.pathname === "/__beacon") {
       // boot-stage telemetry from inside the container — start.sh PUTs its
       // stage here so we can see where boot dies on cold start.
