@@ -1,6 +1,6 @@
 ---
 title: "Three times our own metrics lied to us (and how we caught it)"
-published: false  # READY — blocked on a fresh DEV.to API key (existing keys are 401 after the suspension)
+published: true   # LIVE 2026-11-06 — https://dev.to/lazynext/three-times-our-own-metrics-lied-to-us-and-how-we-caught-it-p2h
 tags: webdev, programming, devops, productivity
 cover_image: ""
 ---
@@ -108,11 +108,12 @@ The uncomfortable part isn't finding the bug. It's realizing you already made de
 
 ## Publishing status (2026-11-06)
 
-**Written and final. Not published — blocked on one founder action.**
+**PUBLISHED 2026-11-06 05:37 IST.**
 
-Both stored DEV.to API keys return `401 unauthorized` (`DEVTO_API_KEY` in `.env` and `conn:devto` in KV, 24 chars). DEV.to almost certainly revoked the key when the account was suspended on 2026-10-07; the suspension was lifted 2026-11-05, but tokens are not restored with the account.
-
-**Founder unblock (about 30 seconds, no technical skill needed):** sign in at https://dev.to/settings/extensions while signed in as `@lazynext`, click **Generate new key** under "DEV API Keys", and paste the key. Then the article publishes in one command.
+- Live URL: https://dev.to/lazynext/three-times-our-own-metrics-lied-to-us-and-how-we-caught-it-p2h
+- DEV article id `4984917`, `published_at` `2026-11-06T00:07:30Z`, tags `webdev, programming, devops, productivity`
+- Published via `POST /api/articles` (HTTP 201) with a **newly generated** key. The two older keys (`.env` `DEVTO_API_KEY`, KV `conn:devto`) were revoked with the 2026-10-07 suspension and stayed 401 even after the 2026-11-05 reinstatement — DEV does not restore tokens with the account. The new key (description "Lazynext Platform Ops 2026-11", created in the signed-in session at `dev.to/settings/extensions`) is now in `.env` as `DEVTO_API_KEY`; `conn:devto` in KV still holds the dead token and should be updated if it is ever used.
+- The internal "Publishing status" block below this heading was **stripped from the published payload** — ops notes must never ship to a public post.
 
 **Rules check before publishing** (the account was banned for promotional content, so a second strike would likely be permanent):
 - ~1,100 words of substantive technical content — teaching, not announcing
