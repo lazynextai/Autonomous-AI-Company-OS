@@ -55,7 +55,7 @@ def test_digest_failure_is_reported_not_raised() -> None:
 def test_digest_is_called_after_state_file_is_written() -> None:
     """Ordering matters: state must persist even if the digest then explodes."""
     src = _source()
-    assert src.index("STATE_FILE.write_text(json.dumps(now))") < src.index(
+    assert src.index("_save_state(STATE_FILE, now)") < src.index(
         "from scripts.weekly_digest import main as weekly_digest_main"
     )
 

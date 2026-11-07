@@ -404,6 +404,44 @@ def recover_penpot(
         return _record_recover_failure(path, state)
 
 
+def _load_state(path: Path) -> dict:
+    """Previous tick's results; {} when absent, unreadable, or corrupt.
+
+    The transition state must never be able to abort the run. An exception
+    here would kill the process *before* the alert block below — the only
+    thing standing between a broken system and a silent mailbox — and because
+    the file is then never repaired, every following tick would crash the
+    same way: a permanent monitoring blackout caused by a 268-byte file.
+    A wiped state is the safe fallback (the next tick alerts on any failure).
+    """
+    try:
+        data = json.loads(path.read_text())
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _save_state(path: Path, state: dict) -> None:
+    """Best-effort atomic write; a torn state file must not poison the next tick.
+
+    A single tick can run for ~15 min in the worst case (six 45 s container
+    warm-ups plus a 90/120/180/120 s Penpot recovery), which is exactly
+    launchd's StartInterval, so two ticks can overlap. `Path.write_text`
+    truncates before writing, so an overlapping reader could see half a file.
+    Temp-file plus os.replace makes the swap atomic.
+    """
+    tmp = path.with_name(path.name + ".tmp")
+    try:
+        tmp.write_text(json.dumps(state))
+        os.replace(tmp, path)
+    except Exception as exc:  # noqa: BLE001 — persisting state is never fatal
+        print(f"state: write failed ({type(exc).__name__}: {exc})")
+        try:
+            tmp.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
 async def main() -> int:
     for url in KEEP_WARM.values():
         keep_warm(url)
@@ -431,7 +469,7 @@ async def main() -> int:
         # outage that was fixed out-of-band, so it cannot mute a later one.
         reset_penpot_recover_state()
 
-    prev = json.loads(STATE_FILE.read_text()) if STATE_FILE.exists() else {}
+    prev = _load_state(STATE_FILE)
     failed = [k for k, ok in now.items() if not ok]
     recovered = [k for k in prev if not prev.get(k) and now.get(k)]
 
@@ -445,7 +483,7 @@ async def main() -> int:
         if recovered and not failed:
             await send_email(to, "[AI Company] Recovered", "Back up: " + ", ".join(recovered))
 
-    STATE_FILE.write_text(json.dumps(now))
+    _save_state(STATE_FILE, now)
 
     # Weekly readiness digest (C1). Self-gated to one send per 6.5 days by
     # `digest:last_run`, so piggy-backing on this 15-minute scheduler is safe.
