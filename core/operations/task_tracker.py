@@ -53,8 +53,18 @@ class TaskTracker:
 
         return await self._run_sync(_fetch)
 
-    async def find_by_description(self, fragment: str) -> list[dict[str, Any]]:
-        """Fetch task_log rows whose description contains fragment, any status."""
+    async def find_by_description(self, fragment: str) -> list[dict[str, Any]] | None:
+        """Fetch task_log rows whose description contains fragment, any status.
+
+        Returns ``None`` when the lookup could not be performed (tracker
+        disabled or the `/query` read failed). Callers that must not create a
+        duplicate — the workflow-fix dedup gate — have to treat ``None`` as
+        "unknown" and skip, because an empty list means the read genuinely
+        found nothing. Swallowing the distinction is what minted duplicate
+        fix tasks on 2026-10-25 and 2026-11-07: both landed seconds after a
+        `task_tracker_operation_failed` (connection reset / server
+        disconnected), and `if existing_tasks:` read the failure as "no task".
+        """
 
         def _fetch():
             r = (
@@ -75,10 +85,16 @@ class TaskTracker:
         description: str,
         status: str = "pending",
         attempts: int = 0,
-    ) -> None:
-        """Insert a task row if missing; otherwise update key fields."""
+    ) -> bool:
+        """Insert a task row if missing; otherwise update key fields.
+
+        Returns whether the row is known to exist afterwards. A caller whose
+        dedup depends on the row (workflow-fix tasks) must not publish work it
+        could not persist — an unpersisted task is invisible to the next
+        dedup read and would be created again on the following tick.
+        """
         if not self.is_enabled():
-            return
+            return False
         row = await self.get_task(task_id)
         if row is not None:
             # Update path must honor a kill's attempts too — status='failed'
@@ -93,7 +109,7 @@ class TaskTracker:
             if attempts > 0:
                 fields["attempts"] = attempts
             await self.update_task(task_id, **fields)
-            return
+            return True
 
         payload = {
             "task_id": task_id,
@@ -106,8 +122,9 @@ class TaskTracker:
 
         def _insert():
             self._client.table("task_log").insert(payload).execute()
+            return True
 
-        await self._run_sync(_insert)
+        return bool(await self._run_sync(_insert))
 
     async def update_task(self, task_id: str, **fields: Any) -> None:
         """Patch task row by task_id."""

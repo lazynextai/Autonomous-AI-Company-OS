@@ -68,34 +68,50 @@ def test_short_descriptions_never_dedup() -> None:
 def test_dead_corpus_markers_match_across_mirrors() -> None:
     # The dead corpus lives in two places that must agree: worker
     # DEAD_CORPUS_WHERE (index.ts) and the local CTO query (cto_agent.py).
-    # Extract both from source and assert the result-side marker set is
-    # identical — a marker added to one mirror without the other silently
+    # Extract both from source and assert the marker set is identical in both
+    # directions — a marker added to one mirror without the other silently
     # unsuppresses respawns on whichever side misses it.
+    #
+    # Both mirrors must also be NULL-safe and symmetric. `result` is NULL on
+    # every crash-orphaned row, so an unguarded `result LIKE …` turns the OR
+    # chain (and `NOT (…)`) into NULL and hides the row from the retry
+    # requeue; and the worker writes kill annotations to error_log while the
+    # local fleet writes them to result, so matching only one column leaves
+    # the other side's dead classes retryable.
     import re
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[2]
     worker = (root / "worker/src/index.ts").read_text()
     clause = re.search(r'DEAD_CORPUS_WHERE\s*=\s*"([^"]+)"', worker).group(1)
-    worker_result = set(re.findall(r"result LIKE '%([^']+)%'", clause))
+
+    assert "result LIKE" not in clause.replace("COALESCE(result,'') LIKE", "")
+    assert "error_log LIKE" not in clause.replace("COALESCE(error_log,'') LIKE", "")
+
+    worker_result = set(re.findall(r"COALESCE\(result,''\) LIKE '%([^']+)%'", clause))
+    worker_error = set(re.findall(r"COALESCE\(error_log,''\) LIKE '%([^']+)%'", clause))
+    assert worker_result == worker_error
 
     cto = (root / "agents/strategic/cto_agent.py").read_text()
     params = re.search(r'dead = client\.query\((.*?)\]\)', cto, re.S).group(1)
-    # The dead-corpus param list: first N "%...%" literals map to the result
-    # LIKEs, the trailing three to error_log LIKEs (infeasible/Deliverable/
-    # phantom_completion). Result markers are everything before the first
-    # error_log-only marker — count the result LIKE ?s to split correctly.
-    sql_result_placeholders = params[: params.index("error_log LIKE")].count("result LIKE")
+    # The dead-corpus param list repeats the marker set once per column:
+    # the first block binds the COALESCE(result…) LIKEs, the second the
+    # COALESCE(error_log…) LIKEs.
+    boundary = params.index("COALESCE(error_log")
+    result_placeholders = params[:boundary].count("COALESCE(result")
     literals = re.findall(r'"%([^"]+)%"', params)
-    cto_result = set(literals[:sql_result_placeholders])
+    cto_result = set(literals[:result_placeholders])
+    cto_error = set(literals[result_placeholders:])
 
-    assert worker_result == cto_result
+    assert cto_result == worker_result
+    assert cto_error == worker_error
     # Operator annotations meaning "work shipped — the class is dead" must be
     # corpus-visible, or escalations closed as shipped respawn as dup work.
     assert {"closed:", "resolved:"} <= worker_result
     # "deferred:" stays out deliberately — a pending business decision must
     # resurface, and suppressing it would block the post-decision proposal.
     assert "deferred:" not in worker_result
+    assert "deferred:" not in worker_error
 
 
 def test_dead_corpus_limit_matches_across_mirrors() -> None:

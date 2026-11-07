@@ -14,7 +14,11 @@ from core.messaging.schemas import QAAlertMessage, TaskMessage
 from core.tools.code_writer import CodeWriter
 from core.tools.deployment import CloudflareBackendDeployer, CloudflarePagesDeployer
 from core.tools.git_hooks import GitHooksManager
-from core.tools.github_actions import GitHubActionsManager
+from core.tools.github_actions import (
+    WORKFLOW_FIX_MAX_AGE_DAYS,
+    GitHubActionsManager,
+    workflow_run_age_days,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -520,9 +524,34 @@ class DevOpsAgent(BaseAgent):
             if branch not in ("main", "master"):
                 return
 
+            # Second age gate (the fetch layer drops ancient runs first) —
+            # belt and suspenders for any other caller that hands us a run.
+            age_days = workflow_run_age_days(workflow.get("created_at"))
+            if age_days is not None and age_days > WORKFLOW_FIX_MAX_AGE_DAYS:
+                self.logger.info(
+                    "workflow_fix_skipped_ancient",
+                    run_id=run_id,
+                    workflow_name=workflow_name,
+                    age_days=round(age_days, 1),
+                    max_age_days=WORKFLOW_FIX_MAX_AGE_DAYS,
+                    source="create",
+                )
+                return
+
             # Check if we already handled this workflow run — a task in any
             # status means the run was seen, not that it needs another.
+            # None means the lookup FAILED, not "no task": failing open here
+            # is what let 2026-10-25 and 2026-11-07 duplicate a Sept 23 run
+            # during connection-reset windows. Unknown → do not create.
             existing_tasks = await self.task_tracker.find_by_description(f"run {run_id}")
+            if existing_tasks is None:
+                self.logger.warning(
+                    "workflow_fix_dedup_unavailable",
+                    run_id=run_id,
+                    workflow_name=workflow_name,
+                    reason="task_log read failed — skipping creation to avoid a duplicate fix task",
+                )
+                return
             if existing_tasks:
                 return  # Already have a task for this
 
@@ -547,13 +576,24 @@ class DevOpsAgent(BaseAgent):
                 },
             )
 
-            await self.task_tracker.create_task(
+            persisted = await self.task_tracker.create_task(
                 fix_task.task_id,
                 "devops",
                 fix_task.description,
                 status="pending",
                 attempts=0,
             )
+            if persisted is False:
+                # The row IS the dedup marker. Publishing work that was never
+                # persisted makes the next tick see "no existing task" again
+                # and mint another one.
+                self.logger.warning(
+                    "workflow_fix_task_not_persisted",
+                    run_id=run_id,
+                    workflow_name=workflow_name,
+                    reason="task_log write failed — not publishing, the run stays unclaimed",
+                )
+                return
             await self.message_bus.publish(Channels.CTO_TASKS_DEVOPS, fix_task)
             self.logger.info("workflow_fix_task_created", workflow_name=workflow_name, run_id=run_id)
         except Exception as e:
