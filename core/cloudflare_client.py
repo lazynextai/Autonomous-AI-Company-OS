@@ -14,8 +14,16 @@ import httpx
 import structlog
 
 from core.config import get_settings
+from core.resilience import is_connect_phase_error, retry_async, retry_sync
 
 logger = structlog.get_logger(__name__)
+
+# Bounded retry budget for a single request to the company worker. 3 attempts
+# with the client's 30s timeout tolerates a connect blip of roughly a minute
+# (worst case) before surfacing, and never retries anything slower.
+_REQUEST_ATTEMPTS = 3
+_REQUEST_BASE_DELAY = 0.5
+_REQUEST_MAX_DELAY = 4.0
 
 # Columns storing JSON as TEXT; decoded on read, encoded on write.
 JSON_COLUMNS: dict[str, set[str]] = {
@@ -60,10 +68,23 @@ class CloudflareClient:
     # --- sync path (fluent Table API, runs inside asyncio.to_thread) ---
 
     def _post_sync(self, path: str, body: dict) -> dict:
-        with httpx.Client(timeout=30.0) as http:
-            r = http.post(f"{self.url}{path}", headers=self._headers, json=body)
-            r.raise_for_status()
-            return r.json()
+        def _once() -> dict:
+            with httpx.Client(timeout=30.0) as http:
+                r = http.post(f"{self.url}{path}", headers=self._headers, json=body)
+                r.raise_for_status()
+                return r.json()
+
+        # Connect-phase failures only: this path issues writes (`/query`,
+        # `/batch`) and a failure after the request left the box must not be
+        # replayed. A DNS blip here used to kill the whole fleet at startup.
+        return retry_sync(
+            _once,
+            label=f"POST {path} (sync)",
+            attempts=_REQUEST_ATTEMPTS,
+            base_delay=_REQUEST_BASE_DELAY,
+            max_delay=_REQUEST_MAX_DELAY,
+            classify=is_connect_phase_error,
+        )
 
     def query(self, sql: str, params: list | None = None) -> list[dict]:
         """Run a read query, returning rows with JSON columns decoded."""
@@ -90,10 +111,22 @@ class CloudflareClient:
             self._async_client = None
 
     async def _post(self, path: str, body: dict) -> dict:
-        client = await self._get_async()
-        r = await client.post(f"{self.url}{path}", json=body)
-        r.raise_for_status()
-        return r.json()
+        async def _once() -> dict:
+            client = await self._get_async()
+            r = await client.post(f"{self.url}{path}", json=body)
+            r.raise_for_status()
+            return r.json()
+
+        # Same policy as the sync path: retry only when the request provably
+        # never reached the server (see core/resilience.py).
+        return await retry_async(
+            _once,
+            label=f"POST {path}",
+            attempts=_REQUEST_ATTEMPTS,
+            base_delay=_REQUEST_BASE_DELAY,
+            max_delay=_REQUEST_MAX_DELAY,
+            classify=is_connect_phase_error,
+        )
 
     async def aquery(self, sql: str, params: list | None = None) -> list[dict]:
         res = await self._post("/query", {"sql": sql, "params": params or []})
