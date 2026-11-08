@@ -4,13 +4,39 @@ import asyncio
 import httpx
 from pathlib import Path
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import structlog
 
 from core.config import get_settings
 
 logger = structlog.get_logger(__name__)
+
+# Workflow runs older than this never generate a fix task. GitHub keeps
+# returning long-dead failures: on 2026-11-08 `status=failure&branch=main`
+# resolved to exactly 10 runs, all from 2026-09-23..09-30, so the monitor
+# re-examined the same September failures every 2 minutes forever. That is
+# both wasted work and a permanent window for dedup to hiccup — the monopoly
+# of the page by ancient runs is what let duplicate fix tasks slip through on
+# 2026-10-25 and 2026-11-07. A failure that old is history, not a regression.
+WORKFLOW_FIX_MAX_AGE_DAYS = 7
+
+
+def workflow_run_age_days(created_at: Any) -> Optional[float]:
+    """Age of a workflow run in days; None when the timestamp is unreadable.
+
+    Unknown age is treated as "not ancient" by callers — a missing timestamp
+    must never silently suppress a real failure.
+    """
+    if not created_at:
+        return None
+    try:
+        ts = datetime.fromisoformat(str(created_at).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - ts).total_seconds() / 86400.0
 
 
 class GitHubActionsManager:
@@ -78,13 +104,22 @@ class GitHubActionsManager:
             logger.warning("default_branch_fetch_exception", error=str(e))
         return self._default_branch
 
-    async def get_failed_workflows(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_failed_workflows(
+        self,
+        limit: int = 10,
+        max_age_days: int = WORKFLOW_FIX_MAX_AGE_DAYS,
+    ) -> List[Dict[str, Any]]:
         """Get recent failed workflow runs on the default branch.
 
         PR-branch failures belong to the branch author — scoping the query
         (API `branch` param + a head_branch post-filter fallback) keeps them
         from ever reaching the monitor's failure list and from being picked
         up by the fix-fallback path.
+
+        Ancient runs are dropped here, at the source, so neither the monitor
+        nor the fallback ever sees them. The page is widened past `limit`
+        because GitHub's ordering is not dependable enough to guarantee that a
+        backlog of months-old failures cannot crowd out a fresh one.
         """
         owner, repo = await self._get_repo_info()
         if not owner or not repo:
@@ -108,7 +143,9 @@ class GitHubActionsManager:
             url = f"https://api.github.com/repos/{owner}/{repo}/actions/runs"
             params = {
                 "status": "failure",
-                "per_page": limit,
+                "sort": "created",
+                "direction": "desc",
+                "per_page": max(limit, 20),
                 "page": 1,
             }
             if default_branch:
@@ -134,8 +171,42 @@ class GitHubActionsManager:
                             "html_url": run.get("html_url"),
                             "workflow_id": run.get("workflow_id"),
                         })
-                    logger.info("fetched_failed_workflows", count=len(workflows))
-                    return workflows
+
+                    recent: List[Dict[str, Any]] = []
+                    skipped: List[tuple[Dict[str, Any], float]] = []
+                    for wf in workflows:
+                        age = workflow_run_age_days(wf.get("created_at"))
+                        if age is not None and age > max_age_days:
+                            skipped.append((wf, age))
+                            continue
+                        recent.append(wf)
+
+                    # One clear line per run ever seen as ancient — this runs
+                    # every ~2 minutes, so logging each skip every tick would
+                    # bury the log rather than surface the decision.
+                    logged = getattr(self, "_ancient_logged", None)
+                    if logged is None:
+                        logged = self._ancient_logged = set()
+                    for wf, age in skipped:
+                        key = wf.get("id")
+                        if key in logged:
+                            continue
+                        logged.add(key)
+                        logger.info(
+                            "workflow_fix_skipped_ancient",
+                            run_id=key,
+                            workflow_name=wf.get("name"),
+                            branch=wf.get("head_branch"),
+                            age_days=round(age, 1),
+                            max_age_days=max_age_days,
+                        )
+
+                    logger.info(
+                        "fetched_failed_workflows",
+                        count=len(recent[:limit]),
+                        skipped_ancient=len(skipped),
+                    )
+                    return recent[:limit]
                 else:
                     logger.error("failed_to_fetch_workflows", status=response.status_code, error=response.text[:200])
                     return []

@@ -264,16 +264,30 @@ class CTOAgent(BaseAgent):
                 # 24h window — a paraphrased respawn of an impossible class is
                 # guaranteed churn. Ordinary failures keep the 24h window so
                 # legit retries aren't suppressed forever.
+                #
+                # Mirrors worker/src/index.ts DEAD_CORPUS_WHERE exactly: every
+                # column is COALESCE'd (result is NULL on crash-orphaned rows,
+                # and NULL LIKE poisons the whole OR chain) and every marker is
+                # checked in BOTH columns, because this fleet writes the kill
+                # annotation to result while the worker writes it to error_log.
                 dead = client.query(
                     "SELECT description,status,agent_id,created_at FROM task_log "
-                    "WHERE status IN ('failed','escalated') AND (result LIKE ? "
-                    "OR result LIKE ? OR result LIKE ? OR result LIKE ? "
-                    "OR result LIKE ? OR error_log LIKE ? "
-                    "OR error_log LIKE ? OR error_log LIKE ?) "
+                    "WHERE status IN ('failed','escalated') AND ("
+                    "COALESCE(result,'') LIKE ? OR COALESCE(result,'') LIKE ? "
+                    "OR COALESCE(result,'') LIKE ? OR COALESCE(result,'') LIKE ? "
+                    "OR COALESCE(result,'') LIKE ? OR COALESCE(result,'') LIKE ? "
+                    "OR COALESCE(result,'') LIKE ? "
+                    "OR COALESCE(error_log,'') LIKE ? OR COALESCE(error_log,'') LIKE ? "
+                    "OR COALESCE(error_log,'') LIKE ? OR COALESCE(error_log,'') LIKE ? "
+                    "OR COALESCE(error_log,'') LIKE ? OR COALESCE(error_log,'') LIKE ? "
+                    "OR COALESCE(error_log,'') LIKE ?) "
                     "ORDER BY created_at DESC LIMIT 10000",
                     ["%retired:%", "%obsolete:%", "%infeasible:%",
-                     "%closed:%", "%resolved:%",
-                     "%infeasible:%", "%Deliverable %", "%phantom_completion:%"])
+                     "%closed:%", "%resolved:%", "%Deliverable %",
+                     "%phantom_completion:%",
+                     "%retired:%", "%obsolete:%", "%infeasible:%",
+                     "%closed:%", "%resolved:%", "%Deliverable %",
+                     "%phantom_completion:%"])
                 rows = live + dead
                 rows.sort(key=lambda r: r.get("created_at") or "", reverse=True)
                 return rows

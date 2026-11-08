@@ -809,23 +809,43 @@ async function agentTick(env: Env, ctx: ExecutionContext) {
   const urls = safeJson<Record<string, string>>(brain.live_urls) ?? {};
   if (!urls.repo) return bootstrapRepo(env, ctx, brain);
 
+  // Sweep stale in_progress claims to failed FIRST — a fleet process killed
+  // mid-task leaves its claim wedged forever (not failed → no requeue, not
+  // completed → dashboard lies and dedup counts it as recent work). The sweep
+  // used to run AFTER the requeue, so a claim orphaned this tick could not be
+  // retried until the next one; running it first lets the retry budget below
+  // see the fresh `failed` row in the same tick.
+  await env.DB.prepare(
+    "UPDATE task_log SET status='failed', error_log=json_insert(COALESCE(error_log,'[]'),'$[#]','orphaned: in_progress claim went stale') WHERE status='in_progress' AND COALESCE(started_at, created_at) < strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 hour')",
+  ).run().catch(() => {});
+
   // Requeue one failed task that still has attempts left — a retry with the
   // failure as feedback often succeeds; capped so permanently-broken tasks
   // stay dead instead of looping forever. Dead-corpus rows (obsolete:/retired:/
   // infeasible:/Deliverable markers) are excluded — attempts<3 alone isn't a
   // death certificate, since sweep annotations and the local tracker's
   // update-path kills can leave the counter low on terminal rows.
-  await env.DB.prepare(
-    `UPDATE task_log SET status='pending' WHERE id=(SELECT id FROM task_log WHERE status='failed' AND attempts<3 AND NOT (${DEAD_CORPUS_WHERE}) ORDER BY created_at LIMIT 1)`,
-  ).run().catch(() => {});
-
-  // Sweep stale in_progress claims to failed — a fleet process killed
-  // mid-task leaves its claim wedged forever (not failed → no requeue, not
-  // completed → dashboard lies and dedup counts it as recent work). Flipping
-  // to failed lets the retry budget above decide its fate.
-  await env.DB.prepare(
-    "UPDATE task_log SET status='failed', error_log=json_insert(COALESCE(error_log,'[]'),'$[#]','orphaned: in_progress claim went stale') WHERE status='in_progress' AND COALESCE(started_at, created_at) < strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 hour')",
-  ).run().catch(() => {});
+  //
+  // Two predicates here are load-bearing, and both used to be wrong:
+  //  1. DEAD_CORPUS_WHERE is NULL-safe (COALESCE on both columns). `result`
+  //     is NULL on every row the fleet never finished — mark_failed writes
+  //     error_log only — so `result LIKE …` evaluated to NULL, the OR chain
+  //     collapsed to NULL, and `NOT (…)` was NULL, which a WHERE clause
+  //     treats as false. Crash-orphaned rows could therefore NEVER be
+  //     retried (measured 2026-11-08: 52 of 60 `failed AND attempts<3` rows
+  //     had result IS NULL, and the zero-result candidate query proved the
+  //     whole eligible set was empty). The dead-corpus markers are now also
+  //     matched in error_log, because the worker and the local fleet write
+  //     the kill annotation to opposite columns (`infeasible:`/`Deliverable `
+  //     already were; `obsolete:`/`retired:`/`closed:`/`resolved:` were not).
+  //  2. Retries are bounded to REQUEUE_MAX_AGE_DAYS. Fixing (1) alone would
+  //     have drained a two-month backlog of judged failures; work abandoned
+  //     longer than this is stale, not a fresh chance. Recent infra failures
+  //     (timeout / orphaned claim) still retry, which is the whole point.
+  const requeued = await env.DB.prepare(
+    `UPDATE task_log SET status='pending' WHERE id=(SELECT id FROM task_log WHERE status='failed' AND attempts<3 AND NOT (${DEAD_CORPUS_WHERE}) AND created_at >= strftime('%Y-%m-%dT%H:%M:%fZ','now','-${REQUEUE_MAX_AGE_DAYS} days') ORDER BY created_at LIMIT 1)`,
+  ).run().catch(() => null);
+  if (requeued?.meta?.changes) console.log(`task_requeued count=${requeued.meta.changes}`);
 
   // Execute the oldest pending task (real work: GitHub commit), and keep the
   // queue topped up by generating a task when it's running shallow.
@@ -1104,8 +1124,23 @@ function infeasibleTaskReason(desc: string): string | null {
 // "deferred:" is deliberately NOT corpus-visible: a business decision still
 // pending should resurface for the operator, and suppressing it would also
 // block the legitimate re-proposal once the decision lands.
+//
+// NULL-safety is part of the contract: `result` is NULL on every row the
+// fleet never finished (`mark_failed` writes error_log only), so an unchecked
+// `result LIKE …` yields NULL and poisons the whole OR chain — `NOT (…)` then
+// evaluates to NULL, which excludes the row from the requeue below. Every
+// column reference is COALESCE'd, and every marker is checked in BOTH columns
+// because the worker writes kill annotations to error_log while the local
+// fleet writes them to result.
 const DEAD_CORPUS_WHERE =
-  "status IN ('failed','escalated') AND (result LIKE '%retired:%' OR result LIKE '%obsolete:%' OR result LIKE '%infeasible:%' OR result LIKE '%closed:%' OR result LIKE '%resolved:%' OR error_log LIKE '%infeasible:%' OR error_log LIKE '%Deliverable %' OR error_log LIKE '%phantom_completion:%')";
+  "status IN ('failed','escalated') AND (COALESCE(result,'') LIKE '%retired:%' OR COALESCE(result,'') LIKE '%obsolete:%' OR COALESCE(result,'') LIKE '%infeasible:%' OR COALESCE(result,'') LIKE '%closed:%' OR COALESCE(result,'') LIKE '%resolved:%' OR COALESCE(result,'') LIKE '%Deliverable %' OR COALESCE(result,'') LIKE '%phantom_completion:%' OR COALESCE(error_log,'') LIKE '%retired:%' OR COALESCE(error_log,'') LIKE '%obsolete:%' OR COALESCE(error_log,'') LIKE '%infeasible:%' OR COALESCE(error_log,'') LIKE '%closed:%' OR COALESCE(error_log,'') LIKE '%resolved:%' OR COALESCE(error_log,'') LIKE '%Deliverable %' OR COALESCE(error_log,'') LIKE '%phantom_completion:%')";
+
+// How far back the retry budget reaches. A failed row older than this is
+// abandoned work, not a fresh chance: retrying it would resurrect a class of
+// work the company has moved past (the same anti-resurrection rule the
+// workflow-run monitor applies). Recent failures — including crash-orphaned
+// and timed-out rows that were never judged on their merits — stay eligible.
+const REQUEUE_MAX_AGE_DAYS = 7;
 
 // Was this task already tried recently — in ANY status? Exact-match dedup on
 // pending only lets the same idea respawn under new wording forever (three
