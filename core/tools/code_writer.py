@@ -8,6 +8,7 @@ from typing import Optional, Any
 import structlog
 
 from core.config import get_settings
+from core.quality.metric_claims import document_claim_failure, is_document
 from core.tools.bin_resolver import find_binary
 from core.tools.code_validator import CodeValidator
 from core.tools.file_manager import FileManager
@@ -162,6 +163,7 @@ class CodeWriter:
         files_written = []
         validation_errors = []
         skipped_protected = []
+        unsourced_claims: list[str] = []
         seen_filenames = set()  # Track to prevent duplicates
         
         for block in blocks:
@@ -197,6 +199,26 @@ class CodeWriter:
                 if len(prev_text) >= 800 and _retained_line_fraction(prev_text, code) < 0.5:
                     logger.warning("doc_gutting_skipped", file=filename, task_id=task_id)
                     skipped_protected.append(filename)
+                    continue
+
+            # Unsourced business-metric guard — a strategy/plan/report document
+            # that asserts figures (users, MRR, revenue, budget splits) with no
+            # source and no VERIFIED FACTS block is the fabrication class that
+            # produced PR #120 (an invented 30/20/15/20/15 budget split and a
+            # "$1000 MRR in 6 months" target against a real funnel of 0 subs).
+            # Prose documents only — product copy and code are never scanned,
+            # and a figure that cites its endpoint passes.
+            if is_document(rel):
+                claim_failure = document_claim_failure(code)
+                if claim_failure:
+                    logger.warning(
+                        "unsourced_metric_claims",
+                        file=filename,
+                        task_id=task_id,
+                        detail=claim_failure,
+                    )
+                    skipped_protected.append(filename)
+                    unsourced_claims.append(f"{filename}: {claim_failure}")
                     continue
 
             # Validate code before writing
@@ -313,6 +335,11 @@ class CodeWriter:
 
         if skipped_protected:
             result["skipped_protected"] = skipped_protected
+        if unsourced_claims:
+            # Actionable feedback for the retry prompt — a rejection with no
+            # reason just makes the next attempt guess.
+            result["unsourced_claims"] = unsourced_claims
+            result["claim_error"] = "; ".join(unsourced_claims)
         
         if validation_errors:
             result["validation_errors"] = validation_errors
