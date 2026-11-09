@@ -128,6 +128,29 @@ class CloudflareClient:
             classify=is_connect_phase_error,
         )
 
+    async def aget(self, path: str) -> dict:
+        """GET an internal worker route (bearer, no /api/v1 prefix).
+
+        Read-only by construction: only used for operator reads such as
+        `/manifests/latest`. Retries connect-phase failures only, exactly like
+        `_post` — a GET is idempotent, but sharing one policy keeps the
+        behaviour easy to reason about.
+        """
+        async def _once() -> dict:
+            client = await self._get_async()
+            r = await client.get(f"{self.url}{path}")
+            r.raise_for_status()
+            return r.json()
+
+        return await retry_async(
+            _once,
+            label=f"GET {path}",
+            attempts=_REQUEST_ATTEMPTS,
+            base_delay=_REQUEST_BASE_DELAY,
+            max_delay=_REQUEST_MAX_DELAY,
+            classify=is_connect_phase_error,
+        )
+
     async def aquery(self, sql: str, params: list | None = None) -> list[dict]:
         res = await self._post("/query", {"sql": sql, "params": params or []})
         return res.get("results", [])

@@ -9,19 +9,84 @@
     "Hold infrastructure cost near zero on the Cloudflare free tier."
   ],
   "roles": [
-    { "id": "ceo", "title": "Chief Executive Officer", "mission": "Set company direction, review priorities and approve cross-team trade-offs.", "autonomy": "approval" },
-    { "id": "cto", "title": "Chief Technology Officer", "mission": "Break work into safe tasks, review engineering output and guard the protected product files.", "autonomy": "approval" },
-    { "id": "marketing", "title": "Marketing Lead", "mission": "Run growth experiments and draft posts that wait for an approved decision package before dispatch.", "autonomy": "approval" },
-    { "id": "sales", "title": "Sales Lead", "mission": "Qualify CRM leads and draft outreach campaigns for a human to send, never auto-blast.", "autonomy": "approval" },
-    { "id": "customer_success", "title": "Customer Success Lead", "mission": "Answer support tickets and keep customers informed when fixes land.", "autonomy": "auto" },
-    { "id": "backend", "title": "Backend Engineer", "mission": "Implement worker and API changes with tests on a per-task branch, never on main directly.", "autonomy": "auto" },
-    { "id": "frontend", "title": "Frontend Engineer", "mission": "Implement dashboard and UI changes without touching protected product files.", "autonomy": "auto" },
-    { "id": "qa", "title": "QA Engineer", "mission": "Run the test gate and reject any artifact whose verdict is not a real green run.", "autonomy": "auto" },
-    { "id": "devops", "title": "DevOps Engineer", "mission": "Handle deploys, Cloudflare resources and CI configuration, gated on explicit approval.", "autonomy": "approval" },
-    { "id": "code_review", "title": "Code Reviewer", "mission": "Review pull requests for defects, secret leaks and scope drift before merge.", "autonomy": "auto" },
-    { "id": "knowledge", "title": "Knowledge Engineer", "mission": "Maintain company-brain entries and the vector knowledge index the fleet reads.", "autonomy": "auto" },
-    { "id": "hr", "title": "HR Coordinator", "mission": "Review agent performance and recommend fleet roster changes.", "autonomy": "auto" },
-    { "id": "finance", "title": "Finance Analyst", "mission": "Track the outcome ledger, subscription revenue and cost per task.", "autonomy": "auto" }
+    {
+      "id": "ceo",
+      "title": "Chief Executive Officer",
+      "mission": "Set company direction, review priorities and approve cross-team trade-offs.",
+      "autonomy": "approval"
+    },
+    {
+      "id": "cto",
+      "title": "Chief Technology Officer",
+      "mission": "Break work into safe tasks, review engineering output and guard the protected product files.",
+      "autonomy": "approval"
+    },
+    {
+      "id": "marketing",
+      "title": "Marketing Lead",
+      "mission": "Run growth experiments and draft posts that wait for an approved decision package before dispatch.",
+      "autonomy": "approval"
+    },
+    {
+      "id": "sales",
+      "title": "Sales Lead",
+      "mission": "Qualify CRM leads and draft outreach campaigns for a human to send, never auto-blast.",
+      "autonomy": "approval"
+    },
+    {
+      "id": "customer_success",
+      "title": "Customer Success Lead",
+      "mission": "Answer support tickets and keep customers informed when fixes land.",
+      "autonomy": "auto"
+    },
+    {
+      "id": "backend",
+      "title": "Backend Engineer",
+      "mission": "Implement worker and API changes with tests on a per-task branch, never on main directly.",
+      "autonomy": "auto"
+    },
+    {
+      "id": "frontend",
+      "title": "Frontend Engineer",
+      "mission": "Implement dashboard and UI changes without touching protected product files.",
+      "autonomy": "auto"
+    },
+    {
+      "id": "qa",
+      "title": "QA Engineer",
+      "mission": "Run the test gate and reject any artifact whose verdict is not a real green run.",
+      "autonomy": "auto"
+    },
+    {
+      "id": "devops",
+      "title": "DevOps Engineer",
+      "mission": "Handle deploys, Cloudflare resources and CI configuration, gated on explicit approval.",
+      "autonomy": "approval"
+    },
+    {
+      "id": "code_review",
+      "title": "Code Reviewer",
+      "mission": "Review pull requests for defects, secret leaks and scope drift before merge.",
+      "autonomy": "auto"
+    },
+    {
+      "id": "knowledge",
+      "title": "Knowledge Engineer",
+      "mission": "Maintain company-brain entries and the vector knowledge index the fleet reads.",
+      "autonomy": "auto"
+    },
+    {
+      "id": "hr",
+      "title": "HR Coordinator",
+      "mission": "Review agent performance and recommend fleet roster changes.",
+      "autonomy": "auto"
+    },
+    {
+      "id": "finance",
+      "title": "Finance Analyst",
+      "mission": "Track the outcome ledger, subscription revenue and cost per task.",
+      "autonomy": "auto"
+    }
   ],
   "connector_permissions": {
     "x": "dispatch",
@@ -45,9 +110,43 @@
     "risk": "medium"
   },
   "schedules": [
-    { "id": "agent_tick", "cron": "*/10 * * * *", "enabled": true },
-    { "id": "daily_maintenance", "cron": "0 3 * * *", "enabled": true },
-    { "id": "weekly_backup", "cron": "0 3 * * 0", "enabled": true }
+    {
+      "id": "agent_tick",
+      "cron": "*/10 * * * *",
+      "enabled": true
+    },
+    {
+      "id": "daily_maintenance",
+      "cron": "0 3 * * *",
+      "enabled": true
+    },
+    {
+      "id": "weekly_backup",
+      "cron": "0 3 * * 0",
+      "enabled": true
+    }
   ],
+  "icp": {
+    "firmographics": {
+      "industry": [
+        "developer tools",
+        "saas",
+        "devops"
+      ],
+      "size": [
+        "solo founder",
+        "1-10 employees"
+      ],
+      "region": [
+        "global",
+        "english-speaking"
+      ]
+    },
+    "signals": {
+      "intent": 0.6,
+      "fit": 0.8,
+      "timing": 0.4
+    }
+  },
   "notes": "The shipped Lazynext configuration as of 2026-11: 13 running agents, Dodo billing in test mode, external dispatch gated by the approval decision package, cron every 10 minutes with daily and weekly maintenance sweeps."
 }

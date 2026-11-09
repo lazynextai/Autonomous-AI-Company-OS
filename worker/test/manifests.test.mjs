@@ -232,3 +232,69 @@ test("listing hides the body unless asked and latest returns the active row", as
   const latest = await mod.latestManifest({ DB: active });
   assert.equal((await readJson(latest)).active.version, 2);
 });
+// ---------------------------------------------------------------------------
+// Optional `icp` block (final candidate from the 35-repo star triage, Row 11).
+// Declarative data only: the fleet's lead scorer reads it; the Worker ignores it.
+// Absent must behave exactly as before, so existing manifests keep validating.
+// ---------------------------------------------------------------------------
+test("icp is optional: a manifest without it validates unchanged", () => {
+  const v = mod.validateManifest({ ...VALID });
+  assert.equal(v.ok, true, v.errors.join("; "));
+  assert.equal("icp" in (v.manifest ?? {}), false, "validator does not invent an icp");
+});
+
+test("icp accepts firmographics and 0..1 signal weights", () => {
+  const v = mod.validateManifest({
+    ...VALID,
+    icp: {
+      firmographics: { industry: ["saas", "devtools"], size: ["1-10"], region: ["global"] },
+      signals: { intent: 0.6, fit: 0.8, timing: 0.4 },
+    },
+  });
+  assert.equal(v.ok, true, v.errors.join("; "));
+});
+
+test("icp rejects a string weight, an out-of-range weight, and an unknown signal", () => {
+  const bad = [
+    { signals: { intent: "high" } },
+    { signals: { fit: 1.5 } },
+    { signals: { timing: -0.1 } },
+    { signals: { momentum: 0.5 } },
+  ];
+  for (const icp of bad) {
+    const v = mod.validateManifest({ ...VALID, icp });
+    assert.equal(v.ok, false, `must reject ${JSON.stringify(icp)}`);
+  }
+});
+
+test("icp rejects unknown keys and over-long firmographic lists", () => {
+  const v1 = mod.validateManifest({ ...VALID, icp: { favourite_colour: "blue" } });
+  assert.equal(v1.ok, false);
+  const v2 = mod.validateManifest({
+    ...VALID,
+    icp: { firmographics: { industry: Array.from({ length: 13 }, (_, i) => `i${i}`) } },
+  });
+  assert.equal(v2.ok, false);
+  const v3 = mod.validateManifest({ ...VALID, icp: { firmographics: { sector: ["x"] } } });
+  assert.equal(v3.ok, false, "unknown firmographic key is rejected");
+});
+
+test("icp: 0 and 1 are valid boundary weights, and partial blocks are allowed", () => {
+  assert.equal(mod.validateManifest({ ...VALID, icp: { signals: { intent: 0, fit: 1 } } }).ok, true);
+  assert.equal(mod.validateManifest({ ...VALID, icp: {} }).ok, true);
+  assert.equal(mod.validateManifest({ ...VALID, icp: { firmographics: { region: ["global"] } } }).ok, true);
+});
+
+test("shipped template packs still validate and carry an icp", async () => {
+  const { readFileSync } = await import("node:fs");
+  for (const name of ["lean-startup", "agency-accessibility"]) {
+    const body = JSON.parse(readFileSync(new URL(`../../templates/${name}.json`, import.meta.url), "utf8"));
+    assert.ok(body.icp, `${name} ships an icp block`);
+    // Full-pack validation (incl. the real connector catalog) lives in
+    // templates.test.mjs. Here the lifted module only knows 4 connectors, so
+    // validate the icp-carrying remainder after stripping the connector map.
+    const { connector_permissions, ...rest } = body;
+    const v = mod.validateManifest(rest);
+    assert.equal(v.ok, true, `${name}: ${v.errors.join("; ")}`);
+  }
+});
