@@ -4,14 +4,16 @@ import { readFileSync } from "node:fs";
 import ts from "typescript";
 
 const source = readFileSync(new URL("../src/services.ts", import.meta.url), "utf8");
-const implementation = source.match(/async function connPost\([\s\S]*?\n}/)?.[0];
-assert.ok(implementation, "shipped connPost implementation must exist");
+// Renamed connPost → connPostSend so `callConnector` can shadow the name with
+// its dry-run capture (same code path, recorder instead of transport).
+const implementation = source.match(/async function connPostSend\([\s\S]*?\n}/)?.[0];
+assert.ok(implementation, "shipped connPostSend implementation must exist");
 const compiled = ts.transpileModule(implementation, {
   compilerOptions: { target: ts.ScriptTarget.ES2022 },
 }).outputText;
 
 async function dispatch(url, body, status = 200) {
-  const request = new Function("fetch", `${compiled}; return connPost;`)(
+  const request = new Function("fetch", `${compiled}; return connPostSend;`)(
     async () => new Response(JSON.stringify(body), { status }),
   );
   return request(url, { method: "POST" });

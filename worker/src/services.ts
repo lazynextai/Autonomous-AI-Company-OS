@@ -9,6 +9,7 @@ import { recordLeadEvidence, listLeadEvidence, evidenceSummary, evidenceCorrobor
 import { outboundDecision, noteBreakerTrip, recordDispatchAudit, breakerAdmin } from "./breakers";
 import { openDispatchDecision, closeDispatchDecision, decisionGate } from "./decisions";
 import { recordDispatchLedger, estimateCostCents } from "./ledger";
+import { CONNECTOR_CAPABILITIES, capabilityOf, capabilityReport } from "./capabilities";
 import puppeteer from "@cloudflare/puppeteer";
 
 // Media library — the Postiz piece the native scheduler lacked. Bytes live
@@ -303,7 +304,11 @@ export async function handleServices(
     // secret), not just whether the connector-library key exists.
     for (const id of CONNECTOR_IDS)
       status[id] = id === "brevo" ? Boolean(await brevoCred(env)) : Boolean(await connCred(env, id));
-    return json({ connectors: status });
+    // Capability metadata is additive: `connectors` keeps its original
+    // boolean-map shape for existing callers, `capabilities` carries the
+    // declarative record (auth kind, dry-run support, declared rate limit)
+    // with `configured` derived from the status map above — never hardcoded.
+    return json({ connectors: status, capabilities: capabilityReport((id) => Boolean(status[id])) });
   }
   const connMatch = path.match(/^\/api\/v1\/connectors\/([a-z]+)$/);
   if (connMatch && req.method === "POST") {
@@ -319,6 +324,32 @@ export async function handleServices(
     const cred = await connCred(env, id);
     if (!cred && !(id === "brevo" && (await brevoCred(env))))
       return json({ error: `'${id}' not connected — set it in Settings → Connector library` }, 503);
+    // --- Dry run -----------------------------------------------------------
+    // A preview has no external effect, so it runs BEFORE the breaker and the
+    // decision gate. Gating it would defeat the purpose: the case a preview is
+    // most useful for is reviewing an action that is currently blocked. It is
+    // also not free to "just check" the gate here — the gate's block path
+    // writes a real `decision_gate` row, which would then claim a blocked
+    // dispatch that never happened. So the gate is skipped and the skip is
+    // recorded, in the response and in the audit row.
+    // Nothing below this return runs for a dry run: no decision package, no
+    // breaker trip, no social_posts row, no provider call.
+    if (b.dry_run === true) {
+      // Route controls are not provider payload — the preview must render
+      // exactly what the real send builds (which strips them too).
+      const probe: Record<string, unknown> = { ...b };
+      delete probe.dry_run;
+      delete probe.task_id;
+      const report = await dryRunConnector(env, id, cred ?? "", probe);
+      ctx.waitUntil(recordDispatchAudit(env, id, report.preview_ok, report.supported ? 200 : 501, "direct", {
+        mode: "dry_run", gate: "skipped_dry_run", calls: report.calls.length,
+      }));
+      return json({
+        ...report,
+        gate: "skipped_dry_run",
+        rate_limit: capabilityOf(id)?.rate_limit ?? null,
+      }, report.supported ? 200 : 501);
+    }
     // Policy-level circuit breakers run before any external side effect —
     // a tripped breaker blocks the send and records why.
     const decision = await outboundDecision(env, id);
@@ -365,8 +396,11 @@ export async function handleServices(
     // only, never derived: an ad-hoc API dispatch has no task and leaves the
     // column NULL. Stripped from the payload so it never reaches the provider.
     const taskRef = typeof b.task_id === "string" ? b.task_id.trim() : "";
-    const payload: Record<string, unknown> = taskRef ? { ...b } : b;
+    const payload: Record<string, unknown> = taskRef || b.dry_run !== undefined ? { ...b } : b;
     if (taskRef) delete payload.task_id;
+    // Route controls are not provider payload — a `dry_run: false` must not
+    // reach a provider that validates unknown fields.
+    if (payload.dry_run !== undefined) delete payload.dry_run;
     const out = await callConnector(env, id, cred ?? "", payload);
     const duration = Date.now() - startedAt;
     ctx.waitUntil(recordDispatchAudit(env, id, out.ok, out.status, "direct"));
@@ -1267,7 +1301,10 @@ export async function connCred(env: Env, id: string): Promise<string | null> {
     ?? null;
 }
 
-async function connPost(
+// Renamed from `connPost` so `callConnector` can shadow the name with its
+// dry-run capture (see `callConnector`'s transport switch) — same code path
+// builds every request, only the send is swapped out.
+async function connPostSend(
   url: string, init: RequestInit,
 ): Promise<{ ok: boolean; status: number; body?: unknown; error?: string }> {
   const r = await fetch(url, init);
@@ -1298,6 +1335,8 @@ async function connPost(
 // dispatch through one connector key.
 async function ayrsharePost(
   env: Env, platform: string, text: string, b: Record<string, unknown>,
+  // Injected so a dry run routes the captured request instead of sending it.
+  post: typeof connPostSend = connPostSend,
 ): Promise<{ ok: boolean; status: number; body?: unknown; error?: string }> {
   const key = await connCred(env, "ayrshare");
   if (!key) return { ok: false, status: 500, error: "conn:ayrshare not set — required for ayrshare-routed connectors" };
@@ -1311,7 +1350,7 @@ async function ayrsharePost(
     if (!media) return { ok: false, status: 400, error: "pinterest requires media_url/image_url (raster image — og.png works, svg does not)" };
     body.mediaUrls = [media];
   }
-  return connPost("https://api.ayrshare.com/api/post", {
+  return post("https://api.ayrshare.com/api/post", {
     method: "POST",
     headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
     body: JSON.stringify(body),
@@ -1321,10 +1360,12 @@ async function ayrsharePost(
 // Google OAuth creds can be "<access_token>" (expires ~1h) or the durable
 // "<refresh_token>:<client_id>:<client_secret>" — refresh per call so the
 // stored cred never dies. Returns the token or null when the refresh fails.
-async function googleAccessToken(cred: string): Promise<string | null> {
+async function googleAccessToken(
+  cred: string, post: typeof connPostSend = connPostSend,
+): Promise<string | null> {
   const parts = cred.split(":");
   if (parts.length < 3 || !parts[0].startsWith("1//")) return parts[0] ?? null;
-  const r = await connPost("https://oauth2.googleapis.com/token", {
+  const r = await post("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -1382,9 +1423,248 @@ async function nostrPublish(
 
 // Worker-side mirror of connectors.py's _DISPATCH. Social connectors take
 // {text}; messaging connectors take {to, text}; brevo takes {to, subject, html}.
+// --- Dry-run request capture ----------------------------------------------
+// A preview must render EXACTLY what a real dispatch sends, so a dry run is
+// not a second renderer that could drift — it is the same code path with the
+// transport swapped. `callConnector` shadows both `fetch` and `connPost` with
+// recorders, so every branch (including the raw `fetch` calls in medium,
+// youtube and reddit) is captured instead of sent, and nothing leaves the
+// worker.
+export interface CapturedRequest {
+  step: number;
+  method: string;
+  url: string;
+  headers: Record<string, string>;
+  body: string | null;
+}
+
+type PostFn = typeof connPostSend;
+
+/**
+ * Stub every response body with the same permissive object. Sequential
+ * branches (instagram container→publish, bluesky session→record, lemmy
+ * login→post, google token refresh) read ids out of the previous response, so
+ * the stub has to carry the field names those branches look for — otherwise
+ * the preview would stop after step one and report a shape the real send
+ * would never produce.
+ */
+const DRY_STUB_BODY: Record<string, unknown> = {
+  id: "dry-run",
+  uri: "dry-run",
+  cid: "dry-run",
+  post_id: 1,
+  access_token: "dry-run",
+  accessJwt: "dry-run",
+  refreshJwt: "dry-run",
+  jwt: "dry-run",
+  did: "did:plc:dryrun",
+  handle: "dryrun.invalid",
+  status: 0,
+  response: { post_id: 1 },
+  data: { id: "dry-run" },
+};
+
+function dryResponse(url: string): Response {
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  // youtube reads `location` to continue its resumable upload.
+  headers.location = "https://dry-run.invalid/upload/session";
+  let host = "";
+  try { host = new URL(url).hostname; } catch { /* relative URL in the medium path */ }
+  // reddit's session-cred branch mints token_v2 from a Set-Cookie on any
+  // authed page load; without it the preview stops at "session expired".
+  if (host.endsWith("reddit.com")) headers["set-cookie"] = "token_v2=dry-run";
+  return new Response(JSON.stringify(DRY_STUB_BODY), { status: 200, headers });
+}
+
+function serializeRequestBody(body: BodyInit | null | undefined): string | null {
+  if (body == null) return null;
+  if (typeof body === "string") return body;
+  if (body instanceof URLSearchParams) return body.toString();
+  if (typeof FormData !== "undefined" && body instanceof FormData) {
+    const names: string[] = [];
+    body.forEach((_v, k) => names.push(k));
+    return `«multipart/form-data: ${names.join(", ")}»`;
+  }
+  if (typeof Blob !== "undefined" && body instanceof Blob)
+    return `«binary: ${body.type || "application/octet-stream"}, ${body.size} bytes»`;
+  if (body instanceof ArrayBuffer) return `«binary: ${body.byteLength} bytes»`;
+  if (ArrayBuffer.isView(body)) return `«binary: ${body.byteLength} bytes»`;
+  return "«unserializable body»";
+}
+
+function headersToObject(h: HeadersInit | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!h) return out;
+  if (typeof Headers !== "undefined" && h instanceof Headers) {
+    h.forEach((v, k) => { out[k.toLowerCase()] = v; });
+    return out;
+  }
+  if (Array.isArray(h)) {
+    for (const [k, v] of h) out[String(k).toLowerCase()] = String(v);
+    return out;
+  }
+  for (const [k, v] of Object.entries(h as Record<string, string>)) out[k.toLowerCase()] = String(v);
+  return out;
+}
+
+/** Recorders installed in place of the real transport during a dry run. */
+function makeDryTransport(sink: CapturedRequest[]): { fetch: typeof globalThis.fetch; post: PostFn } {
+  const record = (url: string, init?: RequestInit): CapturedRequest => {
+    const call: CapturedRequest = {
+      step: sink.length + 1,
+      method: (init?.method ?? "GET").toUpperCase(),
+      url: String(url),
+      headers: headersToObject(init?.headers),
+      body: serializeRequestBody(init?.body),
+    };
+    sink.push(call);
+    return call;
+  };
+  // `connPost` is what almost every branch uses; the raw `fetch` covers the
+  // handful that do their own transport (medium, youtube, reddit session).
+  const post: PostFn = async (url, init) => {
+    record(url, init);
+    const body = DRY_STUB_BODY;
+    return { ok: true, status: 200, body };
+  };
+  const dryFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const url = typeof input === "string"
+      ? input
+      : input instanceof URL ? input.toString() : input.url;
+    record(url, init);
+    return dryResponse(url);
+  };
+  return { fetch: dryFetch as typeof globalThis.fetch, post };
+}
+
+const SECRET_HEADERS = new Set(["authorization", "cookie", "proxy-authorization", "x-api-key", "x-auth-key"]);
+const SECRET_KEYS = /^(access_?token|refresh_?token|password|pass|passwd|secret|client_?secret|api_?key|app_?password|privkey|token|key|auth|jwt|accessjwt|refreshjwt|reddit_session)$/i;
+
+/**
+ * Redact credentials from a captured request.
+ *
+ * Two passes, because credential material reaches a request by two routes:
+ * a named header/key (wholesale redaction, keeping only the auth scheme) and
+ * a literal value embedded in a URL or form body (the webhook connectors use
+ * the whole URL as the credential). The literal pass covers every component
+ * of the caller's credential plus the Ayrshare fan-out key, since both are
+ * resolved inside the dispatch.
+ */
+function scrubCalls(calls: CapturedRequest[], secrets: string[]): CapturedRequest[] {
+  const literals = new Set<string>();
+  for (const s of secrets) {
+    if (!s) continue;
+    if (s.length >= 8) literals.add(s);
+    for (const part of s.split(/[:|,\s]+/)) if (part.length >= 8) literals.add(part);
+  }
+  const scrubText = (input: string): string => {
+    let out = input;
+    for (const lit of literals) out = out.split(lit).join("«redacted»");
+    return out.replace(/([?&](?:access_token|token|key|api_key|secret|password)=)[^&#]*/gi, "$1«redacted»");
+  };
+  const scrubJson = (raw: string): string => {
+    try {
+      const walk = (v: unknown): unknown => {
+        if (Array.isArray(v)) return v.map(walk);
+        if (v && typeof v === "object") {
+          const o: Record<string, unknown> = {};
+          for (const [k, val] of Object.entries(v as Record<string, unknown>))
+            o[k] = SECRET_KEYS.test(k) ? "«redacted»" : walk(val);
+          return o;
+        }
+        return v;
+      };
+      return JSON.stringify(walk(JSON.parse(raw)));
+    } catch {
+      return raw;
+    }
+  };
+  return calls.map((c) => {
+    const headers: Record<string, string> = {};
+    for (const [k, v] of Object.entries(c.headers)) {
+      if (!SECRET_HEADERS.has(k)) { headers[k] = scrubText(v); continue; }
+      // Keep the scheme ("Bearer", "Basic", "OAuth") — it is not a secret and
+      // it tells a reviewer which auth path the preview used.
+      const scheme = v.includes(" ") ? v.slice(0, v.indexOf(" ")) : "";
+      headers[k] = scheme ? `${scheme} «redacted»` : "«redacted»";
+    }
+    let body = c.body === null ? null : scrubText(c.body);
+    if (body !== null && body.trimStart().startsWith("{")) body = scrubJson(body);
+    return { ...c, url: scrubText(c.url), headers, body };
+  });
+}
+
+export interface DryRunReport {
+  dry_run: true;
+  connector: string;
+  supported: boolean;
+  /**
+   * Always "skipped_dry_run" — a preview has no external effect, so neither the
+   * breaker nor the decision gate runs. Mirrored by the Python helper so both
+   * runtimes report the same thing.
+   */
+  gate: "skipped_dry_run";
+  calls: CapturedRequest[];
+  /**
+   * True when the dispatch path built at least one request without a local
+   * validation error. This is NOT provider acceptance — nothing was sent, so
+   * no provider verdict exists.
+   */
+  preview_ok: boolean;
+  error?: string;
+  warnings: string[];
+}
+
+/**
+ * Render what `POST /api/v1/connectors/{id}` would send, without sending it.
+ *
+ * Zero provider calls, zero D1 writes, zero queue activity. The caller is
+ * responsible for the (single) audit row — this function is pure preview so a
+ * test can call it freely without touching the database.
+ */
+export async function dryRunConnector(
+  env: Env, id: string, cred: string, b: Record<string, unknown>,
+): Promise<DryRunReport> {
+  const cap = capabilityOf(id);
+  const base = { dry_run: true as const, connector: id, gate: "skipped_dry_run" as const };
+  if (!cap) return { ...base, supported: false, calls: [], preview_ok: false, error: `unknown connector '${id}'`, warnings: [] };
+  if (!cap.supports_dry_run)
+    return {
+      ...base, supported: false, calls: [], preview_ok: false,
+      error: cap.dry_run_note ?? `'${id}' has no dry-run preview`, warnings: [],
+    };
+  const calls: CapturedRequest[] = [];
+  const out = await callConnector(env, id, cred, b, { dryRun: true, capture: calls });
+  const warnings: string[] = [];
+  if (calls.length === 0)
+    warnings.push("no HTTP request was rendered — treat this preview as incomplete");
+  return {
+    ...base,
+    supported: true,
+    calls: scrubCalls(calls, [cred, await connCred(env, "ayrshare") ?? ""]),
+    preview_ok: out.ok,
+    ...(out.error ? { error: out.error } : {}),
+    warnings,
+  };
+}
+
 async function callConnector(
   env: Env, id: string, cred: string, b: Record<string, unknown>,
+  opts: { dryRun?: boolean; capture?: CapturedRequest[] } = {},
 ): Promise<{ ok: boolean; status?: number; body?: unknown; error?: string }> {
+  // Structural dry-run guarantee: a connector that renders through a helper or
+  // a non-HTTP transport cannot be captured, so it is refused here rather than
+  // returning a half-true preview. Nothing below runs, so nothing is sent.
+  if (opts.dryRun) {
+    const cap = capabilityOf(id);
+    if (!cap?.supports_dry_run)
+      return { ok: false, status: 501, error: cap?.dry_run_note ?? `'${id}' has no dry-run preview` };
+  }
+  // Transport switch — declared before the switch so every branch, and every
+  // inline fetch, resolves to the recorder during a dry run.
+  const dry = opts.dryRun ? makeDryTransport(opts.capture ?? []) : null;
+  const fetch: typeof globalThis.fetch = dry ? dry.fetch : globalThis.fetch;
+  const connPost: PostFn = dry ? dry.post : connPostSend;
   const text = String(b.text ?? "").slice(0, 10000);
   switch (id) {
     case "x": {
@@ -1587,7 +1867,7 @@ async function callConnector(
     case "reddit": {
       if (cred === "ayrshare") {
         if (!text) return { ok: false, status: 400, error: "text required" };
-        return ayrsharePost(env, "reddit", text, b);
+        return ayrsharePost(env, "reddit", text, b, connPost);
       }
       // Two credential shapes:
       //   a) "<client_id>:<client_secret>:<username>:<password>:<subreddit>" —
@@ -1658,7 +1938,7 @@ async function callConnector(
     }
     case "pinterest": {
       if (!text) return { ok: false, status: 400, error: "text required" };
-      if (cred === "ayrshare") return ayrsharePost(env, "pinterest", text, b);
+      if (cred === "ayrshare") return ayrsharePost(env, "pinterest", text, b, connPost);
       // cred: "<access_token>:<board_id>" — every pin requires media, so
       // image_url is mandatory (a bare link pin 400s at Pinterest).
       const [token, board = ""] = cred.split(":", 2);
@@ -2361,7 +2641,7 @@ async function callConnector(
       // init returns the upload URL in `location`.
       const media = String(b.media_url ?? "");
       if (!media) return { ok: false, status: 400, error: "youtube requires media_url — no text/community posts via API" };
-      const yt = await googleAccessToken(cred);
+      const yt = await googleAccessToken(cred, connPost);
       if (!yt) return { ok: false, status: 401, error: "google token refresh failed" };
       const init = await fetch("https://upload.youtube.com/upload/youtube/v3/videos?part=snippet,status&uploadType=resumable", {
         method: "POST",
@@ -2408,7 +2688,7 @@ async function callConnector(
     }
     case "gmb": {
       if (!text) return { ok: false, status: 400, error: "text required" };
-      if (cred === "ayrshare") return ayrsharePost(env, "gmb", text, b);
+      if (cred === "ayrshare") return ayrsharePost(env, "gmb", text, b, connPost);
       // cred: "<access_token>:<accounts/{a}/locations/{l}>" or durable
       // "<refresh_token>:<client_id>:<client_secret>:<accounts/{a}/locations/{l}>"
       // — Google Business Profile local post ("update" card on the listing).
@@ -2417,7 +2697,7 @@ async function callConnector(
       const loc = refreshable ? parts[3] : parts[1] ?? "";
       if (!loc) return { ok: false, status: 500, error: "conn:gmb must be '<token>:<accounts/{a}/locations/{l}>'" };
       const token = refreshable
-        ? await googleAccessToken(parts.slice(0, 3).join(":"))
+        ? await googleAccessToken(parts.slice(0, 3).join(":"), connPost)
         : parts[0];
       if (!token) return { ok: false, status: 401, error: "google token refresh failed" };
       return connPost(`https://mybusiness.googleapis.com/v4/${loc}/localPosts`, {

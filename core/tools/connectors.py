@@ -6,6 +6,7 @@ KV (falling back to a matching env var) and performs its canonical action.
 Nothing is active until a credential is connected.
 """
 
+import contextvars
 import datetime
 from typing import Any
 
@@ -13,10 +14,92 @@ import httpx
 import structlog
 
 from core.config import get_settings
+from core.tools.connector_capabilities import CONNECTOR_CAPABILITIES, capability_of
 from core.tools.decision_gate import check_decision
 from core.tools.outbound_breakers import check_outbound
 
 logger = structlog.get_logger(__name__)
+
+# --- Dry-run transport capture --------------------------------------------
+# A preview must render exactly what a real dispatch sends, so a dry run is not
+# a second renderer that could drift — it is the same code path with the
+# transport swapped. `_async_client()` hands back a client whose transport
+# records the request and returns a stub instead of opening a socket, and every
+# dispatch function builds its client through it. Nothing a dry run reaches can
+# therefore touch a provider.
+#
+# The sink travels in a ContextVar rather than an argument because the ~45
+# dispatch functions each have their own `(payload, cred)` signature; threading
+# a sink through all of them would be 45 signature changes for one feature.
+# ContextVars are per-task, so a concurrent real dispatch outside this context
+# still gets a real client.
+_DRY_SINK: contextvars.ContextVar[list[dict[str, Any]] | None] = contextvars.ContextVar(
+    "connector_dry_run_sink", default=None
+)
+
+# Permissive stub body: sequential branches read ids out of the previous
+# response (bluesky session → record, lemmy login → post, postiz integrations →
+# post, github /user → file), so the stub has to carry the field names they
+# look for or the preview would stop at step one and report a shape the real
+# send never produces. The values are obviously fake on purpose.
+_DRY_STUB: dict[str, Any] = {
+    "id": "dry-run",
+    "uri": "dry-run",
+    "cid": "dry-run",
+    "post_id": 1,
+    "access_token": "dry-run",
+    "accessJwt": "dry-run",
+    "refreshJwt": "dry-run",
+    "jwt": "dry-run",
+    "did": "did:plc:dryrun",
+    "handle": "dryrun.invalid",
+    "login": "dryrun",
+    "status": 0,
+    "response": {"post_id": 1},
+    "data": {"id": "dry-run"},
+    "integrations": [],
+}
+
+
+class _DryTransport(httpx.AsyncBaseTransport):
+    """Records the request, returns a stub, opens no socket."""
+
+    def __init__(self, sink: list[dict[str, Any]]) -> None:
+        self._sink = sink
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        try:
+            raw = request.content
+        except Exception:  # streaming bodies the preview cannot wait on
+            raw = b""
+        body = raw.decode("utf-8", "replace") if raw else None
+        if body is not None and len(body) > 20000:
+            body = body[:20000] + "…"
+        self._sink.append({
+            "step": len(self._sink) + 1,
+            "method": request.method,
+            "url": str(request.url),
+            "headers": {k.lower(): v for k, v in request.headers.items()},
+            "body": body,
+        })
+        headers = {"content-type": "application/json"}
+        # youtube reads `location` to continue its resumable upload.
+        headers["location"] = "https://dry-run.invalid/upload/session"
+        # reddit's session-cred branch mints token_v2 from a Set-Cookie on any
+        # authed page load; without it the preview stops at "session expired".
+        if request.url.host.endswith("reddit.com"):
+            headers["set-cookie"] = "token_v2=dry-run"
+        return httpx.Response(200, json=_DRY_STUB, headers=headers, request=request)
+
+
+def _async_client(timeout: float) -> httpx.AsyncClient:
+    """Client factory for dispatch paths — the only place the dry-run
+    transport is installed. `_credential()` deliberately does NOT use it: the
+    KV lookup must stay real so a preview can tell whether it would even run."""
+    sink = _DRY_SINK.get()
+    if sink is None:
+        return httpx.AsyncClient(timeout=timeout)
+    return httpx.AsyncClient(timeout=timeout, transport=_DryTransport(sink))
 
 
 async def _credential(connector_id: str) -> str | None:
@@ -51,7 +134,7 @@ async def _credential(connector_id: str) -> str | None:
 
 async def _post(url: str, *, headers: dict | None = None, json_body: Any = None,
                 data: Any = None, auth: tuple | None = None, method: str = "POST") -> dict[str, Any]:
-    async with httpx.AsyncClient(timeout=20.0) as client:
+    async with _async_client(timeout=20.0) as client:
         r = await client.request(method, url, headers=headers, json=json_body, data=data, auth=auth)
         try:
             body = r.json()
@@ -61,8 +144,41 @@ async def _post(url: str, *, headers: dict | None = None, json_body: Any = None,
 
 
 # --- Social posting -------------------------------------------------------
+def _text_of(payload: Any) -> str:
+    """The message text of a dispatch payload.
+
+    `call_connector` takes `dict | str`; the worker's contract is `{text}` for
+    socials, but a number of the fleet dispatchers were written against a bare
+    string. Normalizing at one seam keeps both call shapes working and stops a
+    dict from being serialized AS the message body.
+    """
+    if isinstance(payload, str):
+        return payload
+    if isinstance(payload, dict):
+        return str(payload.get("text") or "")
+    return str(payload or "")
+
+
+def _as_dispatch_arg(fn: Any, payload: dict[str, Any] | str) -> Any:
+    """Coerce a payload for dispatchers whose first parameter is `text`.
+
+    Thirteen of the `_DISPATCH` functions take a bare string and the rest take
+    the payload dict. `call_connector` cannot know which from its own
+    signature, so the shape is read from the target. Applied in `_invoke`, it
+    covers real sends and dry runs identically — a preview can never render a
+    body the real path would not build.
+    """
+    import inspect
+
+    try:
+        params = list(inspect.signature(fn).parameters)
+    except (TypeError, ValueError):  # pragma: no cover - builtins/exotics
+        return payload
+    return _text_of(payload) if params and params[0] == "text" else payload
+
 
 async def _x(text: str, cred: str) -> dict:
+    text = _text_of(text)
     # cred: OAuth2 user bearer — or durable OAuth1 quad "ck|cs|at|ats"
     # (consumer key|secret + access token|secret; never expires).
     if "|" in cred:
@@ -97,6 +213,7 @@ async def _x(text: str, cred: str) -> dict:
 
 
 async def _linkedin(text: str, cred: str) -> dict:
+    text = _text_of(text)
     # cred: "<access_token>" or "<access_token>:<author>" where author is a
     # full urn ("urn:li:person:x" from the OAuth flow, "urn:li:organization:x")
     # or a bare numeric org id.
@@ -239,7 +356,7 @@ async def _reddit(payload: dict, cred: str) -> dict:
         sess, loid, sr = parts
         if not (payload.get("text") or ""):
             return {"ok": False, "error": "text required"}
-        async with httpx.AsyncClient(timeout=20.0) as client:
+        async with _async_client(timeout=20.0) as client:
             page = await client.get(
                 "https://www.reddit.com/",
                 headers={
@@ -615,7 +732,7 @@ async def _medium(payload: dict, cred: str) -> dict:
         except Exception:
             return {}
 
-    async with httpx.AsyncClient(timeout=20.0) as client:
+    async with _async_client(timeout=20.0) as client:
         log_lock = _rnd.randint(1000, 9999)
         story = await client.post(
             f"https://medium.com/new-story?logLockId={log_lock}", headers=hdr,
@@ -704,7 +821,7 @@ async def _github_repo_post(payload: dict, gh: dict) -> dict:
     import base64
     import time
 
-    async with httpx.AsyncClient(timeout=20.0) as client:
+    async with _async_client(timeout=20.0) as client:
         me = await client.get("https://api.github.com/user", headers=gh)
         if me.status_code != 200:
             return {"ok": False, "status": me.status_code,
@@ -896,7 +1013,7 @@ async def _postiz(payload: dict, cred: str) -> dict:
     # may be one id, a comma list, or '*' (fan-out to every enabled channel).
     by_id = {}
     all_ids = []
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with _async_client(timeout=15.0) as client:
         il = await client.get(f"{base}/public/v1/integrations",
                               headers={"authorization": key})
     if il.status_code < 400:
@@ -1029,7 +1146,7 @@ async def _youtube(payload: dict, cred: str) -> dict:
     if not media:
         return {"ok": False, "error": "youtube requires media_url — no text/community posts via API"}
     token = cred.split(":", 1)[0]
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with _async_client(timeout=60.0) as client:
         init = await client.post(
             "https://upload.youtube.com/upload/youtube/v3/videos?part=snippet,status&uploadType=resumable",
             headers={"authorization": f"Bearer {token}"},
@@ -1326,35 +1443,96 @@ _DISPATCH = {
     }
 
 
-async def call_connector(connector_id: str, payload: dict[str, Any] | str) -> dict[str, Any]:
-    """Invoke a situational connector. Returns the service's response, or a
-    structured error if the connector is unknown or has no credential set."""
-    fn = _DISPATCH.get(connector_id)
-    if not fn:
-        return {"ok": False, "error": f"unknown connector '{connector_id}'"}
-    cred = await _credential(connector_id)
-    if not cred:
-        return {"ok": False, "error": f"'{connector_id}' not connected — set it in Settings → Connector library"}
-    # --- Outbound breaker gate (mirrors worker/src/breakers.ts) -------------
-    # After credential resolution so unconnected connectors fail identically;
-    # before BOTH dispatch paths (the ayrshare early-return and the generic
-    # fn call). Default posture is observe — logs `outbound_breaker_observe`
-    # with the would-be reason and keeps posting. Enforcement arms with
-    # CONN_BREAKER_MODE=active (see the Governance layer note in AGENTS.md).
-    gate = await check_outbound(connector_id)
-    if not gate["allow"]:
-        return {"ok": False, "error": f"blocked by outbound breaker: {gate['reason'] or 'tripped'}", "breaker": True}
-    # --- Decision gate (mirrors worker/src/decisions.ts) --------------------
-    # Same seam as the breaker: after credential resolution, before BOTH
-    # dispatch paths (the ayrshare early-return and the generic fn call).
-    # Unlike the breaker there is no separate observe mode here: this IS real
-    # posting, so the gate enforces whenever `config:decision_enforce` covers
-    # the action. Infrastructure read failures fail soft (allow) — only a
-    # readable scope with no approved package blocks.
-    decision = await check_decision(connector_id)
-    if not decision["allow"]:
-        reason = decision.get("reason") or "missing approval"
-        return {"ok": False, "error": f"blocked by decision gate — missing approval: {reason}", "gate": True}
+# --- Dry-run redaction ------------------------------------------------------
+_SECRET_HEADERS = frozenset({"authorization", "cookie", "proxy-authorization", "x-api-key", "x-auth-key"})
+_SECRET_KEYS = frozenset({
+    "access_token", "refresh_token", "password", "passwd", "pass", "secret",
+    "client_secret", "api_key", "app_password", "privkey", "token", "key",
+    "auth", "jwt", "accessjwt", "refreshjwt", "reddit_session",
+})
+
+
+def _scrub_calls(calls: list[dict[str, Any]], secrets: list[str]) -> list[dict[str, Any]]:
+    """Redact credential material from captured requests.
+
+    Two passes, because a credential reaches a request two ways: a named
+    header/key (wholesale redaction, keeping only the auth scheme) and a literal
+    value embedded in a URL or form body (the webhook connectors use the whole
+    URL as the credential). The literal pass covers every component of the
+    caller's credential plus the Ayrshare fan-out key, since both are resolved
+    inside the dispatch.
+    """
+    import json as _json
+    import re
+
+    literals: set[str] = set()
+    for s in secrets:
+        if not s:
+            continue
+        if len(s) >= 8:
+            literals.add(s)
+        for part in re.split(r"[:|,\s]+", s):
+            if len(part) >= 8:
+                literals.add(part)
+
+    def scrub_text(value: str) -> str:
+        out = value
+        for lit in literals:
+            out = out.replace(lit, "«redacted»")
+        return re.sub(
+            r"([?&](?:access_token|token|key|api_key|secret|password)=)[^&#]*",
+            r"\1«redacted»", out, flags=re.I,
+        )
+
+    def scrub_json(raw: str) -> str:
+        try:
+            parsed = _json.loads(raw)
+        except Exception:
+            return raw
+
+        def walk(value: Any) -> Any:
+            if isinstance(value, list):
+                return [walk(v) for v in value]
+            if isinstance(value, dict):
+                return {
+                    k: ("«redacted»" if str(k).lower() in _SECRET_KEYS else walk(v))
+                    for k, v in value.items()
+                }
+            return value
+
+        return _json.dumps(walk(parsed))
+
+    scrubbed: list[dict[str, Any]] = []
+    for call in calls:
+        headers: dict[str, str] = {}
+        for k, v in call["headers"].items():
+            if k not in _SECRET_HEADERS:
+                headers[k] = scrub_text(v)
+                continue
+            # Keep the scheme ("Bearer", "Basic") — it is not a secret and it
+            # tells a reviewer which auth path the preview used.
+            scheme = v.split(" ", 1)[0] if " " in v else ""
+            headers[k] = f"{scheme} «redacted»" if scheme else "«redacted»"
+        body = call.get("body")
+        if body is not None:
+            body = scrub_text(body)
+            if body.lstrip().startswith("{"):
+                body = scrub_json(body)
+        scrubbed.append({**call, "url": scrub_text(call["url"]), "headers": headers, "body": body})
+    return scrubbed
+
+
+async def _invoke(
+    connector_id: str, payload: dict[str, Any] | str, fn: Any, cred: str,
+) -> dict[str, Any]:
+    """The dispatch itself — the part that talks to a provider.
+
+    Split out of `call_connector` so a dry run can execute exactly this (with
+    the recording transport installed) while skipping the breaker and decision
+    gates. Both paths therefore share one implementation; a preview cannot
+    render something the real path would not send.
+    """
+    payload = _as_dispatch_arg(fn, payload)
     if cred == "ayrshare":
         # Routed through the approved Ayrshare app — used for networks whose
         # native app review is blocked (reddit karma-gate, pinterest trial
@@ -1386,12 +1564,124 @@ async def call_connector(connector_id: str, payload: dict[str, Any] | str) -> di
         return {"ok": False, "error": str(e)}
 
 
+async def call_connector(
+    connector_id: str, payload: dict[str, Any] | str, *, dry_run: bool = False,
+) -> dict[str, Any]:
+    """Invoke a situational connector. Returns the service's response, or a
+    structured error if the connector is unknown or has no credential set.
+
+    With `dry_run=True` it returns a PREVIEW instead: the exact requests the
+    dispatch would send (method, url, headers, body), with credentials
+    redacted, and no provider call at all. See `_dry_run_connector`.
+
+    Gate reasoning for dry run: the breaker and the decision gate are skipped
+    deliberately. A preview has no external effect, and the case it is most
+    useful for is reviewing an action that is currently blocked — gating the
+    preview would make it useless exactly then. It also is not free to "just
+    check": `check_decision` writes a visible `decision_gate` row when it
+    blocks, which would claim a blocked dispatch that never happened. The skip
+    is recorded in the returned report (`gate: skipped_dry_run`). Real sends
+    are untouched.
+    """
+    fn = _DISPATCH.get(connector_id)
+    if not fn:
+        return {"ok": False, "error": f"unknown connector '{connector_id}'"}
+    if dry_run:
+        return await _dry_run_connector(connector_id, payload, fn)
+    cred = await _credential(connector_id)
+    if not cred:
+        return {"ok": False, "error": f"'{connector_id}' not connected — set it in Settings → Connector library"}
+    # --- Outbound breaker gate (mirrors worker/src/breakers.ts) -------------
+    # After credential resolution so unconnected connectors fail identically;
+    # before BOTH dispatch paths (the ayrshare early-return and the generic
+    # fn call). Default posture is observe — logs `outbound_breaker_observe`
+    # with the would-be reason and keeps posting. Enforcement arms with
+    # CONN_BREAKER_MODE=active (see the Governance layer note in AGENTS.md).
+    gate = await check_outbound(connector_id)
+    if not gate["allow"]:
+        return {"ok": False, "error": f"blocked by outbound breaker: {gate['reason'] or 'tripped'}", "breaker": True}
+    # --- Decision gate (mirrors worker/src/decisions.ts) --------------------
+    # Same seam as the breaker: after credential resolution, before BOTH
+    # dispatch paths (the ayrshare early-return and the generic fn call).
+    # Unlike the breaker there is no separate observe mode here: this IS real
+    # posting, so the gate enforces whenever `config:decision_enforce` covers
+    # the action. Infrastructure read failures fail soft (allow) — only a
+    # readable scope with no approved package blocks.
+    decision = await check_decision(connector_id)
+    if not decision["allow"]:
+        reason = decision.get("reason") or "missing approval"
+        return {"ok": False, "error": f"blocked by decision gate — missing approval: {reason}", "gate": True}
+    return await _invoke(connector_id, payload, fn, cred)
+
+
+async def _dry_run_connector(
+    connector_id: str, payload: dict[str, Any] | str, fn: Any,
+) -> dict[str, Any]:
+    """Render what a dispatch would send, without sending it."""
+    base: dict[str, Any] = {
+        "dry_run": True,
+        "connector": connector_id,
+        "supported": False,
+        "calls": [],
+        "preview_ok": False,
+        "warnings": [],
+        "gate": "skipped_dry_run",
+    }
+    cap = capability_of(connector_id)
+    base["rate_limit"] = cap.get("rate_limit") if cap else None
+    if cap is None:
+        return {**base, "error": f"unknown connector '{connector_id}'"}
+    if not cap.get("supports_dry_run"):
+        return {**base, "error": cap.get("dry_run_note") or f"'{connector_id}' has no dry-run preview"}
+    cred = await _credential(connector_id)
+    if not cred:
+        # The connector TYPE supports a preview (it is capturable); this call
+        # could not render one because there is nothing to render against.
+        return {
+            **base,
+            "supported": True,
+            "error": f"'{connector_id}' not connected — set it in Settings → Connector library",
+        }
+
+    sink: list[dict[str, Any]] = []
+    token = _DRY_SINK.set(sink)
+    try:
+        result = await _invoke(connector_id, payload, fn, cred)
+    finally:
+        _DRY_SINK.reset(token)
+
+    warnings: list[str] = []
+    if not sink:
+        warnings.append("no HTTP request was rendered — treat this preview as incomplete")
+    return {
+        **base,
+        "supported": True,
+        "calls": _scrub_calls(sink, [cred, await _credential("ayrshare") or ""]),
+        "preview_ok": bool(result.get("ok")),
+        **({"error": result["error"]} if result.get("error") else {}),
+        "warnings": warnings,
+    }
+
+
 async def connector_status() -> dict[str, bool]:
     """Map connector_id → connected? (for agent awareness / dashboards)."""
     out: dict[str, bool] = {}
     for cid in _DISPATCH:
         out[cid] = bool(await _credential(cid))
     return out
+
+
+async def connector_capabilities() -> dict[str, dict[str, Any]]:
+    """Capability table with `configured` derived from live credential presence.
+
+    The fleet-side counterpart of `GET /api/v1/connectors`'s `capabilities`
+    map. Never hardcodes configuration — an unset connector reports False the
+    moment its credential is removed, which is the only way this stays honest.
+    """
+    from core.tools.connector_capabilities import capability_report
+
+    status = await connector_status()
+    return capability_report(lambda cid: bool(status.get(cid)))
 
 
 async def request_native_signature(
