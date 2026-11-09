@@ -111,14 +111,23 @@ Return plain text with:
             if not rows:
                 return 0
             brain = await self.company_brain.get()
+            icp = await self._get_active_icp()
             updates: list[tuple[str, list]] = []
             qualified = 0
             for lead in rows:
+                icp_section = ""
+                if icp:
+                    icp_section = (
+                        "\nDECLARED ICP (from the active company manifest, "
+                        "authoritative — score against this):\n"
+                        f"{json.dumps(icp, ensure_ascii=False)[:800]}\n"
+                    )
                 verdict = await self.call_llm(
                     "You are a lead qualifier. Return ONLY compact JSON.",
                     "Score this prospect's fit for the product.\n"
                     f"Product: {brain.product_name or 'Lazynext'} — "
                     f"{brain.mission or 'WCAG accessibility scanning SaaS'}\n"
+                    f"{icp_section}"
                     f"Lead: name={lead.get('name') or ''}, "
                     f"company={lead.get('company') or ''}, "
                     f"email={lead.get('email') or 'none'}\n"
@@ -154,6 +163,23 @@ Return plain text with:
         except Exception as e:
             self.logger.warning("lead_qualification_failed", error=str(e))
             return 0
+
+    async def _get_active_icp(self) -> dict | None:
+        """Read the active company manifest's `icp` block, if any.
+
+        The manifest is declarative data validated by `worker/src/manifests.ts`
+        (`icp` is an optional top-level key: firmographics + signal weights).
+        Absent, empty, or unreadable ⇒ ``None``, which keeps the qualification
+        prompt byte-identical to the pre-ICP behaviour. This helper never
+        raises: a manifest read failure must not stop lead qualification.
+        """
+        try:
+            payload = await self._cf.aget("/manifests/latest")
+            manifest = (payload or {}).get("manifest") or {}
+            icp = manifest.get("icp")
+            return icp if isinstance(icp, dict) and icp else None
+        except Exception:
+            return None
 
     async def _draft_campaign(self, product_name: str) -> int | None:
         """Write one draft row into email_campaigns when none is pending.

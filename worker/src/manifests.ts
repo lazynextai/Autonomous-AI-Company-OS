@@ -16,7 +16,7 @@ export const MANIFEST_NAME_RE = /^[a-z][a-z0-9-]{0,39}$/;
 export const MANIFEST_MAX_BYTES = 64 * 1024;
 export const CONNECTOR_PERMISSIONS = ["none", "read", "dispatch", "admin"] as const;
 export const RISK_LEVELS = ["low", "medium", "high"] as const;
-const TOP_KEYS = new Set(["name", "description", "version", "goals", "roles", "connector_permissions", "review_thresholds", "schedules", "notes"]);
+const TOP_KEYS = new Set(["name", "description", "version", "goals", "roles", "connector_permissions", "review_thresholds", "schedules", "notes", "icp"]);
 
 export interface ManifestValidation { ok: boolean; errors: string[]; manifest: Record<string, unknown> | null }
 
@@ -146,6 +146,52 @@ export function validateManifest(body: unknown): ManifestValidation {
 
   if (body.notes !== undefined && (typeof body.notes !== "string" || body.notes.length > 1000)) {
     errors.push("notes must be a string of at most 1000 chars");
+  }
+
+  // Optional ideal-customer-profile. Declarative data only: the fleet's lead
+  // scorer reads it to weight qualification signals, nothing in the Worker
+  // runtime consumes it. Absent = today's behaviour, unchanged.
+  if (body.icp !== undefined) {
+    const icp = body.icp;
+    if (!isObj(icp)) errors.push("icp must be an object");
+    else {
+      for (const key of Object.keys(icp)) {
+        if (!["firmographics", "signals"].includes(key)) errors.push(`icp.${key} is not allowed`);
+      }
+      if (icp.firmographics !== undefined) {
+        if (!isObj(icp.firmographics)) errors.push("icp.firmographics must be an object");
+        else {
+          for (const key of Object.keys(icp.firmographics)) {
+            if (!["industry", "size", "region"].includes(key)) errors.push(`icp.firmographics.${key} is not allowed`);
+          }
+          for (const key of ["industry", "size", "region"] as const) {
+            const v = icp.firmographics[key];
+            if (v === undefined) continue;
+            if (!Array.isArray(v) || v.length > 12) { errors.push(`icp.firmographics.${key} must be an array of at most 12 strings`); continue; }
+            v.forEach((item, i) => {
+              if (typeof item !== "string" || !item.trim() || item.length > 60) {
+                errors.push(`icp.firmographics.${key}[${i}] must be a 1-60 char string`);
+              }
+            });
+          }
+        }
+      }
+      if (icp.signals !== undefined) {
+        if (!isObj(icp.signals)) errors.push("icp.signals must be an object");
+        else {
+          for (const key of Object.keys(icp.signals)) {
+            if (!["intent", "fit", "timing"].includes(key)) errors.push(`icp.signals.${key} is not allowed`);
+          }
+          for (const key of ["intent", "fit", "timing"] as const) {
+            const v = icp.signals[key];
+            if (v === undefined) continue;
+            if (typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > 1) {
+              errors.push(`icp.signals.${key} must be a number between 0 and 1`);
+            }
+          }
+        }
+      }
+    }
   }
 
   if (errors.length) return { ok: false, errors, manifest: null };
