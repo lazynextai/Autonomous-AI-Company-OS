@@ -188,11 +188,14 @@ export async function noteBreakerTrip(env: Env, connector: string, reason: strin
 }
 
 /** Shared audit write — used by both direct dispatch and the scheduled-post dispatcher. */
-export async function recordDispatchAudit(env: Env, connector: string, ok: boolean, status?: number, source = "direct"): Promise<void> {
+export async function recordDispatchAudit(
+  env: Env, connector: string, ok: boolean, status?: number, source = "direct",
+  extra?: Record<string, unknown>,
+): Promise<void> {
   try {
     await env.DB.prepare(
       "INSERT INTO episodic_events (scope, payload) VALUES ('connector', ?)",
-    ).bind(JSON.stringify({ id: connector, ok, status: status ?? null, source })).run();
+    ).bind(JSON.stringify({ id: connector, ok, status: status ?? null, source, ...(extra ?? {}) })).run();
   } catch {
     // Audit is observability, not the dispatch outcome — never fail the send.
   }

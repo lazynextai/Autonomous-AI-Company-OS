@@ -313,18 +313,18 @@ export const OPENAPI_SPEC = {
     },
     "/api/v1/connectors": {
       get: {
-        summary: "List connector ids with configured-credential status",
-        description: "Returns every supported connector id and whether a credential exists (conn:{id} in KV). Dispatch via POST /api/v1/connectors/{id}.",
-        responses: { "200": { description: "Connector status map" } },
+        summary: "List connector ids with configured-credential status, plus declared capability metadata",
+        description: "`connectors` is the original {id: boolean} map (does a credential exist — conn:{id} in KV, or the CONN_<ID> secret). `capabilities` is the additive declarative record per connector: auth_kind, supports_dry_run, rate_limit {per_day, enforced} and credential_hint (a SHAPE, never a value), with `configured` derived from the same credential resolution and never hardcoded. `rate_limit` is declared provider metadata, not an enforced counter — see docs/connectors/dry-run.md.",
+        responses: { "200": { description: "Connector status map + capability table" } },
       },
     },
     "/api/v1/connectors/{id}": {
       post: {
         summary: "Dispatch through a connector — acts as the company (admin scope)",
-        description: "Body is the connector's own payload: socials take {text} (devto/hashnode/medium/wordpress also {title,draft,tags}), messaging {to,text}, brevo {to,subject,html}. Optional task_id names the task this dispatch executes; when present it is stamped on the decision package at execution so GET /report/mission/{taskId} can link approval to action. It is stripped before the provider call and never invented.",
+        description: "Body is the connector's own payload: socials take {text} (devto/hashnode/medium/wordpress also {title,draft,tags}), messaging {to,text}, brevo {to,subject,html}. `dry_run: true` renders the exact request(s) that would be sent — method, url, headers, body, credentials redacted — with ZERO provider calls, no social_posts row, no decision package, and one episodic_events audit row carrying mode:\"dry_run\". A dry run deliberately skips the outbound breaker and the decision gate (a preview has no external effect, and gating it would make it useless for reviewing a blocked action); the skip is reported as gate:\"skipped_dry_run\". Connectors whose transport cannot be captured return 501 with the reason rather than a partial preview. Optional task_id names the task this dispatch executes; when present it is stamped on the decision package at execution so GET /report/mission/{taskId} can link approval to action. It is stripped before the provider call and never invented.",
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", description: "connector id from GET /api/v1/connectors" } }],
-        requestBody: { content: { "application/json": { schema: { type: "object", properties: { text: { type: "string" }, to: { type: "string" }, subject: { type: "string" }, html: { type: "string" }, title: { type: "string" }, task_id: { type: "string", description: "Optional executing task id (lineage stamp on the decision package)" } } } } } },
-        responses: { "200": { description: "Dispatched" }, "403": { description: "scope 'admin' required" }, "404": { description: "unknown connector" }, "503": { description: "connector not connected" } },
+        requestBody: { content: { "application/json": { schema: { type: "object", properties: { text: { type: "string" }, to: { type: "string" }, subject: { type: "string" }, html: { type: "string" }, title: { type: "string" }, dry_run: { type: "boolean", description: "Render the request without sending it (no provider call, no decision package)" }, task_id: { type: "string", description: "Optional executing task id (lineage stamp on the decision package)" } } } } } },
+        responses: { "200": { description: "Dispatched, or the dry-run preview" }, "403": { description: "scope 'admin' required" }, "404": { description: "unknown connector" }, "501": { description: "connector has no capturable transport — dry run refused" }, "503": { description: "connector not connected" } },
       },
     },
     "/api/v1/social/posts": {
