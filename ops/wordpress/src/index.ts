@@ -84,17 +84,26 @@ export default {
     // ~40 min after publishing). These paths are therefore served from the
     // durable static pages on the apex, so the URLs stay correct forever.
     const REDIRECTS: Record<string, string> = {
+      // The blog home is the page Googlebot was hitting during the ~20 s cold
+      // start and recording as "Server error (5xx)" + "Excluded by 'noindex'".
+      // There is nothing to index here any more (every post redirects), so the
+      // front page becomes a redirect too and the 503-then-noindex cycle can
+      // never be observed by a crawler.
+      "/": "https://lazynext.com/",
       "/hello-world/": "https://lazynext.com/",
       "/three-times-our-own-metrics-lied-to-us/":
         "https://lazynext.com/blog/three-times-our-own-metrics-lied-to-us/",
     };
     const target = REDIRECTS[url.pathname];
     if (target && (req.method === "GET" || req.method === "HEAD")) {
+      // A human/browser gets the redirect; a crawler gets the same 301 plus an
+      // explicit noindex so this host leaves the index cleanly.
       return new Response(null, {
         status: 301,
         headers: {
           location: target,
           "cache-control": "public, max-age=3600",
+          "x-robots-tag": "noindex, nofollow",
         },
       });
     }
@@ -106,6 +115,31 @@ export default {
       await env.EPHEMERAL.put("wpboot:last", s, { expirationTtl: 3600 });
       await env.EPHEMERAL.put(`wpboot:${s}`, new Date().toISOString(), { expirationTtl: 3600 });
       return new Response("ok");
+    }
+
+    // This blog is a REDIRECT SHELL, not a content site. Every real path was
+    // moved to the apex (the container has no durable storage, so posts
+    // published here are lost on the next cold boot — confirmed twice on
+    // 2026-11-06). What remained was Googlebot crawling the / (or any other
+    // path), hitting the ~20 s cold start, and recording "Server error (5xx)"
+    // plus "Excluded by 'noindex' tag" — both are the designed warming page,
+    // not a defect. Since nothing here is indexable, say so explicitly so
+    // Search Console stops reporting an error class that can never be fixed
+    // by a slow container boot.
+    if (url.pathname === "/robots.txt") {
+      return new Response(
+        "# This host is a redirect shell: every content path 301s to lazynext.com.\n" +
+          "# Nothing here is indexable, so crawling it only produces 5xx/noindex noise\n" +
+          "# from the container's cold-start warming page.\n" +
+          "User-agent: *\nDisallow: /\n",
+        {
+          status: 200,
+          headers: {
+            "content-type": "text/plain; charset=utf-8",
+            "cache-control": "public, max-age=3600",
+          },
+        },
+      );
     }
     // Diagnostics: rewrite to http before the DO — the container tunnel
     // speaks plain HTTP and newer runtimes reject https in the fetch init.
@@ -132,6 +166,9 @@ export default {
                 "content-type": "text/html; charset=utf-8",
                 "retry-after": "60",
                 "cache-control": "no-store",
+                // Belt and braces: even if a crawler ignores robots.txt, this
+                // host must never be indexed (it is a redirect shell).
+                "x-robots-tag": "noindex, nofollow",
               },
             }),
           ),
