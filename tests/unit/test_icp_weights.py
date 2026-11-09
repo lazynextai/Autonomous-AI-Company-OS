@@ -79,12 +79,36 @@ def test_aget_does_not_retry_an_auth_failure(client_mod):
 # SalesAgent._get_active_icp
 # --------------------------------------------------------------------------
 
+# The REAL shape of GET /manifests/latest, taken from the live route:
+#   {"active": {id, name, version, body: "<manifest as a JSON string>", ...}}
+# `body` is a string because that is how the manifest is stored in D1. The
+# first version of this helper read {"manifest": ...} — an invented shape that
+# its unit test also mocked, so the test passed while production returned None.
+# These fixtures pin the real shape.
+def _live_shape(icp_block, **active_extra):
+    manifest = {"name": "lean-startup", "version": 1, "goals": ["g-one"]}
+    if icp_block is not None:
+        manifest["icp"] = icp_block
+    return {
+        "active": {
+            "id": 5,
+            "name": "lean-startup",
+            "version": 1,
+            "body": json.dumps(manifest),   # <- string, must be parsed again
+            "valid": 1,
+            "activated": 1,
+            "created_at": "2026-11-09T00:00:00Z",
+            **active_extra,
+        }
+    }
+
+
 @pytest.mark.asyncio
 async def test_get_active_icp_reads_the_live_manifest(sales_mod):
     agent = sales_mod.SalesAgent.__new__(sales_mod.SalesAgent)
     icp = {"firmographics": {"industry": ["saas"]}, "signals": {"fit": 0.9}}
     agent._cf = AsyncMock()
-    agent._cf.aget = AsyncMock(return_value={"manifest": {"name": "x", "icp": icp}})
+    agent._cf.aget = AsyncMock(return_value=_live_shape(icp))
     out = await agent._get_active_icp()
     assert out == icp
 
@@ -93,8 +117,29 @@ async def test_get_active_icp_reads_the_live_manifest(sales_mod):
 async def test_get_active_icp_absent_is_none(sales_mod):
     agent = sales_mod.SalesAgent.__new__(sales_mod.SalesAgent)
     agent._cf = AsyncMock()
-    agent._cf.aget = AsyncMock(return_value={"manifest": {"name": "x"}})
+    agent._cf.aget = AsyncMock(return_value=_live_shape(None))
     assert await agent._get_active_icp() is None
+
+
+@pytest.mark.asyncio
+async def test_get_active_icp_no_active_manifest_is_none(sales_mod):
+    """The live route answers {"active": null} when nothing is activated."""
+    agent = sales_mod.SalesAgent.__new__(sales_mod.SalesAgent)
+    agent._cf = AsyncMock()
+    agent._cf.aget = AsyncMock(return_value={"active": None})
+    assert await agent._get_active_icp() is None
+
+
+@pytest.mark.asyncio
+async def test_get_active_icp_accepts_an_already_parsed_body(sales_mod):
+    """Defensive: a route that returns an object instead of a string works too."""
+    agent = sales_mod.SalesAgent.__new__(sales_mod.SalesAgent)
+    icp = {"signals": {"intent": 0.3}}
+    agent._cf = AsyncMock()
+    agent._cf.aget = AsyncMock(return_value={
+        "active": {"name": "x", "version": 1, "body": {"name": "x", "icp": icp}},
+    })
+    assert await agent._get_active_icp() == icp
 
 
 @pytest.mark.asyncio
@@ -106,8 +151,16 @@ async def test_get_active_icp_never_raises(sales_mod):
 
 
 @pytest.mark.asyncio
+async def test_get_active_icp_survives_corrupt_body(sales_mod):
+    agent = sales_mod.SalesAgent.__new__(sales_mod.SalesAgent)
+    agent._cf = AsyncMock()
+    agent._cf.aget = AsyncMock(return_value={"active": {"body": "{not json"}})
+    assert await agent._get_active_icp() is None
+
+
+@pytest.mark.asyncio
 async def test_get_active_icp_ignores_a_non_dict_block(sales_mod):
     agent = sales_mod.SalesAgent.__new__(sales_mod.SalesAgent)
     agent._cf = AsyncMock()
-    agent._cf.aget = AsyncMock(return_value={"manifest": {"name": "x", "icp": "not-a-dict"}})
+    agent._cf.aget = AsyncMock(return_value=_live_shape("not-a-dict"))
     assert await agent._get_active_icp() is None

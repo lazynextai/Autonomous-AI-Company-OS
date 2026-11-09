@@ -167,16 +167,30 @@ Return plain text with:
     async def _get_active_icp(self) -> dict | None:
         """Read the active company manifest's `icp` block, if any.
 
-        The manifest is declarative data validated by `worker/src/manifests.ts`
-        (`icp` is an optional top-level key: firmographics + signal weights).
+        The real response shape of ``GET /manifests/latest`` is
+        ``{"active": {id, name, version, body, valid, activated, created_at}}``
+        where **``body`` is the manifest as a JSON string** (it is stored that
+        way in D1). Reading the wrong key or skipping the second parse silently
+        returns ``None`` — the first version of this helper did exactly that and
+        was caught only by an end-to-end check against the live route, not by
+        the unit test (whose mock had invented the shape). Keep this aligned
+        with ``latestManifest`` in ``worker/src/manifests.ts``.
+
         Absent, empty, or unreadable ⇒ ``None``, which keeps the qualification
         prompt byte-identical to the pre-ICP behaviour. This helper never
         raises: a manifest read failure must not stop lead qualification.
         """
         try:
             payload = await self._cf.aget("/manifests/latest")
-            manifest = (payload or {}).get("manifest") or {}
-            icp = manifest.get("icp")
+            active = (payload or {}).get("active")
+            if not isinstance(active, dict):
+                return None
+            body = active.get("body")
+            if isinstance(body, str):
+                body = json.loads(body)
+            if not isinstance(body, dict):
+                return None
+            icp = body.get("icp")
             return icp if isinstance(icp, dict) and icp else None
         except Exception:
             return None
