@@ -208,9 +208,19 @@ _SUPERLATIVE_RE = re.compile(
     r"|unmatched|unrivall?ed)\b",
     re.IGNORECASE,
 )
-# Idioms that contain a superlative word but assert nothing about us.
+# Idioms and qualifiers that contain a superlative word but assert nothing
+# about us. "not only static markup" and "only if it is reproducible" are
+# ordinary English, not a claim of superiority — flagged live on our own
+# accessibility statement (dogfood pass, 2026-11-11), which is exactly the
+# false positive that makes people switch a guard off.
 _SUPERLATIVE_IDIOM_RE = re.compile(
-    r"\bbest\s+practices?\b|\bbest\s+efforts?\b|\bthe\s+only\s+(?:way|thing|reason|place|option)\b",
+    r"\bbest\s+practices?\b|\bbest\s+efforts?\b|\bthe\s+only\s+(?:way|thing|reason|place|option)\b"
+    # "not only X", "not only ... but also" — contrastive, never a claim.
+    r"|\bnot\s+only\b"
+    # "only if", "only when", "only after", "only once" — conditional.
+    r"|\bonly\s+(?:if|when|after|before|once|where|for|through|by|in|on|at)\b"
+    # "one of the only", "the only real" are hedged by their own context.
+    r"|\bonly\s+(?:a|an|the)\b",
     re.IGNORECASE,
 )
 

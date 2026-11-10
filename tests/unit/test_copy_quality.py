@@ -150,3 +150,26 @@ def test_copy_connectors_cover_public_copy_surfaces():
     assert {"x", "linkedin", "brevo", "bluesky", "ayrshare", "postiz"} <= COPY_CONNECTORS
     # JSON payload surfaces are deliberately outside the copy rule set.
     assert {"github", "gitlab", "webhook", "signwell"}.isdisjoint(COPY_CONNECTORS)
+
+
+# --- qualifier false positives (found by dogfooding our own statement) ------
+# The first shipped superlative rule flagged "not only static markup" on
+# lazynext.com/accessibility. A guard that cries wolf on ordinary English gets
+# switched off, so these are pinned both ways.
+
+def test_contrastive_and_conditional_only_are_not_superlatives():
+    for text in (
+        "We test 74 WCAG criteria, not only static markup.",
+        "We escalate only if the issue is reproducible.",
+        "Manual review happens only when a pattern is new.",
+        "That is the only way to confirm it.",
+        "It works only after the page loads.",
+    ):
+        findings = [f for f in scan_copy(text) if f.rule_id == "claim-unsourced-superlative"]
+        assert findings == [], f"false positive on: {text}"
+
+
+def test_a_real_superlative_claim_still_warns():
+    findings = [f for f in scan_copy("We are the best accessibility checker available.")
+                if f.rule_id == "claim-unsourced-superlative"]
+    assert findings, "a genuine superlative must still be flagged"
