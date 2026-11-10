@@ -169,18 +169,17 @@ Status as of **2026-11-10**. "Done" means shipped and tested; it never means
 | A3 | OAuth callback scaffolding | **Done** (pre-existing) | `GET /api/v1/connect/linkedin/start` returns a clean 409, not a crash; redirect URI pinned to `https://ai-company.lazynext.com` |
 | A4 | Content approval queue | **Done** (policy, pre-existing) | decision gate: `config:decision_enforce=approval` covers approval-class external dispatch (`worker/src/decisions.ts`) |
 | A5 | Audit and event model | **Done**, now mode-aware | `episodic_events` scope `connector`; dry runs carry `mode:"dry_run"` + `gate:"skipped_dry_run"` |
-| A6 | Rate limits + dry-run | **Dry-run done; cap declared, not enforced** | `dry_run:true` on the dispatch route and `call_connector(..., dry_run=True)`; `rate_limit.per_day: 100` with `enforced: false` — no counter store exists and inventing one was out of scope |
+| A6 | Rate limits + dry-run | **Done** | caps enforced: both runtimes count `rl:conn:<id>:<utcDay>` before any provider call and refuse at 100/day with a structured 429 (`worker/src/services.ts` + `core/tools/connector_rate_limits.py`); dry-run covers every capturable connector (42/45) — see `docs/connectors/dry-run.md` |
 | A7 | Copy and honesty pass | **Holds** | no public page claims a LinkedIn integration; this doc says NOT CONNECTED in its first line |
 
 Two honest gaps:
 
-- **A6's cap is declared, not enforced.** Enforcement needs a counter that does
-  not exist (`rl:` keys are the product worker's per-IP quotas; the platform's
-  limiter is per-key-per-minute). Reporting the provider's published ceiling is
-  honest; a half-working limiter would not be.
 - **A4 protects the platform's dispatch path, not every path.** The gate covers
   `POST /api/v1/connectors/{id}`, scheduled posts and campaign sends. A caller
   that reaches a provider outside the platform is outside that guarantee.
+  The daily cap landed with the same coverage seam as the gate: it is enforced
+  in the same two worker paths plus the fleet's `call_connector` — it does not
+  cover a hypothetical caller that bypasses the platform entirely.
 
 ## Sequencing risk — state it plainly
 

@@ -2,10 +2,11 @@
 `worker/src/capabilities.ts`.
 
 Same contract as the worker table: a plain data table (no class hierarchy),
-`configured` derived from credential presence at call time, `rate_limit`
-DECLARED and not enforced, and `supports_dry_run: false` wherever the dispatch
-path cannot be rendered honestly (a non-HTTP transport, or a dedicated sender
-that bypasses the captured client).
+`configured` derived from credential presence at call time, `rate_limit` with
+`enforced` derived from `per_day` (a ceiling exists ⇒ both runtimes count it in
+`core/tools/connector_rate_limits.py` before any provider call), and
+`supports_dry_run: false` wherever the dispatch path cannot be rendered
+honestly (a non-HTTP transport, or a route that builds no request at all).
 
 Why two tables instead of one generated file: the worker and the fleet are
 deployed separately (the Worker bundle cannot import Python and the fleet
@@ -45,10 +46,11 @@ def _cap(
         "auth_kind": auth_kind,
         "credential_hint": credential_hint,
         "supports_dry_run": supports_dry_run,
-        # Declared provider ceiling. `enforced` is False everywhere: the
-        # platform has no per-connector daily counter, and inventing one to
-        # make this number look real would be worse than reporting the truth.
-        "rate_limit": {"per_day": per_day, "enforced": False},
+        # Published provider ceiling. `enforced` is DERIVED, never asserted: a
+        # non-null per_day means both dispatch paths consult the shared KV
+        # counter (`rl:conn:<id>:<utcDay>`) before calling a provider, so a row
+        # cannot claim enforcement it does not have. `null` = nothing to count.
+        "rate_limit": {"per_day": per_day, "enforced": per_day is not None},
     }
     if dry_run_note:
         row["dry_run_note"] = dry_run_note
@@ -75,7 +77,10 @@ CONNECTOR_CAPABILITIES: dict[str, dict[str, Any]] = {
         "(none — no organic post API)",
         False,
         None,
-        "snapchat has no organic-post API; the Marketing API is ads-only — dispatch returns 400 without sending",
+        "snapchat is not previewable because it is not dispatchable: _snapchat returns "
+        "{'ok': False, 'error': 'snapchat has no organic-post API...'} without building a "
+        "request — the Marketing API is ads-only, so there is no method/URL/body to render and "
+        "no credential to connect. Use the 'meta' connector for ads",
     ),
     "discord": _cap("webhook", "<channel_webhook_url>"),
     "slack": _cap("webhook", "<incoming_webhook_url>"),
@@ -102,7 +107,11 @@ CONNECTOR_CAPABILITIES: dict[str, dict[str, Any]] = {
         "<64-char_hex_privkey>[|wss://relay1,wss://relay2]",
         False,
         None,
-        "nostr publishes a signed event over relay websockets — not an HTTP request, so there is no request to render",
+        "nostr publishes a NIP-01 signed event as one [\"EVENT\", ev] frame over relay "
+        "WebSockets (wss://relay.damus.io and wss://nos.lol by default), not an HTTP request — "
+        "there is no method/URL/header/body to render, and the event is BIP340-signed with your "
+        "private key, so even the frame cannot be shown without it. Dispatch itself is unchanged "
+        "and still publishes",
     ),
     "webhook": _cap("webhook", "<https_url>[|<bearer>]"),
     "ayrshare": _cap("api_key", "<api_key>"),
@@ -111,19 +120,23 @@ CONNECTOR_CAPABILITIES: dict[str, dict[str, Any]] = {
     "letmepost": _cap("api_key", "<api_key>|<account_ids>[|<base_url>]"),
     "twilio": _cap("basic", "<account_sid>:<auth_token>:<from_number>"),
     "whatsapp": _cap("bearer", "<access_token>:<phone_number_id>"),
-    "brevo": _cap(
-        "api_key",
-        "[<sender>:]<api_key>",
-        False,
-        None,
-        "brevo sends through the dedicated brevoSend helper (its own transport), which the dispatch-level capture does not see",
-    ),
+    # Previewable: `_brevo` builds through `_post` → `_async_client()`, so the
+    # recording transport already sees it. The worker needed brevoSend's
+    # transport threaded in before it could make the same claim; both runtimes
+    # now render the same POST https://api.brevo.com/v3/smtp/email.
+    "brevo": _cap("api_key", "[<sender>:]<api_key>"),
     "signwell": _cap(
         "api_key",
         "[test:]<api_key>",
         False,
         None,
-        "signing does not dispatch through this route — use POST /api/v1/signwell/send, which is human_only-gated",
+        "the shared capability flag is false because the Worker's "
+        "POST /api/v1/connectors/signwell route is a routing stub — it returns 400 "
+        "'use /api/v1/signwell/send for signing' before building any request, so there is "
+        "nothing to render there. The fleet's _signwell does build "
+        "POST https://www.signwell.com/api/v1/document_templates/documents/, but a per-runtime "
+        "preview split is a separate change; signing is reviewed on the human_only-gated "
+        "POST /api/v1/signwell/send instead",
     ),
 }
 

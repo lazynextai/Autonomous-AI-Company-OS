@@ -17,6 +17,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { loadModule, fakeKv, readJson } from "./helpers/lift.mjs";
+import { capabilityOf } from "./helpers/caps.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const jsonFn = (data, status = 200) =>
@@ -321,6 +322,7 @@ test("a real dispatch through handleServices stamps the task and never sends the
       closeDispatchDecision: async (_e, id, ok, note, taskId) => closed.push({ id, ok, note, taskId }),
       recordDispatchLedger: async () => {},
       estimateCostCents: () => 0,
+      capabilityOf,
       breakerAdmin: async () => jsonFn({}),
       puppeteer: {},
     },
@@ -373,6 +375,7 @@ test("the same dispatch without a task id closes the package unstamped", async (
       closeDispatchDecision: async (_e, id, ok, note, taskId) => closed.push({ id, ok, note, taskId }),
       recordDispatchLedger: async () => {},
       estimateCostCents: () => 0,
+      capabilityOf,
       breakerAdmin: async () => jsonFn({}),
       puppeteer: {},
     },

@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { loadModule, fakeDb, readJson } from "./helpers/lift.mjs";
+import { capabilityOf } from "./helpers/caps.mjs";
 
 const jsonFn = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json" } });
@@ -418,6 +419,7 @@ const servicesWith = (authorize, evidenceCorroborations) =>
       closeDispatchDecision: async () => {},
       recordDispatchLedger: async () => {},
       estimateCostCents: () => 0,
+      capabilityOf,
       breakerAdmin: async () => jsonFn({}),
       puppeteer: {},
     },

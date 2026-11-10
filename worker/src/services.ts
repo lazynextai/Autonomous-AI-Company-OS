@@ -66,6 +66,117 @@ export function campaignSegment(segment: unknown): { seg: string; sql?: string; 
   return { seg, error: `unknown segment '${seg}' (subscribed|engaged)` };
 }
 
+// --- Per-connector daily caps ---------------------------------------------
+// A CAPACITY guard, not a governance control. The number is the provider's own
+// published ceiling (`capabilities.ts`), so hitting it means "the provider will
+// not accept more today", not "the company may not speak". That distinction
+// drives the failure mode below.
+//
+// Counter pattern: the one the public `/api/v1/waitlist` limiter already ships
+// (`public_api.ts`) — a UTC day bucket `Math.floor(Date.now() / 86_400_000)`,
+// key `rl:<scope>:<…>:<day>`, written with an explicit `expirationTtl` of two
+// windows (172_800s = 2 days) so a counter outlives its own day and then dies
+// on its own. Reused exactly rather than reinvented: one KV counter shape on
+// the platform, not three. The `expirationTtl` is ALWAYS passed — `/kv/put`
+// floors a missing ttl at 60s, and a 60-second counter would silently reset
+// every minute and enforce nothing.
+//
+// FAIL-OPEN, deliberately. A KV read/write failure means we cannot *measure*
+// the ceiling, not that the ceiling was reached; blocking sends during a
+// control-plane outage would convert an accounting gap into an outage of its
+// own. The breaker (a governance control) fails closed for the same reason in
+// reverse — it stops actions that must not happen. The fleet's mirror
+// (`core/tools/connector_rate_limits.py`) makes the same choice, so neither
+// runtime can be the one that starts refusing mail over a KV blip.
+const CONNECTOR_CAP_TTL_SECONDS = 172_800; // 2 × the one-day window
+
+/** UTC day index — the same bucketing the waitlist limiter uses. */
+function utcDayIndex(now = Date.now()): number {
+  return Math.floor(now / 86_400_000);
+}
+
+/** `rl:conn:<id>:<utcDay>` — one counter per connector per UTC day. */
+export function connectorCapKey(id: string, day = utcDayIndex()): string {
+  return `rl:conn:${id}:${day}`;
+}
+
+/** ISO timestamp of the next UTC midnight — when the current counter expires. */
+export function capResetsAt(now = Date.now()): string {
+  return new Date((utcDayIndex(now) + 1) * 86_400_000).toISOString();
+}
+
+export interface ConnectorCapState {
+  /** True when the capability table declares a ceiling for this connector. */
+  limited: boolean;
+  per_day: number | null;
+  /** Dispatches already counted today; null when unlimited or unreadable. */
+  used: number | null;
+  remaining: number | null;
+  day: number;
+  /** Set when the counter could not be read/written — enforcement is off for
+   *  this call, and the caller is told rather than left guessing. */
+  degraded?: boolean;
+}
+
+export interface ConnectorCapVerdict extends ConnectorCapState {
+  allow: boolean;
+  error?: string;
+}
+
+function counterValue(raw: string | null): number {
+  const n = parseInt(raw ?? "0", 10);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+/**
+ * Read the counter without consuming a slot — what a dry run reports.
+ * A preview has no external effect, so it must never spend capacity.
+ */
+export async function peekConnectorDailyCap(env: Env, id: string): Promise<ConnectorCapState> {
+  const per_day = capabilityOf(id)?.rate_limit.per_day ?? null;
+  const day = utcDayIndex();
+  if (per_day === null) return { limited: false, per_day: null, used: null, remaining: null, day };
+  try {
+    const used = counterValue(await env.EPHEMERAL.get(connectorCapKey(id, day)));
+    return { limited: true, per_day, used, remaining: Math.max(per_day - used, 0), day };
+  } catch (err) {
+    console.warn("connector_cap_read_failed", id, err instanceof Error ? err.message : String(err));
+    return { limited: true, per_day, used: null, remaining: null, day, degraded: true };
+  }
+}
+
+/**
+ * Consume one slot if the connector has a ceiling and the day is not full.
+ *
+ * KV has no atomic increment, so two dispatches racing the same counter can
+ * both read `n` and write `n+1` — the counter then under-counts by the number
+ * of in-flight calls. For a capacity ceiling that is the right direction to be
+ * wrong in (it can over-admit by a handful; it never refuses a send that the
+ * counter says is allowed), and the provider's own API is the real backstop.
+ */
+export async function consumeConnectorDailyCap(env: Env, id: string): Promise<ConnectorCapVerdict> {
+  const state = await peekConnectorDailyCap(env, id);
+  if (!state.limited || state.per_day === null || state.degraded)
+    return { ...state, allow: true };
+  const used = state.used ?? 0;
+  if (used >= state.per_day)
+    return {
+      ...state,
+      allow: false,
+      remaining: 0,
+      error: `'${id}' daily cap reached (${state.per_day}/day)`,
+    };
+  try {
+    await env.EPHEMERAL.put(connectorCapKey(id, state.day), String(used + 1), {
+      expirationTtl: CONNECTOR_CAP_TTL_SECONDS,
+    });
+  } catch (err) {
+    console.warn("connector_cap_write_failed", id, err instanceof Error ? err.message : String(err));
+    return { ...state, allow: true, used: null, remaining: null, degraded: true };
+  }
+  return { ...state, allow: true, used: used + 1, remaining: state.per_day - used - 1 };
+}
+
 export async function handleServices(
   req: Request, env: Env, ctx: ExecutionContext, path: string,
 ): Promise<Response> {
@@ -341,14 +452,44 @@ export async function handleServices(
       delete probe.dry_run;
       delete probe.task_id;
       const report = await dryRunConnector(env, id, cred ?? "", probe);
+      // Read the cap counter, never consume it: a preview has no external
+      // effect, so it must not spend a slot of the provider's ceiling. Reading
+      // is what makes the number in the response real instead of declared.
+      const capState = await peekConnectorDailyCap(env, id);
       ctx.waitUntil(recordDispatchAudit(env, id, report.preview_ok, report.supported ? 200 : 501, "direct", {
         mode: "dry_run", gate: "skipped_dry_run", calls: report.calls.length,
       }));
       return json({
         ...report,
         gate: "skipped_dry_run",
-        rate_limit: capabilityOf(id)?.rate_limit ?? null,
+        // Declared ceiling + live counter, one object: `per_day`/`enforced`
+        // come from the capability table, `used`/`remaining`/`day` from KV.
+        rate_limit: {
+          ...(capabilityOf(id)?.rate_limit ?? { per_day: null, enforced: false }),
+          used: capState.used,
+          remaining: capState.remaining,
+          day: capState.day,
+          ...(capState.degraded ? { degraded: true } : {}),
+        },
       }, report.supported ? 200 : 501);
+    }
+    // Daily cap — the provider's own ceiling, checked BEFORE the breaker, the
+    // decision gate and the decision package. A send we are not allowed to
+    // make today must not mint a governance record that claims an action was
+    // considered; one audit row is the whole trace. Fail-open (see the helper).
+    const cap = await consumeConnectorDailyCap(env, id);
+    if (!cap.allow) {
+      ctx.waitUntil(recordDispatchAudit(env, id, false, 429, "direct", {
+        error: cap.error, rate_limited: true, per_day: cap.per_day, used: cap.used, day: cap.day,
+      }));
+      return json({
+        ok: false,
+        error: cap.error,
+        rate_limited: true,
+        per_day: cap.per_day,
+        used: cap.used,
+        resets_at: capResetsAt(),
+      }, 429, { "retry-after": String(Math.max(1, Math.ceil((Date.parse(capResetsAt()) - Date.now()) / 1000))) });
     }
     // Policy-level circuit breakers run before any external side effect —
     // a tripped breaker blocks the send and records why.
@@ -592,6 +733,12 @@ export async function brevoCred(env: Env): Promise<{ from: string; key: string }
 export async function brevoSend(
   env: Env, to: string, subject: string, html: string, name?: string,
   headers?: Record<string, string>, tag?: string,
+  /**
+   * Transport override. Only a dry run passes one (its recording `fetch`), so
+   * a preview of `brevo` renders the real request instead of being refused.
+   * Real callers omit it and get the global fetch they always got.
+   */
+  send: typeof globalThis.fetch = globalThis.fetch,
 ): Promise<{ ok: boolean; status: number; messageId?: string; error?: string }> {
   const cred = await brevoCred(env);
   if (!cred)
@@ -600,7 +747,7 @@ export async function brevoSend(
   // through Brevo inbound parse → tickets. Left unset until the receiving
   // subdomain's MX records exist — setting it early would blackhole replies.
   const inboundAddr = (await env.EPHEMERAL.get("config:inbound_addr")) ?? undefined;
-  const r = await fetch("https://api.brevo.com/v3/smtp/email", {
+  const r = await send("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: { "api-key": cred.key, "content-type": "application/json" },
     body: JSON.stringify({
@@ -1537,7 +1684,10 @@ function makeDryTransport(sink: CapturedRequest[]): { fetch: typeof globalThis.f
   return { fetch: dryFetch as typeof globalThis.fetch, post };
 }
 
-const SECRET_HEADERS = new Set(["authorization", "cookie", "proxy-authorization", "x-api-key", "x-auth-key"]);
+// `api-key` is Brevo's header name (its documented casing, no `x-` prefix) —
+// without it a brevo preview would only be redacted by the literal pass, which
+// depends on the credential value being ≥8 chars. Named redaction does not.
+const SECRET_HEADERS = new Set(["authorization", "cookie", "proxy-authorization", "x-api-key", "x-auth-key", "api-key"]);
 const SECRET_KEYS = /^(access_?token|refresh_?token|password|pass|passwd|secret|client_?secret|api_?key|app_?password|privkey|token|key|auth|jwt|accessjwt|refreshjwt|reddit_session)$/i;
 
 /**
@@ -2761,8 +2911,12 @@ async function callConnector(
     case "brevo": {
       const to = String(b.to ?? "");
       if (!to) return { ok: false, status: 400, error: "to required" };
+      // `fetch` here is the transport binding declared above: the recorder on a
+      // dry run, the global fetch on a real send. brevoSend owns its own
+      // transport (that is why this connector used to refuse a preview), so the
+      // binding is threaded in rather than assumed.
       return brevoSend(env, to, String(b.subject ?? "Lazynext"), String(b.html ?? text),
-        undefined, undefined, "connector:brevo");
+        undefined, undefined, "connector:brevo", fetch);
     }
     case "signwell":
       return { ok: false, status: 400, error: "use /api/v1/signwell/send for signing" };
@@ -2803,6 +2957,24 @@ export async function dispatchSocialPost(env: Env, postId: number): Promise<Soci
     "SELECT connector, payload, attempts FROM social_posts WHERE id = ?",
   ).bind(postId).first<{ connector: string; payload: string; attempts: number }>();
   if (!row) return "skipped";
+
+  // Daily cap — the same counter the direct route uses, so a scheduled post
+  // and an ad-hoc dispatch cannot jointly exceed one provider ceiling. Parked
+  // terminal like a breaker trip instead of requeued: the counter resets at UTC
+  // midnight, and "post it a day late" is a human decision, not something the
+  // retry machine should silently choose (it would also burn the attempt
+  // budget that exists for transient failures).
+  const cap = await consumeConnectorDailyCap(env, row.connector);
+  if (!cap.allow) {
+    const reason = `daily cap: ${cap.error} — resets ${capResetsAt()}`;
+    await env.DB.prepare(
+      "UPDATE social_posts SET status = 'failed', last_error = ? WHERE id = ?",
+    ).bind(reason.slice(0, 400), postId).run();
+    await recordDispatchAudit(env, row.connector, false, 429, "scheduled", {
+      error: cap.error, rate_limited: true, per_day: cap.per_day, used: cap.used, day: cap.day,
+    });
+    return "failed";
+  }
 
   // Circuit breaker gate — fail closed before the provider call. The row was
   // just claimed, so a blocked send is parked terminal ('failed') with the

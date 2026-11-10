@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { loadModule, readJson, fakeCtx } from "./helpers/lift.mjs";
+import { capabilityOf } from "./helpers/caps.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const jsonFn = (data, status = 200) =>
@@ -43,6 +44,7 @@ const services = (scopes) =>
       closeDispatchDecision: async () => {},
       recordDispatchLedger: async () => {},
       estimateCostCents: () => 0,
+      capabilityOf,
       breakerAdmin: async (_env, path, method, body) => {
         calls.push({ fn: "breakerAdmin", path, method, body });
         return jsonFn({ policy: {} });
@@ -157,6 +159,7 @@ test("connector dispatch is breaker-gated before the provider call", async () =>
       closeDispatchDecision: async () => calls.push({ fn: "close" }),
       recordDispatchLedger: async () => calls.push({ fn: "ledger" }),
       estimateCostCents: () => 0,
+      capabilityOf,
       breakerAdmin: async () => jsonFn({}),
       puppeteer: {},
     },

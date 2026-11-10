@@ -79,7 +79,13 @@ test("capability rows are well formed", () => {
   for (const [id, c] of Object.entries(caps.CONNECTOR_CAPABILITIES)) {
     assert.ok(AUTH_KINDS.has(c.auth_kind), `${id}: unknown auth_kind '${c.auth_kind}'`);
     assert.equal(typeof c.supports_dry_run, "boolean", `${id}: supports_dry_run must be boolean`);
-    assert.equal(c.rate_limit.enforced, false, `${id}: rate_limit is declared, not enforced`);
+    // `enforced` is DERIVED from per_day — a ceiling exists ⇒ both runtimes
+    // count it before any provider call. Pinning the derivation (rather than
+    // true/false per row) is what stops a row claiming enforcement it lacks.
+    assert.equal(
+      c.rate_limit.enforced, c.rate_limit.per_day !== null,
+      `${id}: enforced must be true exactly when a per_day ceiling exists`,
+    );
     assert.ok(
       c.rate_limit.per_day === null || (Number.isInteger(c.rate_limit.per_day) && c.rate_limit.per_day > 0),
       `${id}: per_day must be null or a positive integer`,
@@ -145,6 +151,10 @@ const CREDS = {
   letmepost: "fake-letmepost-key|acct1234",
   twilio: "ACfake:fake-twilio-token:+15550000000",
   whatsapp: "fake-wa-token:phone_number_id",
+  // brevo's dispatch resolves its own credential from KV (`brevoSend` →
+  // `brevoCred` → conn:brevo / BREVO_API_KEY), so the route-level cred is only
+  // what the caller holds; the preview reads the same KV key a real send does.
+  brevo: "support@fake.invalid:fake-brevo-api-key",
 };
 
 const PAYLOAD = {
@@ -184,7 +194,7 @@ const supported = caps.CONNECTOR_CAPABILITY_IDS.filter((id) => caps.capabilityOf
 
 test("a dry run of every supported connector touches no network", async () => {
   const { dryRunConnector } = servicesModule();
-  const env = fakeEnv({ "conn:ayrshare": "fake-ayrshare-key" });
+  const env = fakeEnv({ "conn:ayrshare": "fake-ayrshare-key", "conn:brevo": CREDS.brevo });
   const rendered = [];
   const { calls } = await withNoNetwork(async () => {
     for (const id of supported) {
@@ -203,7 +213,7 @@ test("a dry run of every supported connector touches no network", async () => {
 
 test("previews are complete for the connectors that need no extra media", async () => {
   const { dryRunConnector } = servicesModule();
-  const env = fakeEnv({ "conn:ayrshare": "fake-ayrshare-key" });
+  const env = fakeEnv({ "conn:ayrshare": "fake-ayrshare-key", "conn:brevo": CREDS.brevo });
   const textOnly = supported.filter((id) => !["instagram", "youtube", "tiktok", "pinterest"].includes(id));
   const incomplete = [];
   await withNoNetwork(async () => {
@@ -262,8 +272,51 @@ test("connectors with no capturable transport refuse instead of pretending", asy
     assert.equal(result.supported, false, `${id}: must report unsupported`);
     assert.equal(result.calls.length, 0, `${id}: must render nothing`);
     assert.ok(result.error, `${id}: must explain why`);
+    // A refusal must name the exact call it cannot preview — "no partial
+    // preview" alone is the generic line this task replaced.
+    assert.notEqual(result.error, `'${id}' has no dry-run preview`, `${id}: generic refusal`);
+    assert.ok(result.error.length > 60, `${id}: the reason must be specific and actionable`);
     assert.equal(calls, 0);
   }
+});
+
+test("the four previously-refusing connectors now each carry a real verdict", async () => {
+  // brevo: capture implemented (transport threaded into brevoSend).
+  assert.equal(caps.capabilityOf("brevo").supports_dry_run, true);
+  assert.equal(caps.capabilityOf("brevo").dry_run_note, undefined);
+  // The other three: kept honest 501s, each naming its own reason.
+  for (const [id, needle] of [
+    ["signwell", "no dispatch to preview"],
+    ["nostr", "WebSockets"],
+    ["snapchat", "not dispatchable"],
+  ]) {
+    const row = caps.capabilityOf(id);
+    assert.equal(row.supports_dry_run, false, id);
+    assert.match(row.dry_run_note, new RegExp(needle), id);
+  }
+});
+
+test("a brevo preview renders the real SMTP request and redacts its key", async () => {
+  const { dryRunConnector } = servicesModule();
+  const secret = "xkeysib-fake-brevo-secret-0123456789";
+  const env = fakeEnv({ "conn:brevo": `support@fake.invalid:${secret}` });
+  const { result, calls } = await withNoNetwork(() =>
+    dryRunConnector(env, "brevo", `support@fake.invalid:${secret}`,
+      { to: "recipient@example.com", subject: "Subject line", text: "preview body" }),
+  );
+  assert.equal(calls, 0);
+  assert.equal(result.supported, true);
+  assert.equal(result.calls.length, 1);
+  assert.equal(result.calls[0].method, "POST");
+  assert.equal(result.calls[0].url, "https://api.brevo.com/v3/smtp/email");
+  // `api-key` is Brevo's header — it must be redacted BY NAME, not only by the
+  // literal pass (which depends on the value being ≥8 chars).
+  assert.equal(result.calls[0].headers["api-key"], "«redacted»");
+  assert.equal(JSON.stringify(result).includes(secret), false);
+  const body = JSON.parse(result.calls[0].body);
+  assert.deepEqual(body.to, [{ email: "recipient@example.com" }]);
+  assert.equal(body.subject, "Subject line");
+  assert.equal(body.htmlContent, "preview body");
 });
 
 // --- 5. the route ----------------------------------------------------------
@@ -365,7 +418,13 @@ test("GET /api/v1/connectors reports capabilities with derived configured flags"
   assert.equal(body.capabilities.linkedin.configured, false);
   assert.equal(body.capabilities.brevo.configured, false);
   assert.equal(body.capabilities.linkedin.supports_dry_run, true);
-  assert.equal(body.capabilities.brevo.supports_dry_run, false);
+  // brevo became previewable when its transport was threaded through
+  // brevoSend; the row is the machine-readable half of that claim.
+  assert.equal(body.capabilities.brevo.supports_dry_run, true);
+  assert.equal(body.capabilities.signwell.supports_dry_run, false);
   assert.equal(body.capabilities.x.rate_limit.per_day, 17);
-  assert.equal(body.capabilities.x.rate_limit.enforced, false);
+  assert.equal(body.capabilities.x.rate_limit.enforced, true);
+  // No published ceiling ⇒ nothing to count ⇒ the flag must stay false.
+  assert.equal(body.capabilities.reddit.rate_limit.per_day, null);
+  assert.equal(body.capabilities.reddit.rate_limit.enforced, false);
 });

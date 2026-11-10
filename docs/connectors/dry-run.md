@@ -22,7 +22,7 @@ most want to review is the one that is currently blocked.
     "supported": true,
     "preview_ok": true,
     "gate": "skipped_dry_run",
-    "rate_limit": { "per_day": 100, "enforced": false },
+    "rate_limit": { "per_day": 100, "enforced": true, "used": 3, "remaining": 97, "day": 20525 },
     "calls": [
       {
         "step": 1,
@@ -43,6 +43,9 @@ most want to review is the one that is currently blocked.
 
 - Writes **exactly one** `episodic_events` row, scope `connector`, carrying
   `{ id, ok, status, source:"direct", mode:"dry_run", gate:"skipped_dry_run", calls:<n> }`.
+- **Reads** the daily cap counter so `rate_limit.used`/`remaining` are the live
+  numbers — a preview reports the same ceiling a real send would be held to,
+  without spending a slot.
 
 ## What a dry run does not do
 
@@ -88,15 +91,18 @@ sent", not "may I send it".
 
 ## Which connectors support it
 
-`supports_dry_run` in the capability table. **41 of 45** today. Four refuse,
-and the refusal is a `501` naming the reason rather than a partial preview:
+`supports_dry_run` in the capability table. **42 of 45** today. Three refuse,
+and the refusal is a `501` naming the exact call that cannot be previewed
+rather than a partial (or invented) preview. `brevo` used to be the fourth
+refusenik; its transport is now threaded through the recorder, so it renders
+like the other 41 (see below).
 
-| Connector | Why |
+| Connector | Why (verdict) |
 |---|---|
-| `brevo` | sends through the dedicated `brevoSend` helper (its own transport), which the dispatch-level capture cannot see |
-| `signwell` | signing does not dispatch through this route at all — use `POST /api/v1/signwell/send`, which is `human_only`-gated |
-| `nostr` | publishes a signed event over relay **websockets**, not an HTTP request — there is no request to render |
-| `snapchat` | has no organic-post API; the real dispatch returns 400 without sending, so there is nothing to preview |
+| `brevo` | **Capture implemented.** The worker's `brevoSend` builds its own `fetch`; during a dry run the recording `fetch` is passed in as a transport override, so the preview shows the real `POST https://api.brevo.com/v3/smtp/email`. The fleet's `_brevo` already built through `_post` → `_async_client()`, so it was only ever a stale flag — now true in both tables |
+| `signwell` | **Honest 501.** The worker route is a routing stub — `POST /api/v1/connectors/signwell` returns `400 "use /api/v1/signwell/send for signing"` before building any request, so there is nothing to render on the dispatch surface. Signature requests go through `POST /api/v1/signwell/send`, which is `human_only`-gated; review the document there |
+| `nostr` | **Honest 501.** `nostrPublish` / `_nostr` sends a NIP-01 `["EVENT", ev]` frame over relay **WebSockets** (not an HTTP request), signed with BIP340 using your private key — there is no method/URL/body to render, and the frame cannot be shown without the key |
+| `snapchat` | **Honest 501.** Not previewable because not dispatchable: the branch returns 400 before building any request — there is no organic-post endpoint (Marketing API is ads-only) and no credential to connect. Use `meta` for ads |
 
 A connector that *does* support previews but has no credential yet returns the
 same `503`-shaped "not connected" error a real send would — it does not
@@ -107,17 +113,55 @@ would believe they had seen what would be sent.
 
 ## Rate limits
 
-`rate_limit.per_day` is **declared metadata, not enforcement**. Every row
-carries `enforced: false`.
+`rate_limit.per_day` is a **published provider ceiling**, and `rate_limit.enforced`
+is now **true exactly when that ceiling exists** — both runtimes count every
+real dispatch before any provider call and refuse at the ceiling.
 
-The platform has no per-connector daily counter. The `rl:` KV keys belong to
-the product worker's per-IP quotas, and the platform's own key limiter is
-per-API-key-per-minute — a different axis entirely. Inventing a counter store
-to make the number look enforced would be worse than reporting the truth, so
-enforcement is an explicit follow-up, not a shipped half-limiter.
+The counter pattern is the one the platform already used for the public
+waitlist limiter (`worker/src/public_api.ts`):
 
-A preview reports the same declared ceiling a real send would, so a caller can
-at least see the provider's published bound:
+```
+key:  rl:conn:<connector_id>:<utc_day>     prefix `rl:conn:` — waitlist uses `rl:waitlist:`
+day:  floor(unix_ms / 86_400_000)          UTC midnight boundary
+ttl:  172_800 seconds                      2 × the window; always explicit
+```
+
+Both runtimes write the SAME KV namespace (the platform's `env.EPHEMERAL`
+through its own `/kv/*` routes), so a fleet `x` post and a Worker `x` post
+debit one counter — two counters would let the pair double-spend the
+provider's ceiling. KV has no atomic increment, so concurrent dispatches can
+under-count by the number in flight; that over-admits by a handful and never
+refuses a send the counter says is allowed — the provider's own API is the
+backstop.
+
+A send that hits the ceiling is refused **before** the breaker, the decision
+gate and the decision package — it must not mint a governance record for an
+action that never ran. The refusal is structured and idempotent-ish:
+
+```jsonc
+{
+  "ok": false,
+  "error": "'x' daily cap reached (17/day)",
+  "rate_limited": true,
+  "per_day": 17,
+  "used": 17,
+  "resets_at": "2026-11-11T00:00:00.000Z"
+}
+```
+
+with `429` + `Retry-After`, and exactly one `episodic_events` row (scope
+`connector`, `status: 429`, `rate_limited: true`). Scheduled posts go through
+the same counter; a capped row is parked terminal `failed` with the reset time
+in `last_error` rather than silently republished a day late.
+
+**Fail-open by design.** A KV read/write failure means the ceiling cannot be
+*measured*, not that it was reached; blocking sends on a control-plane outage
+would turn an accounting gap into an outage. The breaker fails closed instead —
+it exists to stop actions that must not happen. Capacity fails open; governance
+fails closed; the difference is the point.
+
+A preview reads the counter (never consumes it), so `rate_limit.used` in a
+dry-run response is live:
 
 | Connector | `per_day` | Basis |
 |---|---|---|

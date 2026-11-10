@@ -63,3 +63,27 @@ def _decision_gate_never_writes_production(monkeypatch):
     import core.tools.decision_gate as decision_gate
 
     monkeypatch.setattr(decision_gate, "CloudflareClient", lambda *a, **k: _NoNetworkClient())
+
+
+@pytest.fixture(autouse=True)
+def _connector_cap_never_touches_production(monkeypatch):
+    """Tests must never read or increment the production daily counters.
+
+    `call_connector` consults `core/tools/connector_rate_limits` before every
+    provider call (a KV read plus, on the consume path, a KV WRITE to
+    `rl:conn:<id>:<day>`). With a populated `.env` an unstubbed test would
+    therefore debit a real provider ceiling — the daily `x` cap is only 17 — and
+    make the suite depend on network reachability. Every test starts from
+    "unlimited, allow"; tests that exercise the cap
+    (tests/unit/test_connector_rate_limits.py) patch these back inside the test
+    body, which runs after this fixture, so their fake client still wins.
+    """
+
+    import core.tools.connectors as connectors
+
+    async def _allow(_connector_id, **_kwargs):
+        return {"allow": True, "limited": False, "per_day": None,
+                "used": None, "remaining": None, "day": 0}
+
+    monkeypatch.setattr(connectors, "consume_connector_daily_cap", _allow)
+    monkeypatch.setattr(connectors, "peek_connector_daily_cap", _allow)

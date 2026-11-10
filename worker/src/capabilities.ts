@@ -15,20 +15,22 @@
  *    `capabilityReport()`. Hardcoding it here would be a second, lying source
  *    of truth that goes stale the moment someone connects a connector.
  *
- *  - `rate_limit.per_day` is DECLARED, not enforced — see `enforced: false`.
- *    The platform has no per-connector daily counter (`rl:` keys belong to the
- *    product worker's IP quotas; the platform's KV limiter is per API key per
- *    minute, a different axis). Inventing a counter store to make a number
- *    look enforced would be worse than reporting the truth, so the field is
- *    marked unenforced and enforcement stays a follow-up. `null` means the
- *    provider publishes no fixed daily ceiling we can state honestly.
+ *  - `rate_limit.per_day` is a published provider ceiling and `enforced` says
+ *    whether the dispatch path actually counts it. Both runtimes consult a KV
+ *    counter (`rl:conn:<id>:<utcDay>`, see `services.ts` /
+ *    `core/tools/connector_rate_limits.py`) before any provider call, so every
+ *    row with a non-null `per_day` carries `enforced: true` — the flag is
+ *    DERIVED from `per_day` rather than asserted, which is the only way it
+ *    cannot drift into a lie. `null` means the provider publishes no fixed
+ *    daily ceiling we can state honestly, so there is nothing to enforce and
+ *    `enforced` is false.
  *
  *  - `supports_dry_run: false` is a safety statement, not laziness. Those
- *    connectors reach the network through a module-level helper or a
- *    non-HTTP transport (WebSocket relay, Brevo's dedicated sender), so the
- *    dispatch-level request capture cannot see — and therefore cannot
- *    honestly render — what would be sent. The dry-run route refuses them
- *    instead of returning a partial preview.
+ *    connectors either have no dispatch to render (a routing stub that returns
+ *    400 without building a request) or reach the network through a non-HTTP
+ *    transport (the Nostr relay WebSocket). The dry-run route refuses them
+ *    instead of returning a partial — or invented — preview, and its
+ *    `dry_run_note` names the exact call that cannot be previewed.
  */
 
 export type AuthKind =
@@ -47,7 +49,11 @@ export type AuthKind =
 export interface ConnectorRateLimit {
   /** Declared provider ceiling per day, or null when there is no honest number. */
   per_day: number | null;
-  /** False everywhere today — declared metadata, no counter is consulted. */
+  /**
+   * True exactly when `per_day` is non-null: the dispatch path reads a KV
+   * counter before every provider call and refuses at the ceiling. Derived in
+   * `cap()` so a row cannot claim enforcement it does not have.
+   */
   enforced: boolean;
 }
 
@@ -70,7 +76,8 @@ const cap = (
 ): ConnectorCapability => ({
   auth_kind,
   supports_dry_run,
-  rate_limit: { per_day, enforced: false },
+  // Derived, never hand-written: a ceiling exists ⇒ dispatch counts it.
+  rate_limit: { per_day, enforced: per_day !== null },
   credential_hint,
   ...(dry_run_note ? { dry_run_note } : {}),
 });
@@ -106,7 +113,7 @@ export const CONNECTOR_CAPABILITIES: Record<string, ConnectorCapability> = {
     "(none — no organic post API)",
     false,
     null,
-    "snapchat has no organic-post API; the Marketing API is ads-only — dispatch returns 400 without sending",
+    "snapchat is not previewable because it is not dispatchable: callConnector's snapchat case returns 400 before building any request — there is no organic-post endpoint (the Marketing API is ads-only), so there is no method/URL/body to render and no credential to connect. Use the 'meta' connector for ads",
   ),
   discord: cap("webhook", "<channel_webhook_url>"),
   slack: cap("webhook", "<incoming_webhook_url>"),
@@ -133,7 +140,7 @@ export const CONNECTOR_CAPABILITIES: Record<string, ConnectorCapability> = {
     "<64-char_hex_privkey>[|wss://relay1,wss://relay2]",
     false,
     null,
-    "nostr publishes a signed event over relay websockets — not an HTTP request, so there is no request to render",
+    "nostr publishes a NIP-01 signed event as one [\"EVENT\", ev] frame over relay WebSockets (wss://relay.damus.io and wss://nos.lol by default), not an HTTP request — there is no method/URL/header/body to render, and the event is BIP340-signed with your private key, so even the frame cannot be shown without it. Dispatch itself is unchanged and still publishes",
   ),
   webhook: cap("webhook", "<https_url>[|<bearer>]"),
   ayrshare: cap("api_key", "<api_key>"),
@@ -142,19 +149,16 @@ export const CONNECTOR_CAPABILITIES: Record<string, ConnectorCapability> = {
   letmepost: cap("api_key", "<api_key>|<account_ids>[|<base_url>]"),
   twilio: cap("basic", "<account_sid>:<auth_token>:<from_number>"),
   whatsapp: cap("bearer", "<access_token>:<phone_number_id>"),
-  brevo: cap(
-    "api_key",
-    "[<sender>:]<api_key>",
-    false,
-    null,
-    "brevo sends through the dedicated brevoSend helper (its own transport), which the dispatch-level capture does not see",
-  ),
+  // Previewable since the recorder is threaded into brevoSend's transport
+  // (services.ts case "brevo" passes the shadowed `fetch`). Before that the
+  // capture could not see the send and the row honestly refused.
+  brevo: cap("api_key", "[<sender>:]<api_key>"),
   signwell: cap(
     "api_key",
     "[test:]<api_key>",
     false,
     null,
-    "signing does not dispatch through this route — use POST /api/v1/signwell/send, which is human_only-gated",
+    "signwell has no dispatch to preview: POST /api/v1/connectors/signwell returns 400 'use /api/v1/signwell/send for signing' before building any request, so there is nothing to render. Signature requests go through POST /api/v1/signwell/send (template_id + signer_email), which is human_only-gated — review the document there",
   ),
 };
 
