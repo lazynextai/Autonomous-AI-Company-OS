@@ -1,0 +1,152 @@
+{
+  "_comment": "Shared fixtures for the copy-quality gate. Both implementations read this file: worker/test/copygate.test.mjs (TypeScript, the worker path) and tests/unit/test_copy_quality.py (Python, the fleet path). A rule added to one runtime and not the other fails on the same fixture, which is the only defence against the two tables drifting. Rule text was written for this codebase; nothing is copied from a third-party rule set.",
+  "rules": [
+    { "id": "slop-empty-phrase", "severity": "warn" },
+    { "id": "slop-not-just-x-its-y", "severity": "warn" },
+    { "id": "claim-unsupported-conformance", "severity": "block" },
+    { "id": "claim-unsourced-superlative", "severity": "warn" },
+    { "id": "style-excess-exclamation", "severity": "warn" },
+    { "id": "style-hedge-stack", "severity": "warn" }
+  ],
+  "cases": [
+    {
+      "name": "slop sentence",
+      "text": "In today's fast-paced world, we unlock the power of seamless integration.",
+      "block": [],
+      "warn": ["slop-empty-phrase"]
+    },
+    {
+      "name": "not just x it's y",
+      "text": "It's not just a scan, it's a complete audit.",
+      "block": [],
+      "warn": ["slop-not-just-x-its-y"]
+    },
+    {
+      "name": "wcag conformance claim",
+      "text": "Our platform is WCAG 2.1 AA compliant.",
+      "block": ["claim-unsupported-conformance"],
+      "warn": []
+    },
+    {
+      "name": "blanket accessibility claim",
+      "text": "The site is now fully accessible.",
+      "block": ["claim-unsupported-conformance"],
+      "warn": []
+    },
+    {
+      "name": "section 508 certification",
+      "text": "This document is Section 508 certified.",
+      "block": ["claim-unsupported-conformance"],
+      "warn": []
+    },
+    {
+      "name": "honest scan copy passes",
+      "text": "Scan any page and find WCAG 2.1 AA issues in seconds.",
+      "block": [],
+      "warn": []
+    },
+    {
+      "name": "improve copy passes",
+      "text": "Improve your WCAG 2.1 AA compliance with a scan.",
+      "block": [],
+      "warn": []
+    },
+    {
+      "name": "negated claim passes",
+      "text": "A scan does not make your site WCAG compliant.",
+      "block": [],
+      "warn": []
+    },
+    {
+      "name": "disclaimer passes",
+      "text": "A score is not a guarantee of accessibility.",
+      "block": [],
+      "warn": []
+    },
+    {
+      "name": "uncited superlative",
+      "text": "We are the best accessibility checker on the market.",
+      "block": [],
+      "warn": ["claim-unsourced-superlative"]
+    },
+    {
+      "name": "cited superlative passes",
+      "text": "We are the best accessibility checker — see https://lazynext.com/badge.",
+      "block": [],
+      "warn": []
+    },
+    {
+      "name": "exclamation pile-up",
+      "text": "Great news!!! We shipped it!!!",
+      "block": [],
+      "warn": ["style-excess-exclamation"]
+    },
+    {
+      "name": "one exclamation per paragraph passes",
+      "text": "Great news!\n\nWe shipped it!\n\nTry it now!",
+      "block": [],
+      "warn": []
+    },
+    {
+      "name": "stacked hedges",
+      "text": "This could potentially maybe improve your score.",
+      "block": [],
+      "warn": ["style-hedge-stack"]
+    },
+    {
+      "name": "quoted third-party claim passes",
+      "text": "\"WCAG 2.1 AA compliant\" is what vendors claim.",
+      "block": [],
+      "warn": []
+    },
+    {
+      "name": "code fence passes",
+      "text": "```\nWCAG 2.1 AA compliant\n```",
+      "block": [],
+      "warn": []
+    },
+    {
+      "name": "heading passes",
+      "text": "## WCAG 2.1 AA compliant sites",
+      "block": [],
+      "warn": []
+    },
+    {
+      "name": "compliance issues describe a check",
+      "text": "WCAG 2.1 AA compliance issues are common.",
+      "block": [],
+      "warn": []
+    },
+    {
+      "name": "tracking copy passes",
+      "text": "Track WCAG 2.1 AA compliance over time.",
+      "block": [],
+      "warn": []
+    },
+    {
+      "name": "compliance report passes",
+      "text": "The WCAG 2.1 AA compliance report is ready.",
+      "block": [],
+      "warn": []
+    },
+    {
+      "name": "best practice idiom passes",
+      "text": "We follow best practices for every scan.",
+      "block": [],
+      "warn": []
+    },
+    {
+      "name": "the only way idiom passes",
+      "text": "The only way to know is to scan.",
+      "block": [],
+      "warn": []
+    },
+    {
+      "name": "blocking finding reports its line",
+      "text": "Line one is fine.\n\nWe are WCAG 2.1 AA compliant.",
+      "block": ["claim-unsupported-conformance"],
+      "warn": [],
+      "line": 3
+    }
+  ]
+}

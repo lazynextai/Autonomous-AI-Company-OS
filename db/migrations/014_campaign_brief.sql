@@ -1,0 +1,20 @@
+-- Campaign creative brief (migration 014).
+--
+-- `email_campaigns` stores the copy (name/subject/html/segment/consent_basis)
+-- but not the thinking behind it: the angle, hook, audience, proof points and
+-- compliance notes died with the draft. This column keeps that brief beside the
+-- copy as JSON (`{angle?, hook?, audience?, proof?, compliance_note?}`, each a
+-- trimmed string <= 400 chars), so a reviewer sees intent before a send and the
+-- decision gate can be tied to the exact brief that was approved via its
+-- SHA-256 hash.
+--
+-- Nullable by design: every pre-existing row has no brief and must behave
+-- exactly as before. Nothing about a send's audience, consent basis or gate
+-- scope changes when `brief` is NULL.
+--
+-- SQLite has no ADD COLUMN IF NOT EXISTS (verified: it is a parse error), so
+-- re-run safety comes from the worker self-heal `ensureCampaignBriefColumn` in
+-- worker/src/services.ts, which PRAGMA-checks the column before ALTERing. This
+-- file is therefore one-shot: on a re-run the single ALTER fails with
+-- "duplicate column name: brief" and nothing changes.
+ALTER TABLE email_campaigns ADD COLUMN brief TEXT;

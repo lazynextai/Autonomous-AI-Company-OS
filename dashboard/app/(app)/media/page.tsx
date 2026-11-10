@@ -12,6 +12,27 @@ interface MediaItem {
   type: string;
   size: number;
   created: number;
+  rights_basis?: string;
+}
+
+// Provenance badges. `unknown` is the honest default (every asset uploaded
+// before this field existed), so it is rendered in amber rather than hidden.
+// This is metadata only — nothing here changes whether a post can dispatch.
+const RIGHTS_OPTIONS = ["unknown", "own", "generated", "licensed"] as const;
+
+function RightsBadge({ basis }: { basis?: string }) {
+  const value = (basis ?? "unknown").toLowerCase();
+  const known = value === "own" || value === "generated" || value === "licensed";
+  return (
+    <span
+      title="Media rights provenance — recorded, never guessed"
+      className={`inline-block mt-1 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${
+        known ? "bg-okBg text-ok" : "bg-warnBg text-warn"
+      }`}
+    >
+      {value}
+    </span>
+  );
 }
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -22,6 +43,7 @@ export default function MediaPage() {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [basis, setBasis] = useState<string>("unknown");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
@@ -49,7 +71,7 @@ export default function MediaPage() {
       const r = await fetch("/api/media", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name: file.name, type: file.type === "image/jpg" ? "image/jpeg" : file.type, data_b64: btoa(bin) }),
+        body: JSON.stringify({ name: file.name, type: file.type === "image/jpg" ? "image/jpeg" : file.type, data_b64: btoa(bin), rights_basis: basis }),
       });
       const d = await r.json().catch(() => ({}));
       if (r.ok) {
@@ -76,6 +98,18 @@ export default function MediaPage() {
   return (
     <>
       <PageHeader title="Media library" subtitle="Native asset store (KV) — public URLs feed image_url on scheduled social posts.">
+        <select
+          value={basis}
+          onChange={(e) => setBasis(e.target.value)}
+          title="Rights basis recorded with the next upload"
+          className="bg-input border border-border text-fg text-xs font-semibold px-3 py-2.5 rounded-lg"
+        >
+          {RIGHTS_OPTIONS.map((o) => (
+            <option key={o} value={o}>
+              rights: {o}
+            </option>
+          ))}
+        </select>
         <button
           onClick={() => fileRef.current?.click()}
           disabled={busy}
@@ -109,6 +143,7 @@ export default function MediaPage() {
                     <div className="text-[10px] text-muted mt-0.5">
                       {m.type} · {fmtSize(m.size)} · {timeAgo(m.created ? new Date(m.created).toISOString() : undefined)}
                     </div>
+                    <RightsBadge basis={m.rights_basis} />
                   </div>
                 </div>
                 <div className="flex gap-2 mt-3">

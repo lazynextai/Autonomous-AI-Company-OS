@@ -17,6 +17,8 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { loadModule, fakeCtx, fakeDb, fakeKv, readJson } from "./helpers/lift.mjs";
 import { capabilityOf } from "./helpers/caps.mjs";
+import { copygate } from "./helpers/copygate.mjs";
+import { brief } from "./helpers/brief.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const src = readFileSync(join(HERE, "..", "src", "services.ts"), "utf8");
@@ -54,6 +56,17 @@ const services = () =>
       capabilityOf,
       breakerAdmin: async () => jsonFn({}),
       puppeteer: {},
+      // The real copy-quality gate — the send route must consult it, and the
+      // fixture campaign copy is clean so these gate tests stay single-purpose.
+      lintCopy: copygate.lintCopy,
+      blockingFindings: copygate.blockingFindings,
+      describeCopyFindings: copygate.describeCopyFindings,
+      // Brief helpers: the fixture campaign has no brief, so the send path
+      // resolves null and the gate call stays brief-free (asserted below).
+      normalizeBrief: brief.normalizeBrief,
+      canonicalBrief: brief.canonicalBrief,
+      hashBrief: brief.hashBrief,
+      parseStoredBrief: brief.parseStoredBrief,
     },
     ["handleServices"],
   );
@@ -259,8 +272,13 @@ test("the gate call sits inside the send handler, before status and before the l
   assert.ok(start > 0 && end > start, "send handler slice not found");
   const handler = src.slice(start, end);
 
-  const gateAt = handler.indexOf('decisionGate(env, { type: "campaign.send", target: `campaign:${id}` })');
-  assert.ok(gateAt > 0, "the send handler must call decisionGate with type campaign.send");
+  const gateAt = handler.indexOf("decisionGate(env, {");
+  assert.ok(gateAt > 0, "the send handler must call decisionGate");
+  // The call carries the campaign target (and, when the campaign has a brief,
+  // its hash) — assert both halves of the action rather than one literal line.
+  const gateCall = handler.slice(gateAt, gateAt + 400);
+  assert.match(gateCall, /type: "campaign\.send"/);
+  assert.match(gateCall, /target: `campaign:\$\{id\}`/);
 
   const loopAt = handler.indexOf("for (const c of contacts");
   const sendAt = handler.indexOf("await brevoSend(");
