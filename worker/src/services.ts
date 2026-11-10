@@ -10,6 +10,8 @@ import { outboundDecision, noteBreakerTrip, recordDispatchAudit, breakerAdmin } 
 import { openDispatchDecision, closeDispatchDecision, decisionGate } from "./decisions";
 import { recordDispatchLedger, estimateCostCents } from "./ledger";
 import { CONNECTOR_CAPABILITIES, capabilityOf, capabilityReport } from "./capabilities";
+import { lintCopy, blockingFindings, describeCopyFindings } from "./copygate";
+import { canonicalBrief, hashBrief, normalizeBrief, parseStoredBrief } from "./brief";
 import puppeteer from "@cloudflare/puppeteer";
 
 // Media library — the Postiz piece the native scheduler lacked. Bytes live
@@ -24,6 +26,19 @@ const MEDIA_TYPES_VIDEO = new Set(["video/mp4", "video/quicktime", "video/webm"]
 const MEDIA_MAX_KV = 5 * 1024 * 1024;
 const MEDIA_MAX_R2 = 64 * 1024 * 1024; // b64 request body still fits the 100MB worker limit
 const MEDIA_BASE = "https://ai-company.lazynext.com";
+
+// Media rights provenance. Nothing recorded where an asset came from, and the
+// library feeds public posts (Instagram/Pinterest require an image_url), so a
+// derivative we have no rights to post is a real brand risk. One optional field
+// turns an untracked store into an auditable one — provenance only, no dispatch
+// behaviour change. `unknown` is the honest default and is NEVER guessed from
+// the file: an asset we cannot vouch for says so, including every row written
+// before this field existed.
+const MEDIA_RIGHTS = new Set(["own", "generated", "licensed", "unknown"]);
+function mediaRights(value: unknown): string {
+  const raw = String(value ?? "").trim().toLowerCase();
+  return MEDIA_RIGHTS.has(raw) ? raw : "unknown";
+}
 
 async function list(env: Env, table: string, extra = ""): Promise<Response> {
   const { results } = await env.DB.prepare(
@@ -324,10 +339,16 @@ export async function handleServices(
       : String(b.consent_basis).trim().toLowerCase();
     if (cb !== "opt_in" && cb !== "prospect")
       return json({ error: "consent_basis must be 'opt_in' or 'prospect'" }, 400);
+    // Creative brief is optional and additive: absent ⇒ the campaign is byte-
+    // for-byte what it was before. Malformed ⇒ 400 rather than a silent drop,
+    // because an operator who thinks a brief was stored must be told it wasn't.
+    const brief = normalizeBrief(b.brief);
+    if (!brief.ok) return json({ error: "invalid brief", errors: brief.errors }, 400);
     await ensureCampaignConsentColumn(env);
+    await ensureCampaignBriefColumn(env);
     return insert(env, "email_campaigns",
-      ["name", "subject", "html", "segment", "consent_basis"],
-      [b.name, b.subject, b.html, s.seg, cb]);
+      ["name", "subject", "html", "segment", "consent_basis", "brief"],
+      [b.name, b.subject, b.html, s.seg, cb, brief.brief ? canonicalBrief(brief.brief) : null]);
   }
   if (path.match(/^\/api\/v1\/marketing\/campaigns\/\d+\/send$/) && req.method === "POST" && id) {
     if (!(await brevoCred(env))) return json({ error: "brevo not connected — set it in Settings → Connector library" }, 503);
@@ -345,6 +366,12 @@ export async function handleServices(
     // a cold blast unless the operator says so explicitly.
     const s = campaignSegment(b.segment ?? camp.segment);
     if (s.error) return json({ error: s.error }, 400);
+    // Draft approval is scoped to a target (`campaign:<id>`), so the brief the
+    // send actually uses is hashed and carried into the gate's audit record —
+    // an approval is then tied to the exact brief, not just the campaign id.
+    // No brief ⇒ no hash ⇒ the gate call is byte-identical to before.
+    const brief = parseStoredBrief(camp.brief);
+    const briefHash = brief ? await hashBrief(brief) : null;
     // Decision gate — same scope-aware opt-in as connector dispatch and
     // scheduled social posts (config:decision_enforce). A campaign send is the
     // largest external side effect the platform performs: one call blasts every
@@ -354,13 +381,48 @@ export async function handleServices(
     // before any brevoSend, so a block changes nothing. The gate is reached on
     // both branches: the body `segment` override is resolved above, never
     // around it, so widening the audience cannot dodge the approval.
-    const gate = await decisionGate(env, { type: "campaign.send", target: `campaign:${id}` });
+    const gate = await decisionGate(env, {
+      type: "campaign.send",
+      target: `campaign:${id}`,
+      ...(briefHash ? { brief_sha256: briefHash } : {}),
+    });
     if (!gate.allow) {
       return json({
         error: "blocked by decision gate — missing approval",
         reason: gate.reason,
         scope: gate.scope,
+        ...(briefHash ? { brief_sha256: briefHash } : {}),
       }, 503);
+    }
+    // Copy quality gate — deterministic, no LLM (worker/src/copygate.ts). The
+    // one blocking class is an unsupported conformance/certification claim: we
+    // sell an accessibility checker, so implying a *site* is compliant is a
+    // regulatory claim we cannot make. Same seam discipline as the decision
+    // gate — before the audience query, before the row is flipped to 'sending'
+    // and before any brevoSend, so a blocked campaign puts nothing on the wire
+    // and mutates nothing. Warn-class style tells are returned in the response
+    // and logged, and must never stop a send: a style tell is not a legal risk.
+    const copyFindings = lintCopy(`${String(camp.subject ?? "")}\n${String(camp.html ?? "")}`);
+    const copyBlocks = blockingFindings(copyFindings);
+    if (copyBlocks.length) {
+      return json({
+        error: "blocked by copy quality gate",
+        rule_ids: [...new Set(copyBlocks.map((f) => f.rule_id))],
+        findings: copyBlocks,
+        detail: describeCopyFindings(copyBlocks),
+      }, 422);
+    }
+    const copyWarnings = copyFindings.filter((f) => f.severity === "warn");
+    if (copyWarnings.length) {
+      // A warn finding is advisory, so it is logged rather than written to the
+      // bus: publishing would fan out to chat webhooks for copy that already
+      // passed. The response carries the same detail for the operator.
+      console.warn(JSON.stringify({
+        event: "copy_quality_warn",
+        surface: "campaign.send",
+        campaign_id: id,
+        rule_ids: [...new Set(copyWarnings.map((f) => f.rule_id))],
+      }));
     }
     const { results: contacts } = await env.DB.prepare(s.sql!).all();
     if (!contacts?.length) return json({ error: `no recipients in segment '${s.seg}'` }, 400);
@@ -383,7 +445,11 @@ export async function handleServices(
     await env.DB.prepare(
       "UPDATE email_campaigns SET status='sent', sent_count=?, sent_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?",
     ).bind(sent, id).run();
-    return json({ ok: true, id, sent, total: contacts.length, segment: s.seg, consent_basis: consentBasis });
+    return json({
+      ok: true, id, sent, total: contacts.length, segment: s.seg, consent_basis: consentBasis,
+      ...(copyWarnings.length ? { copy_warnings: copyWarnings } : {}),
+      ...(brief ? { brief, brief_sha256: briefHash } : {}),
+    });
   }
   // Engagement roll-up over email_events — every Brevo transactional webhook
   // callback lands there, tagged by the send path (campaign:<id>, seq:<stage>,
@@ -628,13 +694,21 @@ export async function handleServices(
       return json({ error: bytes.length ? `file too large (${Math.round(maxBytes / 1048576)}MB max)` : "empty file" }, bytes.length ? 413 : 400);
     const id = crypto.randomUUID();
     const name = String(b.name ?? "").slice(0, 200) || id;
+    // Rights provenance is opt-in metadata: absent/empty ⇒ 'unknown', an
+    // unrecognised value is a 400 (never a silent guess, never a stored lie).
+    if (b.rights_basis != null && String(b.rights_basis).trim() !== "") {
+      const raw = String(b.rights_basis).trim().toLowerCase();
+      if (!MEDIA_RIGHTS.has(raw))
+        return json({ error: `rights_basis must be one of ${[...MEDIA_RIGHTS].join(", ")}` }, 400);
+    }
+    const rights = mediaRights(b.rights_basis);
     if (env.MEDIA) {
       await env.MEDIA.put(`media/${id}`, bytes, { httpMetadata: { contentType: type } });
     } else {
       await env.EPHEMERAL.put(`media:${id}`, bytes);
     }
-    await env.EPHEMERAL.put(`media:${id}:meta`, JSON.stringify({ name, type, size: bytes.length, created: Date.now(), store: env.MEDIA ? "r2" : "kv" }));
-    return json({ id, name, type, size: bytes.length, url: `${MEDIA_BASE}/media/${id}` }, 201);
+    await env.EPHEMERAL.put(`media:${id}:meta`, JSON.stringify({ name, type, size: bytes.length, created: Date.now(), store: env.MEDIA ? "r2" : "kv", rights_basis: rights }));
+    return json({ id, name, type, size: bytes.length, rights_basis: rights, url: `${MEDIA_BASE}/media/${id}` }, 201);
   }
   if (path === "/api/v1/media" && req.method === "GET") {
     const keys = await listAll(env.EPHEMERAL, "media:");
@@ -645,7 +719,10 @@ export async function handleServices(
       if (!raw) continue;
       try {
         const id = k.name.slice(6, -5);
-        items.push({ id, url: `${MEDIA_BASE}/media/${id}`, ...(JSON.parse(raw) as object) });
+        const meta = JSON.parse(raw) as Record<string, unknown>;
+        // Derived, not stored: a pre-feature row renders as 'unknown' rather
+        // than blank, and the original KV record is never rewritten.
+        items.push({ id, url: `${MEDIA_BASE}/media/${id}`, ...meta, rights_basis: mediaRights(meta.rights_basis) });
       } catch {}
     }
     return json({ media: items.sort((a, z) => Number((z as { created?: number }).created ?? 0) - Number((a as { created?: number }).created ?? 0)) });
@@ -897,6 +974,26 @@ export async function ensureCampaignConsentColumn(env: Env): Promise<void> {
     campaignConsentReady = true;
   } catch {
     // Never fatal: the send path reads consent_basis with an opt_in default.
+  }
+}
+
+// Same self-heal shape for the campaign brief (migration 014). One PRAGMA read
+// per isolate; a racing isolate may already have added the column, so the
+// error is swallowed exactly like the consent guard above.
+let campaignBriefReady = false;
+
+export async function ensureCampaignBriefColumn(env: Env): Promise<void> {
+  if (campaignBriefReady) return;
+  try {
+    const { results } = await env.DB.prepare(
+      "PRAGMA table_info(email_campaigns)").all<{ name?: string }>();
+    if (!(results ?? []).some((c) => c?.name === "brief")) {
+      await env.DB.prepare("ALTER TABLE email_campaigns ADD COLUMN brief TEXT").run();
+    }
+    campaignBriefReady = true;
+  } catch {
+    // Never fatal here: `parseStoredBrief(undefined)` is null, so the send
+    // echoes no brief. A genuinely broken schema still surfaces at insert.
   }
 }
 

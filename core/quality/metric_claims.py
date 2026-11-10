@@ -160,6 +160,17 @@ def is_document(path: str) -> bool:
     return Path(str(path)).suffix.lower() in DOC_EXTENSIONS
 
 
+def has_citation(text: str) -> bool:
+    """True when the line cites a source (endpoint, URL, dataset, live read).
+
+    Public seam for ``core/quality/copy_quality.py``: the copy gate needs the
+    same "is this claim sourced?" test for superlatives, and duplicating the
+    regex would let the two copies drift. This adds nothing to the metric
+    guard's behaviour — it only exposes the existing pattern.
+    """
+    return bool(_CITATION_RE.search(text or ""))
+
+
 def _clean(text: str) -> str:
     """Strip noise that would split a claim across tokens or fake a number."""
     text = _FENCE_RE.sub("\n", text)

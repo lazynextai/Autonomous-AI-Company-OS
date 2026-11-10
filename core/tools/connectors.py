@@ -22,6 +22,15 @@ from core.tools.connector_rate_limits import (
 )
 from core.tools.decision_gate import check_decision
 from core.tools.outbound_breakers import check_outbound
+from core.quality.copy_quality import (
+    COPY_CONNECTORS,
+    blocking_findings,
+    extract_copy_text,
+    findings_to_dicts,
+    format_copy_feedback,
+    scan_copy,
+    warning_findings,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -1647,7 +1656,36 @@ async def call_connector(
     if not decision["allow"]:
         reason = decision.get("reason") or "missing approval"
         return {"ok": False, "error": f"blocked by decision gate — missing approval: {reason}", "gate": True}
-    return await _invoke(connector_id, payload, fn, cred)
+    # --- Copy quality gate (mirrors worker/src/copygate.ts) -----------------
+    # Same seam as the two gates above: after credential resolution, before
+    # `_invoke` — and therefore before BOTH dispatch paths (the ayrshare
+    # early-return and the generic fn call). Block findings are unsupported
+    # conformance/certification claims (a regulatory risk when the copy implies
+    # a site is compliant), so they prevent the send. Warn findings are style
+    # tells: they ride along in the result and are logged, never blocking.
+    # A payload with no prose (`extract_copy_text` → "") is not gated, and a
+    # dry run returned above, so a preview still renders for blocked copy.
+    copy_findings = []
+    if connector_id in COPY_CONNECTORS:
+        copy_findings = scan_copy(extract_copy_text(payload))
+        blocked = blocking_findings(copy_findings)
+        if blocked:
+            return {
+                "ok": False,
+                "error": f"blocked by copy quality gate — {format_copy_feedback(blocked)}",
+                "copy_gate": True,
+                "findings": findings_to_dicts(blocked),
+            }
+    result = await _invoke(connector_id, payload, fn, cred)
+    warnings = warning_findings(copy_findings)
+    if warnings and isinstance(result, dict):
+        result["copy_warnings"] = findings_to_dicts(warnings)
+        logger.warning(
+            "copy_quality_warn",
+            connector=connector_id,
+            rules=[f.rule_id for f in warnings],
+        )
+    return result
 
 
 async def _dry_run_connector(

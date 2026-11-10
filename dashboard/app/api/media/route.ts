@@ -21,6 +21,9 @@ export async function POST(req: NextRequest) {
     name: typeof body.name === "string" ? body.name.slice(0, 200) : undefined,
     type: String(body.type),
     data_b64: String(body.data_b64),
+    // Provenance passthrough — the worker validates the enum and defaults to
+    // 'unknown'. Omitted stays omitted so an older client is unchanged.
+    rights_basis: typeof body.rights_basis === "string" ? body.rights_basis : undefined,
   });
 }
 

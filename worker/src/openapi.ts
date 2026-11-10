@@ -293,15 +293,19 @@ export const OPENAPI_SPEC = {
       get: { summary: "List email campaigns", responses: { "200": { description: "Campaigns" } } },
       post: {
         summary: "Create an email campaign (write scope)",
-        requestBody: { content: { "application/json": { schema: { type: "object", required: ["name", "subject", "html"], properties: { name: { type: "string" }, subject: { type: "string" }, html: { type: "string" }, segment: { type: "string" } } } } } },
-        responses: { "201": { description: "Created" }, "400": { description: "name + subject + html required" } },
+        requestBody: { content: { "application/json": { schema: { type: "object", required: ["name", "subject", "html"], properties: { name: { type: "string" }, subject: { type: "string" }, html: { type: "string" }, segment: { type: "string" }, brief: { type: "object", description: "Optional creative brief (each field <=400 chars). Never blocks; its canonical SHA-256 is recorded in the decision audit row at send time.", properties: { angle: { type: "string", maxLength: 400 }, hook: { type: "string", maxLength: 400 }, audience: { type: "string", maxLength: 400 }, proof: { type: "string", maxLength: 400 }, compliance_note: { type: "string", maxLength: 400 } }, additionalProperties: false } } } } } },
+        responses: { "201": { description: "Created" }, "400": { description: "name + subject + html required, or an invalid brief" } },
       },
     },
     "/api/v1/marketing/campaigns/{id}/send": {
       post: {
-        summary: "Send a campaign — suppression-checked, List-Unsubscribe headers attached (write scope)",
+        summary: "Send a campaign — decision-gated, copy-quality-gated, suppression-checked, List-Unsubscribe headers attached (write scope)",
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
-        responses: { "200": { description: "Sent" } },
+        responses: {
+          "200": { description: "Sent; echoes `brief` + `brief_sha256` when the campaign has a brief, and `copy_warnings` when warn-class findings exist" },
+          "422": { description: "blocked by copy quality gate — an unsupported conformance/certification claim (rule_ids + findings in the body)" },
+          "503": { description: "blocked by decision gate — no approved, unexpired package for campaign:<id>" },
+        },
       },
     },
     "/api/v1/marketing/stats": {
@@ -366,8 +370,8 @@ export const OPENAPI_SPEC = {
       get: { summary: "List media library items", responses: { "200": { description: "Items (id, url, meta)" } } },
       post: {
         summary: "Upload media — base64 body stored in KV, public URL minted (write scope, 5MB cap)",
-        requestBody: { content: { "application/json": { schema: { type: "object", required: ["type", "data_b64"], properties: { name: { type: "string" }, type: { type: "string", enum: ["png", "jpeg", "webp", "gif", "avif"] }, data_b64: { type: "string", description: "base64 payload" } } } } } },
-        responses: { "201": { description: "{id, url: /media/{uuid}}" }, "400": { description: "invalid payload" }, "413": { description: "file too large (5MB max)" } },
+        requestBody: { content: { "application/json": { schema: { type: "object", required: ["type", "data_b64"], properties: { name: { type: "string" }, type: { type: "string", enum: ["png", "jpeg", "webp", "gif", "avif"] }, data_b64: { type: "string", description: "base64 payload" }, rights_basis: { type: "string", enum: ["own", "generated", "licensed", "unknown"], description: "Provenance for the asset. Defaults to 'unknown'; provenance only — never blocks dispatch." } } } } } },
+        responses: { "201": { description: "{id, url: /media/{uuid}, rights_basis}" }, "400": { description: "invalid payload or rights_basis" }, "413": { description: "file too large (5MB max)" } },
       },
     },
     "/api/v1/media/{id}": {

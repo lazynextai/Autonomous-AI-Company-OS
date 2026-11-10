@@ -500,10 +500,47 @@ async function recordGateBlock(env: Env, action: ActionRef, info: {
       authority: info.authority,
       scope: info.scope,
       reason: info.reason.slice(0, 500),
+      // A campaign send carries the hash of the brief it would have used, so a
+      // blocked send names the exact copy thinking that was refused.
+      ...(action?.brief_sha256 ? { brief_sha256: String(action.brief_sha256) } : {}),
       ts: new Date().toISOString(),
     })).run();
   } catch (err) {
     console.error(`[decision_gate] block audit write failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+/**
+ * Fire-and-forget pass audit for a gated send that carried a brief hash.
+ *
+ * A decision package approves a *target*; the brief is the copy thinking that
+ * will actually be sent. Recording the hash on the pass row is what ties an
+ * approval to the exact brief rather than to a campaign id that can be edited
+ * afterwards. Written to scope `decision` (the decision-package audit trail),
+ * NOT `decision_gate` — the dashboard's "Gate blocks" panel reads that scope,
+ * and a pass is not a block. Best-effort: a failed audit write never changes
+ * the gate result.
+ */
+async function recordGatePass(env: Env, action: ActionRef, info: {
+  authority: AuthorityClass;
+  scope: DecisionScope;
+  package_id: number;
+}): Promise<void> {
+  try {
+    await env.DB.prepare(
+      "INSERT INTO episodic_events (scope, payload) VALUES ('decision', ?)",
+    ).bind(JSON.stringify({
+      event: "decision_gate_passed",
+      type: String(action?.type ?? ""),
+      target: String(action?.target ?? ""),
+      authority: info.authority,
+      scope: info.scope,
+      package_id: info.package_id,
+      brief_sha256: String(action.brief_sha256),
+      ts: new Date().toISOString(),
+    })).run();
+  } catch (err) {
+    console.error(`[decision_gate] pass audit write failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -540,7 +577,15 @@ export async function decisionGate(env: Env, action: ActionRef): Promise<{ allow
           AND (expiry_at IS NULL OR datetime(expiry_at) >= datetime('now'))
         ORDER BY id DESC LIMIT 1`,
     ).bind(target).first<{ id: number }>();
-    if (row) return { allow: true, enforced: true, scope, package_id: row.id };
+    if (row) {
+      // Tie the approval to the brief that is actually being sent. Only an
+      // enforced gate reaches here, so this row means "an approved package was
+      // used", never "a send happened with the gate off".
+      if (action.brief_sha256) {
+        await recordGatePass(env, action, { authority, scope, package_id: row.id });
+      }
+      return { allow: true, enforced: true, scope, package_id: row.id };
+    }
     const reason = `no approved decision package for '${target}' (authority ${authority}, scope ${scope})`;
     await recordGateBlock(env, action, { authority, scope, reason });
     return { allow: false, enforced: true, scope, reason };
