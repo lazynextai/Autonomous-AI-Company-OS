@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { loadModule, readJson, fakeCtx, fakeDb, fakeKv } from "./helpers/lift.mjs";
+import { capabilityOf } from "./helpers/caps.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const jsonFn = (data, status = 200) =>
@@ -39,6 +40,7 @@ const services = (scopes, over = {}) =>
       closeDispatchDecision: over.closeDispatchDecision ?? (async (_e, id, ok) => calls.push({ fn: "close", id, ok })),
       recordDispatchLedger: over.recordDispatchLedger ?? (async (_e, id, meta) => calls.push({ fn: "ledger", id, meta })),
       estimateCostCents: () => 3,
+      capabilityOf,
       breakerAdmin: async () => jsonFn({}),
       puppeteer: {},
     },
@@ -195,6 +197,7 @@ test("a scheduled post blocked under approval scope parks failed with the missin
       closeDispatchDecision: async () => {},
       recordDispatchLedger: async () => {},
       estimateCostCents: () => 0,
+      capabilityOf,
       breakerAdmin: async () => jsonFn({}),
       puppeteer: {},
     },
@@ -250,6 +253,7 @@ test("a scheduled post carries a decision record and a ledger row", async () => 
       closeDispatchDecision: async (_e, id, ok) => closed.push({ id, ok }),
       recordDispatchLedger: async (_e, id, meta) => ledger.push({ id, meta }),
       estimateCostCents: () => 0,
+      capabilityOf,
       breakerAdmin: async () => jsonFn({}),
       puppeteer: {},
     },
@@ -293,6 +297,7 @@ test("a scheduled post whose decision cannot be recorded is parked failed", asyn
       closeDispatchDecision: async () => {},
       recordDispatchLedger: async () => {},
       estimateCostCents: () => 0,
+      capabilityOf,
       breakerAdmin: async () => jsonFn({}),
       puppeteer: {},
     },

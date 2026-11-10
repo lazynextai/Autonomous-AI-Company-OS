@@ -16,6 +16,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { loadModule, fakeCtx, fakeDb, fakeKv, readJson } from "./helpers/lift.mjs";
+import { capabilityOf } from "./helpers/caps.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const src = readFileSync(join(HERE, "..", "src", "services.ts"), "utf8");
@@ -50,6 +51,7 @@ const services = () =>
       closeDispatchDecision: async () => {},
       recordDispatchLedger: async () => {},
       estimateCostCents: () => 0,
+      capabilityOf,
       breakerAdmin: async () => jsonFn({}),
       puppeteer: {},
     },

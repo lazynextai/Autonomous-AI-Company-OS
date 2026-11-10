@@ -15,6 +15,11 @@ import structlog
 
 from core.config import get_settings
 from core.tools.connector_capabilities import CONNECTOR_CAPABILITIES, capability_of
+from core.tools.connector_rate_limits import (
+    cap_resets_at,
+    consume_connector_daily_cap,
+    peek_connector_daily_cap,
+)
 from core.tools.decision_gate import check_decision
 from core.tools.outbound_breakers import check_outbound
 
@@ -1397,7 +1402,11 @@ async def _signwell(payload: dict, cred: str) -> dict:
     # explicit placeholder_name was provided.
     placeholder = payload.get("placeholder_name")
     if not placeholder:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        # `_async_client` (not a bare httpx client): this is a dispatch-path
+        # request, so it must resolve to the recording transport during a dry
+        # run. It previously bypassed the capture, which would have made any
+        # future signwell preview open a real socket to signwell.
+        async with _async_client(timeout=15.0) as client:
             t = await client.get(
                 f"https://www.signwell.com/api/v1/document_templates/{template_id}/",
                 headers=headers,
@@ -1444,7 +1453,12 @@ _DISPATCH = {
 
 
 # --- Dry-run redaction ------------------------------------------------------
-_SECRET_HEADERS = frozenset({"authorization", "cookie", "proxy-authorization", "x-api-key", "x-auth-key"})
+# `api-key` is Brevo's own header name (documented casing, no `x-` prefix). It
+# belongs in the named pass so a brevo preview redacts it regardless of how long
+# the key is — the literal pass only scrubs components ≥8 characters.
+_SECRET_HEADERS = frozenset({
+    "authorization", "cookie", "proxy-authorization", "x-api-key", "x-auth-key", "api-key",
+})
 _SECRET_KEYS = frozenset({
     "access_token", "refresh_token", "password", "passwd", "pass", "secret",
     "client_secret", "api_key", "app_password", "privkey", "token", "key",
@@ -1591,6 +1605,28 @@ async def call_connector(
     cred = await _credential(connector_id)
     if not cred:
         return {"ok": False, "error": f"'{connector_id}' not connected — set it in Settings → Connector library"}
+    # --- Daily cap (capacity, mirrors worker/src/services.ts) ---------------
+    # The provider's own published ceiling, checked before the breaker and the
+    # decision gate: a send we are not allowed to make today must not consult
+    # (or trip) governance controls that exist for policy reasons, and the
+    # refusal is not a policy verdict. Fail-open on KV failure — read the module
+    # docstring for why a capacity limit differs from the breaker.
+    #
+    # No audit row here: the fleet dispatch path writes none at all (its only
+    # trail is the per-connector `episodic_events` row the Worker records when it
+    # is the caller). The refusal is returned to the caller, which surfaces it in
+    # the task result — that is the whole record on this path, and saying
+    # otherwise would overstate it.
+    cap = await consume_connector_daily_cap(connector_id)
+    if not cap.get("allow"):
+        return {
+            "ok": False,
+            "error": cap.get("error"),
+            "rate_limited": True,
+            "per_day": cap.get("per_day"),
+            "used": cap.get("used"),
+            "resets_at": cap_resets_at(),
+        }
     # --- Outbound breaker gate (mirrors worker/src/breakers.ts) -------------
     # After credential resolution so unconnected connectors fail identically;
     # before BOTH dispatch paths (the ayrshare early-return and the generic
@@ -1628,7 +1664,16 @@ async def _dry_run_connector(
         "gate": "skipped_dry_run",
     }
     cap = capability_of(connector_id)
-    base["rate_limit"] = cap.get("rate_limit") if cap else None
+    # Declared ceiling + the live counter, in one object — read, never consumed,
+    # because a preview has no external effect and must not spend capacity.
+    cap_state = await peek_connector_daily_cap(connector_id)
+    base["rate_limit"] = {
+        **(cap.get("rate_limit") if cap else {"per_day": None, "enforced": False}),
+        "used": cap_state["used"],
+        "remaining": cap_state["remaining"],
+        "day": cap_state["day"],
+        **({"degraded": True} if cap_state.get("degraded") else {}),
+    }
     if cap is None:
         return {**base, "error": f"unknown connector '{connector_id}'"}
     if not cap.get("supports_dry_run"):

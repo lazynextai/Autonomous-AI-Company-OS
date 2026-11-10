@@ -70,7 +70,13 @@ def test_python_and_typescript_tables_agree():
         assert row["credential_hint"] == ts[cid]["credential_hint"], f"{cid}: credential_hint drifted"
         assert row["supports_dry_run"] == ts[cid]["supports_dry_run"], f"{cid}: supports_dry_run drifted"
         assert row["rate_limit"]["per_day"] == ts[cid]["per_day"], f"{cid}: per_day drifted"
-        assert row["rate_limit"]["enforced"] is False
+        # `enforced` is DERIVED from per_day in both tables: a published ceiling
+        # means both dispatch paths count it before any provider call. Pinning
+        # the derivation (not a fixed value) is what keeps the flag from
+        # claiming enforcement it does not have.
+        assert row["rate_limit"]["enforced"] is (row["rate_limit"]["per_day"] is not None), (
+            f"{cid}: enforced must be true exactly when a per_day ceiling exists"
+        )
 
 
 def test_capability_rows_are_well_formed():
@@ -138,6 +144,9 @@ CREDS = {
     "letmepost": "fake-letmepost-key|acct1234",
     "twilio": "ACfake:fake-twilio-token:+15550000000",
     "whatsapp": "fake-wa-token:phone_number_id",
+    # brevo became previewable once its dispatch was confirmed to build through
+    # `_post` → `_async_client()` (the recorded transport).
+    "brevo": "support@fake.invalid:fake-brevo-api-key",
 }
 
 PAYLOAD = {
@@ -321,3 +330,44 @@ async def test_connector_capabilities_derives_configured(monkeypatch):
     assert report["linkedin"]["configured"] is False
     assert report["brevo"]["configured"] is False
     assert set(report) == set(cc.CONNECTOR_CAPABILITIES)
+
+
+@pytest.mark.anyio
+async def test_brevo_preview_renders_the_real_smtp_request(fake_creds, monkeypatch):
+    """brevo used to refuse: its dispatch was assumed uncapturable.
+
+    It builds through `_post` -> `_async_client()`, so the recording transport
+    already saw it — the refusal was a stale capability flag, not a transport
+    limit.
+    """
+    _assert_no_httpx_network(monkeypatch)
+    report = await connectors.call_connector("brevo", dict(PAYLOAD), dry_run=True)
+    assert report["supported"] is True
+    assert len(report["calls"]) == 1
+    call = report["calls"][0]
+    assert call["method"] == "POST"
+    assert call["url"] == "https://api.brevo.com/v3/smtp/email"
+    # Redacted BY NAME, not only by the literal pass (which needs ≥8 chars).
+    assert call["headers"]["api-key"] == "\u00abredacted\u00bb"
+    body = json.loads(call["body"])
+    assert body["to"] == [{"email": "recipient@example.com"}]
+    assert body["subject"] == "Subject line"
+
+
+def test_the_four_previously_refusing_connectors_each_carry_a_real_verdict():
+    # brevo: capture implemented in both runtimes.
+    assert cc.CONNECTOR_CAPABILITIES["brevo"]["supports_dry_run"] is True
+    assert "dry_run_note" not in cc.CONNECTOR_CAPABILITIES["brevo"]
+    # The rest: honest 501s, each naming the exact call it cannot render.
+    needles = {
+        "signwell": "routing stub",
+        "nostr": "WebSockets",
+        "snapchat": "not dispatchable",
+    }
+    for cid, needle in needles.items():
+        row = cc.CONNECTOR_CAPABILITIES[cid]
+        assert row["supports_dry_run"] is False, cid
+        assert needle in row["dry_run_note"], cid
+        # Not the generic line this task replaced.
+        assert row["dry_run_note"] != f"'{cid}' has no dry-run preview", cid
+        assert len(row["dry_run_note"]) > 60, cid

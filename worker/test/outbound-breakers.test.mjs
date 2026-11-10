@@ -8,6 +8,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { loadModule, fakeDb, fakeKv } from "./helpers/lift.mjs";
+import { capabilityOf } from "./helpers/caps.mjs";
 
 const jsonFn = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json" } });
@@ -180,6 +181,7 @@ const services = (deps) =>
       closeDispatchDecision: deps.closeDispatchDecision ?? (async () => {}),
       recordDispatchLedger: deps.recordDispatchLedger ?? (async () => {}),
       estimateCostCents: deps.estimateCostCents ?? (() => 0),
+      capabilityOf,
       breakerAdmin: async () => jsonFn({}),
       puppeteer: {},
     },
