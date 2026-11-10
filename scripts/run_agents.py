@@ -12,6 +12,7 @@ from core.config import get_settings
 from core.evaluation.reward_engine import RewardEngine
 from core.evaluation.scorer import PerformanceScorer
 from core.llm.workers_ai_client import WorkersAIClient
+from core.logging_setup import configure_logging
 from core.memory.agent_memory import AgentMemory
 from core.memory.company_brain_cached import CachedCompanyBrain
 from core.memory.episodic_memory import EpisodicMemory
@@ -174,7 +175,13 @@ async def _supervise(
 
 
 async def main() -> None:
+    # Durable logging FIRST: launchd recreates /tmp/lazynext-fleet.log at every
+    # boot, so the previous run's tail dies with it unless we append from a
+    # Python file handler on the same path (mode="a", size-rotated). Fail-safe
+    # by design: if the file cannot be opened, configure_logging warns and
+    # falls back to console-only — logging setup must never stop the fleet.
     settings = get_settings()
+    configure_logging(level=settings.log_level)
     if not settings.cloudflare_api_url or not settings.cloudflare_api_token:
         console.print("[red]Cloudflare not configured — the Workers AI brain needs CLOUDFLARE_API_URL and CLOUDFLARE_API_TOKEN in .env[/red]")
 
