@@ -1,6 +1,6 @@
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains
-  Content-Security-Policy: default-src 'self'; script-src 'unsafe-inline' 'self' https://*.clarity.ms; style-src 'unsafe-inline' 'self'; img-src 'self' data: https://*.clarity.ms; font-src 'self'; connect-src 'self' https://api.github.com https://dashboard.lazynext.com https://ai-company.lazynext.com https://checker.lazynext.com https://api.lazynext.com https://penpot.lazynext.com https://*.clarity.ms; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'unsafe-inline' 'self' https://*.clarity.ms; style-src 'unsafe-inline' 'self'; img-src 'self' data: https://*.clarity.ms https://www.directree.io; font-src 'self'; connect-src 'self' https://api.github.com https://dashboard.lazynext.com https://ai-company.lazynext.com https://checker.lazynext.com https://api.lazynext.com https://penpot.lazynext.com https://*.clarity.ms; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
