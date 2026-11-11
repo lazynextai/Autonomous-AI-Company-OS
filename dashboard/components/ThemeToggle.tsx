@@ -16,12 +16,20 @@ function apply(t: Theme) {
 }
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>(() =>
-    typeof window !== "undefined" ? ((localStorage.getItem("lz_theme") as Theme) || "system") : "dark"
-  );
+  // Same rule as Splash: the server renders "dark" (no storage available), so
+  // the client's FIRST render must also be "dark". Reading localStorage in the
+  // initializer instead produced a different aria-label/icon than the HTML and
+  // contributed to the React #418 hydration mismatch. The stored preference is
+  // applied in the effect below, after hydration.
+  const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
-    apply(theme);
+    const stored = (localStorage.getItem("lz_theme") as Theme) || "system";
+    setTheme(stored);
+    apply(stored);
+  }, []);
+
+  useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: light)");
     const onChange = () => {
       const t = (localStorage.getItem("lz_theme") as Theme) || "system";
@@ -29,7 +37,7 @@ export default function ThemeToggle() {
     };
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
-  }, [theme]);
+  }, []);
 
   const cycle = () => {
     const order: Theme[] = ["dark", "light", "system"];

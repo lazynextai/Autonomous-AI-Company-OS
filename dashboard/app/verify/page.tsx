@@ -23,14 +23,14 @@ function VerifyInner() {
       {state === "ok" && (
         <>
           <div className="text-4xl mb-3">✅</div>
-          <h2 className="text-sm font-semibold text-fg mb-2">Email verified</h2>
+          <h1 className="text-sm font-semibold text-fg mb-2">Email verified</h1>
           <Link href="/login" className="text-sm text-accentSoft hover:underline">Sign in →</Link>
         </>
       )}
       {state === "fail" && (
         <>
           <div className="text-4xl mb-3">⚠️</div>
-          <h2 className="text-sm font-semibold text-fg mb-2">Invalid or used link</h2>
+          <h1 className="text-sm font-semibold text-fg mb-2">Invalid or used link</h1>
           <Link href="/signup" className="text-sm text-accentSoft hover:underline">Sign up again</Link>
         </>
       )}

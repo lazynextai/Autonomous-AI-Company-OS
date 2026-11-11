@@ -28,8 +28,13 @@ export default function InstallPrompt() {
     localStorage.setItem("lz_install_dismissed", "1");
   };
 
+  // bottom-RIGHT, not left: the sidebar's footer controls (theme toggle, sign
+  // out) live in the bottom-left corner, and a fixed card there intercepted
+  // their clicks — measured 2026-11-11: the install prompt covered the Theme
+  // button so it could not be pressed at all. Keeping the card clear of the
+  // sidebar solves that without changing the prompt itself.
   return (
-    <div className="fixed bottom-6 left-6 z-[140] max-w-xs bg-card border border-border rounded-[14px] p-4 shadow-xl animate-[slideUp_.2s_ease]">
+    <div className="fixed bottom-6 right-6 z-[140] max-w-xs bg-card border border-border rounded-[14px] p-4 shadow-xl animate-[slideUp_.2s_ease]">
       <button onClick={dismiss} className="absolute top-3 right-3 text-muted hover:text-fg" aria-label="Dismiss">
         <X className="w-4 h-4" />
       </button>

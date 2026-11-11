@@ -47,7 +47,7 @@ export default function LoginPage() {
           <div className="text-2xl font-bold">
             <span className="text-accentSoft">◆</span> Lazynext
           </div>
-          <p className="text-sm text-muted mt-2">Sign in to your company</p>
+          <h1 className="text-sm text-muted mt-2">Sign in to your company</h1>
         </div>
         <form
           onSubmit={submit}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X, Zap, Brain, Plug, Rocket } from "lucide-react";
 
 const STEPS = [
@@ -27,10 +27,16 @@ const STEPS = [
 ];
 
 export default function OnboardingModal() {
-  const [open, setOpen] = useState<boolean>(() =>
-    typeof window !== "undefined" ? localStorage.getItem("lz_onboarded") !== "1" : false
-  );
+  // SSR-stable initial value (closed). Reading localStorage here made the
+  // client's first paint differ from the prerendered HTML whenever the flag
+  // was already set — part of the React #418 hydration mismatch. The flag is
+  // applied in the effect below, after hydration.
+  const [open, setOpen] = useState<boolean>(false);
   const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    if (localStorage.getItem("lz_onboarded") !== "1") setOpen(true);
+  }, []);
 
   const done = () => {
     localStorage.setItem("lz_onboarded", "1");

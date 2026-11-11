@@ -55,8 +55,8 @@ export default function TasksPage() {
   return (
     <>
       <PageHeader title="Tasks" subtitle="Everything the company is doing — queued, working, done.">
-        <div className="flex items-center gap-3">
-          <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="flex flex-wrap gap-2">
             {FILTERS.map((f) => (
               <button
                 key={f}

@@ -25,7 +25,7 @@ export default function ForgotPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="text-2xl font-bold"><span className="text-accentSoft">◆</span> Lazynext</div>
-          <p className="text-sm text-muted mt-2">Reset your password</p>
+          <h1 className="text-sm text-muted mt-2">Reset your password</h1>
         </div>
         {done ? (
           <div className="bg-card border border-border rounded-[14px] p-6 text-center">

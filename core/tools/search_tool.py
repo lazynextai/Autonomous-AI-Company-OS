@@ -182,15 +182,42 @@ async def _search_ddg_instant(client: httpx.AsyncClient, query: str, n: int) -> 
     return hits[:n]
 
 
+def _relevant(query: str, hits: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Drop hits where no title/url/snippet shares a query word.
+
+    Mirrors `relevant()` in worker/src/websearch.ts. Measured 2026-11-11: Bing
+    answers 200 with unrelated decoy pages ("accessibility checker" → Detroit
+    Red Wings / Lakshmi Aarti). The cascade stops on the first non-empty result,
+    so a decoy silently poisons agent research — returning nothing is strictly
+    better, because the next provider gets a turn.
+    """
+    if not hits:
+        return hits
+    words = [w for w in query.lower().split() if len(w) >= 4]
+    if not words:
+        return hits
+    for h in hits:
+        hay = " ".join(str(h.get(k) or "") for k in ("title", "url", "snippet")).lower()
+        if any(w in hay for w in words):
+            return hits
+    return []
+
+
 async def search_web(query: str, max_results: int = 10) -> list[dict[str, Any]]:
     """Search the web — Serper first, free cascade after: searxng (if
-    configured) → Bing → Brave → DDG Lite → DDG instant answers."""
+    configured) → Brave → Bing → DDG Lite → DDG instant answers.
+
+    Brave precedes Bing deliberately: Bing serves decoy HTML to this scraper and
+    still returns 200, which produced confidently wrong search results.
+    """
     async with httpx.AsyncClient(timeout=15.0, headers={"User-Agent": _UA}) as client:
         for name, fn in (("serper", _search_serper), ("searxng", _search_searxng),
-                         ("bing", _search_bing), ("brave", _search_brave),
+                         ("brave", _search_brave), ("bing", _search_bing),
                          ("ddg", _search_ddg_lite), ("ddg-answer", _search_ddg_instant)):
             try:
                 hits = await fn(client, query, max_results)
+                if hits and name in ("bing", "brave", "ddg", "searxng"):
+                    hits = _relevant(query, hits)
                 if hits:
                     for h in hits:
                         h["source"] = name

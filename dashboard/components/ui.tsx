@@ -10,12 +10,15 @@ export function PageHeader({
   children?: ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between mb-8">
+    // Column on phones, row from `sm` up. With a row-only layout the tasks
+    // filter row + "Assign task" (≈578px) pushed the page 280px past a 390px
+    // viewport — measured 2026-11-11 — so every PageHeader child set wraps now.
+    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-8">
       <div>
         <h1 className="text-2xl font-bold text-fg">{title}</h1>
         {subtitle && <p className="text-sm text-muted mt-1">{subtitle}</p>}
       </div>
-      {children}
+      {children && <div className="flex flex-wrap items-center gap-2 sm:gap-3">{children}</div>}
     </div>
   );
 }

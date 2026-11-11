@@ -3,16 +3,22 @@
 import { useEffect, useState } from "react";
 
 export default function Splash() {
-  const [gone, setGone] = useState<boolean>(() =>
-    typeof window !== "undefined" && !!sessionStorage.getItem("lz_splashed")
-  );
+  // The initial state MUST equal the server render (false) — reading
+  // sessionStorage in a useState initializer made the client's first paint
+  // differ from the prerendered HTML on every visit after the first, which is
+  // what threw React #418 (hydration mismatch) on all 33 pages. The
+  // session flag is applied in the effect below, after hydration.
+  const [gone, setGone] = useState<boolean>(false);
 
   useEffect(() => {
-    if (gone) return; // already seen this session — initializer handled it
+    if (sessionStorage.getItem("lz_splashed")) {
+      setGone(true); // seen already this session: dismiss on mount
+      return;
+    }
     sessionStorage.setItem("lz_splashed", "1");
     const t = setTimeout(() => setGone(true), 900);
     return () => clearTimeout(t);
-  }, [gone]);
+  }, []);
 
   if (gone) return null;
 
