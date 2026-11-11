@@ -18,6 +18,19 @@ revenue, users, customers, subscribers, conversions, churn, growth, budget,
 trials) must either cite its source next to the claim or carry the VERIFIED
 FACTS block produced by ``report_facts.format_verified_facts()``.
 
+Incident (2026-11-12): the fabrication vocabulary moved from finance to
+research. The customer_success agent shipped PR #121 in the product repo — a
+"Customer Feedback" report asserting "We recruited 20 participants… 80% of
+participants found the tool easy to use… 90% reported accurate
+identification… 85% found recommendations helpful" — a survey that was never
+run (0 paying customers, no feedback program). Neither the business-noun
+set nor the copy gate flagged a single line. The ``research`` claim class
+closes it: a number (count or percentage) next to a research noun/verb
+(participants, respondents, interviewees, recruited/interviewed/surveyed,
+"% found/reported/said/rated", "N out of M <people>", "survey/study of N
+people", "studies show N%", "N feedback sessions") with no citation is a
+blocking finding.
+
 Deliberately tight, so ordinary product prose never trips it:
 
 * ``75 WCAG rules``, ``3 pages crawled``, ``score 95``, ``21 API paths``,
@@ -28,6 +41,12 @@ Deliberately tight, so ordinary product prose never trips it:
   number is not near the business noun, so it passes.
 * ``subscriptions_active: 0 (GET /api/v1/billing/funnel)`` — the line carries
   the funnel endpoint, so it passes.
+* ``42 out of 45 connectors connected``, ``3 out of 5 tests passed`` — the
+  "N out of M" shape needs an animate/research subject or a reporting verb,
+  so engineering facts pass.
+* ``the survey endpoint returns 200``, ``a study of 500 pages``, ``sessions
+  lasted 60 minutes each``, ``instance survey 2026-10-06`` — research words
+  with no people-count shape, so they pass.
 * Inline double-quoted text (a quoted Reddit title, an email subject) is not
   the author's own assertion; quoted spans are stripped before scanning.
 * Markdown headings are skipped (``## 5. Microsoft 365 trial end`` is a label,
@@ -98,6 +117,7 @@ _CITATION_RE = re.compile(
     r"|\bGSC\b|Google Search Console"
     r"|\bmeasured\b|\bobserved\b|\bqueries\b|\bqueried\b"
     r"|\b(?:from|per|via)\s+(?:the\s+)?(?:live\s+)?(?:funnel|D1|KV|dashboard|API)\b"
+    r"|\breported\s+by\b|\baccording\s+to\b"
     r"|subscriptions_active|scans_external_30d|trials_active|licenses_pro"
     r"|licenses_free|monitors)",
     re.IGNORECASE,
@@ -116,6 +136,91 @@ _ALLOCATION_WORD_RE = re.compile(
     r"\b(?:content|creation|social|email|paid|partnerships?|organic|channels?|"
     r"search|ads?|advertising|spend|splits?|allocation|budget|mix|distribution|"
     r"promotion|campaigns?|outreach)\b",
+    re.IGNORECASE,
+)
+
+# --- Research/survey-stat class (incident 2026-11-12, PR #121) -------------
+# PR #120 moved the fabrication vocabulary to business metrics (users/MRR);
+# PR #121 moved it again, to research: the customer_success agent shipped a
+# "Customer Feedback" report claiming "We recruited 20 participants… 80% of
+# participants found the tool easy to use… 90% reported accurate
+# identification… 85% found recommendations helpful" — a survey that was
+# never run (0 paying customers, no feedback program). Neither the business-
+# noun set nor the copy gate flagged a single line. This class closes it.
+#
+# The sentence shape: a number (count or percentage) next to a research noun
+# or verb with no citation. Kept deliberately tight so honest prose stays
+# clean: participants/respondents/interviewees are the animate survey
+# subjects, recruited/interviewed/surveyed the verbs that take them, and the
+# percentage/out-of/study shapes need an animate subject or a research verb
+# ("Studies show 80% of websites fail WCAG" yes; "42 out of 45 connectors
+# connected", "the survey endpoint returns 200", "a study of 500 pages",
+# "sessions lasted 60 minutes each" never match). Percentages must be
+# non-zero, mirroring the metric class's under-claim exemption.
+
+# The people who were surveyed — a count next to one of these is a stat.
+_RESEARCH_SUBJECT_RE = re.compile(
+    r"\b(?:participants?|respondents?|interviewees?)\b",
+    re.IGNORECASE,
+)
+# Verbs that run a study on people.
+_RESEARCH_VERB_RE = re.compile(
+    r"\b(?:recruited|interviewed|surveyed)\b",
+    re.IGNORECASE,
+)
+# "% of participants …" — the exact PR #121 line shape.
+_PCT_OF_SUBJECT_RE = re.compile(
+    r"\b[1-9]\d{0,2}\s*%\s+of\s+(?:the\s+)?"
+    r"(?:participants?|respondents?|interviewees?)\b",
+    re.IGNORECASE,
+)
+# "% reported/found/said/rated …" with an optional animate subject. The
+# subject list is people-only, so "100% of scans completed" never matches;
+# "users"/"customers" here are harmless because the metric class already
+# gates a % next to a business noun.
+_PCT_VERB_RE = re.compile(
+    r"\b[1-9]\d{0,2}\s*%(?:\s+of\s+(?:the\s+)?(?:participants?|respondents?|"
+    r"interviewees?|users?|customers?|testers?|people))?\s+"
+    r"(?:found|reported|said|rated|suggested|experienced|agreed|liked|thought|"
+    r"answered|responded|stated)\b",
+    re.IGNORECASE,
+)
+# "N out of M <people>" — requires the animate subject, so "3 out of 5 tests
+# passed" stays clean.
+_OUT_OF_SUBJECT_RE = re.compile(
+    r"\b\d[\d,]*\s+out\s+of\s+(?:(?:the\s+)?\d[\d,]*\s+)?"
+    r"(?:participants?|respondents?|interviewees?|users?|customers?|testers?|"
+    r"people)\b",
+    re.IGNORECASE,
+)
+# "N out of M reported/found…" — subjectless, but the reporting verb still
+# carries the survey voice; "2 out of 3 runs failed" never matches.
+_OUT_OF_VERB_RE = re.compile(
+    r"\b\d[\d,]*\s+out\s+of\s+\d[\d,]*\s+"
+    r"(?:found|reported|said|rated|agreed|responded|stated|answered)\b",
+    re.IGNORECASE,
+)
+# "survey/study of N <people-ish>" — the count must count people; one
+# interposed qualifier is allowed ("54 email contacts"), but "a study of 500
+# pages" and "survey of 12 API endpoints" still never match (the noun list
+# gates the tail).
+_RESEARCH_STUDY_RE = re.compile(
+    r"\b(?:surveys?|stud(?:y|ies))\s+(?:of|with|involving|covering)\s+"
+    r"\d[\d,]*(?:\.\d+)?(?:[km]|\s*%)?(?:\s+\w+)?\s+"
+    r"(?:participants?|respondents?|interviewees?|users?|customers?|people|"
+    r"contacts?|businesses?|companies|organisations?|organizations?)\b",
+    re.IGNORECASE,
+)
+# "Studies show 80% of websites fail WCAG" — an unsourced research claim.
+_STUDIES_SHOW_RE = re.compile(
+    r"\bstud(?:y|ies)\s+(?:show|shows|showed|found|suggest|suggests|indicate|"
+    r"indicates|report|reports)\b[^.!?\n]{0,80}?\b[1-9]\d{0,2}\s*%",
+    re.IGNORECASE,
+)
+# "N feedback sessions" — a count of a research artifact; a bare "feedback
+# sessions" with no number never matches.
+_FEEDBACK_SESSIONS_RE = re.compile(
+    r"\b\d[\d,]*\s+(?:(?:customer|user|research)\s+)?feedback\s+sessions?\b",
     re.IGNORECASE,
 )
 
@@ -152,7 +257,7 @@ class ClaimFinding:
 
     line_no: int
     text: str
-    kind: str  # "metric" | "allocation" | "facts_mismatch"
+    kind: str  # "metric" | "allocation" | "research" | "facts_mismatch"
 
 
 def is_document(path: str) -> bool:
@@ -287,6 +392,51 @@ def _is_allocation_split(line: str) -> bool:
     return bool(_ALLOCATION_WORD_RE.search(line))
 
 
+def _has_research_stat(line: str) -> bool:
+    """A research/survey stat: a number next to a research noun or verb.
+
+    Covers the PR #121 sentence shapes ("recruited 20 participants",
+    "80% of participants found the tool easy", "90% reported accurate
+    identification", "85% found recommendations helpful", "60% of
+    participants suggested adding more features") plus subjectless
+    percentage-verbs, "N out of M" with an animate subject or reporting
+    verb, "survey/study of N people", "studies show N%", and "N feedback
+    sessions". Engineering facts (connector counts, test results, page
+    counts, durations, endpoint status codes) never match — their subjects
+    and verbs are not in the research vocabulary.
+    """
+    if _PCT_OF_SUBJECT_RE.search(line):
+        return True
+    if _PCT_VERB_RE.search(line):
+        return True
+    if _OUT_OF_SUBJECT_RE.search(line):
+        return True
+    if _OUT_OF_VERB_RE.search(line):
+        return True
+    if _RESEARCH_STUDY_RE.search(line):
+        return True
+    if _STUDIES_SHOW_RE.search(line):
+        return True
+    if _FEEDBACK_SESSIONS_RE.search(line):
+        return True
+    toks = _tokens(line)
+    noun_idx = [i for i, t in enumerate(toks) if _RESEARCH_SUBJECT_RE.fullmatch(t)]
+    verb_idx = [i for i, t in enumerate(toks) if _RESEARCH_VERB_RE.fullmatch(t)]
+    num_idx = [i for i, t in enumerate(toks) if _is_number(t)]
+    for anchor in noun_idx + verb_idx:
+        for i in num_idx:
+            distance = abs(anchor - i)
+            if distance > 3:
+                continue
+            if _is_identifier_number(toks, i):
+                continue
+            lo, hi = min(anchor, i) + 1, max(anchor, i)
+            gap = toks[lo:hi]
+            if all(g.lower() in _INT_GAP_WORDS for g in gap):
+                return True
+    return False
+
+
 def _facts_block_trusted(text: str) -> bool:
     """The block is accepted only when it states its live-read provenance —
     the header ``format_verified_facts()`` always emits. A fabricated block
@@ -365,6 +515,8 @@ def scan_business_claims(
             kind = "metric"
         elif _is_allocation_split(line) or offset in allocation_lines:
             kind = "allocation"
+        elif _has_research_stat(line):
+            kind = "research"
         if kind and not trusted_block:
             findings.append(ClaimFinding(offset + 1, line.strip()[:180], kind))
 
@@ -383,11 +535,20 @@ def format_claim_feedback(findings: list[ClaimFinding], limit: int = 4) -> str:
     shown = findings[:limit]
     where = "; ".join(f"L{f.line_no} {f.text!r}" for f in shown)
     more = f" (+{len(findings) - len(shown)} more)" if len(findings) > len(shown) else ""
-    return (
-        "unsourced business-metric claims — quote the live funnel "
-        "(GET /api/v1/billing/funnel) or the VERIFIED FACTS block next to every "
-        f"figure, or write 'unavailable': {where}{more}"
-    )
+    parts = []
+    if any(f.kind == "research" for f in findings):
+        parts.append(
+            "unsourced research/survey findings — cite the actual survey run "
+            "(where/when/whom, or a results URL) or the VERIFIED FACTS block "
+            "next to every figure; never invent participant counts or percentages"
+        )
+    if any(f.kind != "research" for f in findings):
+        parts.append(
+            "unsourced business-metric claims — quote the live funnel "
+            "(GET /api/v1/billing/funnel) or the VERIFIED FACTS block next to every "
+            "figure, or write 'unavailable'"
+        )
+    return "; ".join(parts) + f": {where}{more}"
 
 
 def document_claim_failure(text: str, *, funnel: dict | None = None) -> str | None:
