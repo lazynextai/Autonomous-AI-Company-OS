@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 
 const STEPS = [
@@ -11,9 +11,14 @@ const STEPS = [
 ];
 
 export default function SetupChecklist({ agentsActive }: { agentsActive: number }) {
-  const [dismissed, setDismissed] = useState<boolean>(() =>
-    typeof window !== "undefined" ? localStorage.getItem("lz_setup_dismissed") === "1" : true
-  );
+  // SSR-stable initial value (true = render nothing). The stored flag is read
+  // in the effect, never in the initializer — reading storage during render is
+  // what caused the React #418 hydration mismatch across the dashboard.
+  const [dismissed, setDismissed] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (localStorage.getItem("lz_setup_dismissed") !== "1") setDismissed(false);
+  }, []);
 
   if (dismissed || agentsActive > 0) return null;
 

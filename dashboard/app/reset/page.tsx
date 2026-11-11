@@ -53,7 +53,7 @@ export default function ResetPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="text-2xl font-bold"><span className="text-accentSoft">◆</span> Lazynext</div>
-          <p className="text-sm text-muted mt-2">Set a new password</p>
+          <h1 className="text-sm text-muted mt-2">Set a new password</h1>
         </div>
         <Suspense fallback={<div className="bg-card border border-border rounded-[14px] p-8 text-center text-sm text-muted">Loading…</div>}>
           <ResetInner />

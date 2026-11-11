@@ -250,9 +250,15 @@ export default function SettingsPage() {
   const [totpQr, setTotpQr] = useState("");
   const [totpCode, setTotpCode] = useState("");
   const [loading, setLoading] = useState(true);
-  const [density, setDensity] = useState<"comfortable" | "compact">(() =>
-    typeof window !== "undefined" ? ((localStorage.getItem("lz_density") as "compact") || "comfortable") : "comfortable"
-  );
+  const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
+
+  // Density is a browser preference: read it after hydration, never during
+  // render (reading it in the useState initializer made the client's first
+  // paint differ from the server HTML — the React #418 hydration mismatch).
+  useEffect(() => {
+    const stored = localStorage.getItem("lz_density") as "comfortable" | "compact" | null;
+    if (stored) setDensity(stored);
+  }, []);
 
   useEffect(() => {
     Promise.all(

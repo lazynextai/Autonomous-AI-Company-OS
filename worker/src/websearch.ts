@@ -118,7 +118,27 @@ async function bing(q: string, n: number): Promise<Hit[]> {
     headers: { "User-Agent": UA, Accept: "text/html" },
   });
   if (!r.ok) return [];
-  return parseBing(await r.text(), n).map((h) => ({ ...h, source: "bing" as const }));
+  const hits = parseBing(await r.text(), n).map((h) => ({ ...h, source: "bing" as const }));
+  return relevant(q, hits);
+}
+
+/** Drop a provider's hits when none of them mention any query word.
+ *
+ * Bing answers 200 with unrelated pages (measured 2026-11-11: "accessibility
+ * checker" → Detroit Red Wings / Lakshmi Aarti). Returning those to an agent is
+ * worse than returning nothing, because the cascade stops on a non-empty result
+ * and the agent trusts it. A single shared word (4+ chars) keeps genuine long
+ * tail matches while rejecting decoys.
+ */
+function relevant(q: string, hits: Hit[]): Hit[] {
+  if (!hits.length) return hits;
+  const words = q.toLowerCase().split(/\s+/).filter((w) => w.length >= 4);
+  if (!words.length) return hits;
+  const seen = hits.some((h) => {
+    const hay = `${h.title ?? ""} ${h.url ?? ""} ${h.snippet ?? ""}`.toLowerCase();
+    return words.some((w) => hay.includes(w));
+  });
+  return seen ? hits : [];
 }
 
 // Brave Search HTML — SSR result cards: <div class="snippet svelte-…"> with
@@ -180,10 +200,17 @@ export async function handleWebSearch(req: Request, env: Env): Promise<Response>
     const hits = await serper(env, query, n);
     if (hits !== null) return json({ results: hits, provider: "serper", count: hits.length });
   } catch { /* fall through to the free chain */ }
+  // Provider order is measured, not arbitrary: on 2026-11-11 queries
+  // "accessibility checker" returned **Detroit Red Wings / Lakshmi Aarti**
+  // pages from bing.com (it serves decoy HTML to this scraper and still
+  // answers 200), while search.brave.com returned the correct Accessibility
+  // Checker / WebAIM / W3C results for the same query. Bing therefore sits
+  // after Brave: a decoy response that "looks successful" is worse than a
+  // slower correct one, and it silently poisoned agent research.
   for (const [name, fn] of [
     ["searxng", () => searxng(env, query, n)],
-    ["bing", () => bing(query, n)],
     ["brave", () => brave(query, n)],
+    ["bing", () => bing(query, n)],
     ["duckduckgo", () => ddgLite(query, n)],
   ] as const) {
     try {
