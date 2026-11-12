@@ -12,7 +12,7 @@ from core.config import get_settings
 from core.evaluation.reward_engine import RewardEngine
 from core.evaluation.scorer import PerformanceScorer
 from core.llm.workers_ai_client import WorkersAIClient
-from core.logging_setup import configure_logging
+from core.logging_setup import FLEET_APP_LOG_PATH, FLEET_STDIO_LOG_PATH, configure_logging
 from core.memory.agent_memory import AgentMemory
 from core.memory.company_brain_cached import CachedCompanyBrain
 from core.memory.episodic_memory import EpisodicMemory
@@ -175,13 +175,31 @@ async def _supervise(
 
 
 async def main() -> None:
-    # Durable logging FIRST: launchd recreates /tmp/lazynext-fleet.log at every
-    # boot, so the previous run's tail dies with it unless we append from a
-    # Python file handler on the same path (mode="a", size-rotated). Fail-safe
-    # by design: if the file cannot be opened, configure_logging warns and
-    # falls back to console-only — logging setup must never stop the fleet.
+    # Durable logging FIRST. Two files, two jobs (measured gap 2026-11-12):
+    #
+    #   /tmp/lazynext-fleet.log  = launchd's StandardOutPath — LIVE TAIL ONLY.
+    #       launchd opens it before exec and truncates/recreates it on a fresh
+    #       job start, so anything the previous process wrote through stdio is
+    #       gone before this line runs. Nothing we do in Python can prevent
+    #       that (launchd opens first); the file is deliberately left as-is so
+    #       the live `tail` and local console runs stay unchanged.
+    #
+    #   FLEET_APP_LOG_PATH (~/.lazynext/logs/fleet.log) = THE DURABLE RECORD.
+    #       App-owned — launchd never opens it — so a RotatingFileHandler
+    #       (mode="a", 20MB x 4) appends across fresh starts, respawns and
+    #       reboots. Read this for history/forensics.
+    #
+    # Fail-safe by design: if the file cannot be opened, configure_logging
+    # warns and falls back to console-only — logging setup must never stop
+    # the fleet.
     settings = get_settings()
-    configure_logging(level=settings.log_level)
+    configure_logging(path=FLEET_APP_LOG_PATH, level=settings.log_level)
+    logger.info(
+        "fleet_logging_ready",
+        durable_log=FLEET_APP_LOG_PATH,
+        live_tail=FLEET_STDIO_LOG_PATH,
+        note="durable record is the app path; the launchd stdio file may be truncated on a fresh start",
+    )
     if not settings.cloudflare_api_url or not settings.cloudflare_api_token:
         console.print("[red]Cloudflare not configured — the Workers AI brain needs CLOUDFLARE_API_URL and CLOUDFLARE_API_TOKEN in .env[/red]")
 
