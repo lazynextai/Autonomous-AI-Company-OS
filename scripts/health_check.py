@@ -19,7 +19,14 @@ os.chdir(Path(__file__).resolve().parent.parent)
 
 from dotenv import load_dotenv  # noqa: E402
 
+from core.resilience import is_connect_phase_error, retry_sync  # noqa: E402
+
 load_dotenv()
+
+# One replay after a short pause covers the recurring macOS resolver blips
+# (a few seconds each) without stretching the 15-minute tick.
+KV_RETRY_ATTEMPTS = 2
+KV_RETRY_BASE_DELAY_S = 2.0
 
 CHECKS = {
     "api": "https://ai-company.lazynext.com/health",
@@ -161,7 +168,19 @@ def fetch_body(url: str) -> bytes | None:
 
 
 def kv_age_ms(key: str) -> float | None:
-    """Read a KV timestamp via the platform worker; None when unreadable."""
+    """Read a KV timestamp via the platform worker; None when unreadable.
+
+    The read is replayed once when it fails in the *connect phase* (DNS, TCP or
+    TLS — the request provably never left, so re-POSTing is safe). macOS
+    resolver blips (`[Errno 8] nodename nor servname`) recur every ~10-19 min
+    for a few seconds; without the retry a single blip failed the whole
+    KV_WATCH probe and mailed a false "FAILED" one tick before it recovered.
+
+    Only connect-phase errors are retried. An HTTP status is a real answer
+    (401/403/404/500 may not be masked) and a successful read of a stale value
+    is genuine staleness — both still fail the check as before. ``age is None``
+    keeps failing closed in the KV_WATCH loop.
+    """
     try:
         url = os.environ.get("CLOUDFLARE_API_URL", "")
         token = os.environ.get("CLOUDFLARE_API_TOKEN", "")
@@ -175,8 +194,19 @@ def kv_age_ms(key: str) -> float | None:
             },
             method="POST",
         )
-        with _open(req) as r:
-            v = json.loads(r.read()).get("value")
+
+        def _read() -> str | None:
+            with _open(req) as r:
+                return json.loads(r.read()).get("value")
+
+        v = retry_sync(
+            _read,
+            label="health_check.kv_get",
+            attempts=KV_RETRY_ATTEMPTS,
+            base_delay=KV_RETRY_BASE_DELAY_S,
+            max_delay=KV_RETRY_BASE_DELAY_S,
+            classify=is_connect_phase_error,
+        )
         if not v:
             return None
         try:
