@@ -4,7 +4,14 @@
 > market products continuously on Cloudflare. Its first product,
 > Accessibility Checker, is live with real billing.
 
-- Site: https://lazynext.com
-- Product: https://checker.lazynext.com/
-- Docs: https://lazynext.com/docs
-- Dashboard: https://dashboard.lazynext.com
+- [Site](https://lazynext.com)
+- [Product — Accessibility Checker](https://checker.lazynext.com/)
+- [Docs](https://lazynext.com/docs)
+- [Dashboard](https://dashboard.lazynext.com)
+- [Changelog](https://lazynext.com/changelog)
+- [Status](https://lazynext.com/status)
+- [OpenAPI 3.1](https://api.lazynext.com/openapi.json)
+- [agent.json](https://checker.lazynext.com/.well-known/agent.json)
+- [llms.txt (product)](https://checker.lazynext.com/llms.txt)
+- [GitHub](https://github.com/lazynextai)
+- [GitHub — Accessibility Checker](https://github.com/lazynextai/accessibility-checker)

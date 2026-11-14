@@ -190,10 +190,10 @@ footer a{display:inline-block;min-height:24px;padding:9px 6px;margin:-9px -2px;t
     <p>Dashboard, PWA, REST API, MCP, CLI, webhooks, SDK and email — watch it work from anywhere.</p>
     <a class="btn btn-primary" href="https://dashboard.lazynext.com/signup" style="padding:16px 36px;font-size:15px">Get started</a>
     <form id="waitlist" style="margin-top:24px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-      <input type="email" required aria-label="Email address" autocomplete="email" placeholder="you@company.com" style="background:#0A0A0B;border:1px solid #6B7280;border-radius:10px;padding:12px 18px;color:#FAFAFA;font-size:14px;min-width:240px"/>
+      <input type="email" name="email" id="wl-email" required aria-label="Email address" autocomplete="email" placeholder="you@company.com" style="background:#0A0A0B;border:1px solid #6B7280;border-radius:10px;padding:12px 18px;color:#FAFAFA;font-size:14px;min-width:240px"/>
       <button type="submit" style="background:#6D28D9;color:#fff;border:1.5px solid #A78BFA;border-radius:10px;padding:12px 22px;font-size:14px;font-weight:700;cursor:pointer">Join waitlist</button>
     </form>
-    <p id="wlmsg" style="margin-top:12px;font-size:13px;color:#A78BFA"></p>
+    <p id="wlmsg" role="status" aria-live="polite" style="margin-top:12px;font-size:13px;color:#A78BFA"></p>
   </div>
 <script>
 document.getElementById('waitlist').addEventListener('submit',async e=>{
@@ -219,7 +219,7 @@ document.getElementById('waitlist').addEventListener('submit',async e=>{
     <a href="/docs">Docs</a>
     <a href="https://ai-company.lazynext.com/api/v1/docs">API reference</a>
     <a href="https://penpot.lazynext.com">Design system</a>
-    <a href="https://github.com/Lazynext-AI">GitHub</a>
+    <a href="https://github.com/lazynextai">GitHub</a>
     <a href="/status">Status</a>
     <a href="/changelog">Changelog</a>
     <a href="/legal">Legal</a>
