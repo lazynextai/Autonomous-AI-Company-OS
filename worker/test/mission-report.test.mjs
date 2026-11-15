@@ -208,15 +208,15 @@ test("the report route is dispatched inside the internal GET block, after the be
   // The route match must sit between the GET block opening and the POST 404,
   // i.e. inside route() which the fetch wrapper only reaches past the gate.
   const gateLine = indexSource.indexOf('if (auth !== `Bearer ${env.API_TOKEN}`) return unauthorized();');
-  const routeCall = indexSource.indexOf('return await route(req, env, ctx, path);');
-  const getBlock = indexSource.indexOf("if (req.method === \"GET\") {");
+  const routeCall = indexSource.indexOf('res = await route(req, env, ctx, path);');
+  const getBlock = indexSource.indexOf("if (isRead(req)) {");
   const postGuard = indexSource.indexOf('if (req.method !== "POST") return json({ error: "not found" }, 404);');
   assert.ok(gateLine >= 0 && routeCall > gateLine, "route() must be reachable only past the bearer gate");
   const line = indexSource.split("\n").find((l) => l.includes("\\/report\\/mission\\/"));
   assert.ok(line, "the /report/mission/:taskId match must be in index.ts");
   assert.match(line, /\\\/report\\\/mission\\\//, "the match is anchored on the literal path");
   const idx = indexSource.indexOf("missionReport(env, mission[1])");
-  assert.ok(idx > getBlock && idx < postGuard, "the handler must be dispatched in the internal GET block");
+  assert.ok(idx > getBlock && idx < postGuard, "the handler must be dispatched in the internal GET/HEAD read block");
 });
 
 test("the report route is documented as x-internal with internalAuth", () => {

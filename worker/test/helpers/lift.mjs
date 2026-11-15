@@ -21,12 +21,21 @@ export function loadModule(file, deps, exportNames) {
   const js = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
-  const depNames = Object.keys(deps);
+  // Gateway helpers used widely after import-stripping — inject unless a test overrides.
+  const merged = {
+    isRead: (req) => req.method === "GET" || req.method === "HEAD",
+    headEmpty: (req, res) =>
+      req.method !== "HEAD"
+        ? res
+        : new Response(null, { status: res.status, statusText: res.statusText, headers: res.headers }),
+    ...deps,
+  };
+  const depNames = Object.keys(merged);
   const factory = new Function(
     ...depNames,
     `${js}\nreturn { ${exportNames.join(", ")} };`,
   );
-  return factory(...depNames.map((n) => deps[n]));
+  return factory(...depNames.map((n) => merged[n]));
 }
 
 // --- fake D1 --------------------------------------------------------------

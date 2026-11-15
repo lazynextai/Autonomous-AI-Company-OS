@@ -154,7 +154,7 @@ test("a pre-feature meta record lists as unknown without rewriting it", async ()
 
 test("provenance never changes dispatch: no gate/breaker code is consulted on upload", () => {
   const mediaStart = src.indexOf('if (path === "/api/v1/media" && req.method === "POST")');
-  const mediaEnd = src.indexOf('if (path === "/api/v1/media" && req.method === "GET")', mediaStart);
+  const mediaEnd = src.indexOf('if (path === "/api/v1/media" && read)', mediaStart);
   assert.ok(mediaStart > 0 && mediaEnd > mediaStart, "media upload slice not found");
   const handler = src.slice(mediaStart, mediaEnd);
   assert.equal(/decisionGate|check_outbound|outboundDecision|breaker/.test(handler), false);

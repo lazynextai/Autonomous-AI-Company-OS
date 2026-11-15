@@ -12,7 +12,7 @@
  * retention (KV cert + D1 audit), attribution (token link + typed name +
  * IP/UA). Not a notary service — high-assurance use cases still warrant one.
  */
-import { Env, json, authorize, touchKey } from "./gateway";
+import { Env, json, authorize, touchKey, isRead } from "./gateway";
 import { brevoSend } from "./services";
 import { publishToBus } from "./webhooks";
 
@@ -168,15 +168,17 @@ export async function createSignRequest(
 
 /** Authenticated /api/v1/sign/* surface (scoped API keys). */
 export async function handleSignApi(req: Request, env: Env, ctx: ExecutionContext, path: string): Promise<Response> {
-  const { key, res } = await authorize(req, env, req.method === "GET" ? "read" : "write");
+  // HEAD shares GET on list/detail reads; POST/DELETE and public view-mark stay exact.
+  const read = isRead(req);
+  const { key, res } = await authorize(req, env, read ? "read" : "write");
   if (res) return res;
   touchKey(env, ctx, key!.id);
-  const b = req.method === "GET" ? {} : ((await req.json().catch(() => ({}))) as Record<string, unknown>);
+  const b = read ? {} : ((await req.json().catch(() => ({}))) as Record<string, unknown>);
 
   if (path === "/api/v1/sign/requests" && req.method === "POST")
     return createSignRequest(env, ctx, b, `api:${key!.name}`);
 
-  if (path === "/api/v1/sign/requests" && req.method === "GET") {
+  if (path === "/api/v1/sign/requests" && read) {
     const { results } = await env.DB.prepare(
       `SELECT id, public_id, signer_email, signer_name, requester_email, title, doc_ref, doc_hash, status,
               signed_name, signed_at, decline_reason, created_at FROM sign_requests ORDER BY id DESC LIMIT 200`,
@@ -189,7 +191,7 @@ export async function handleSignApi(req: Request, env: Env, ctx: ExecutionContex
   const row = (await env.DB.prepare("SELECT * FROM sign_requests WHERE public_id = ?").bind(detail[1]).first()) as unknown as SignRow | null;
   if (!row) return json({ error: "not found" }, 404);
 
-  if (req.method === "GET" && !detail[2]) {
+  if (read && !detail[2]) {
     const { token, ...rest } = row;
     return json({ request: { ...rest, audit: JSON.parse(row.audit || "[]") } });
   }
@@ -230,7 +232,7 @@ export async function handleSignPublic(req: Request, env: Env, ctx: ExecutionCon
 
   // The request body can only be read once — parse it up front for POST.
   const postBody = req.method === "POST" ? ((await req.json().catch(() => ({}))) as { t?: string; name?: string; consent?: boolean; decline?: boolean; reason?: string }) : {};
-  const token = req.method === "GET" ? (url.searchParams.get("t") ?? "") : String(postBody.t ?? "");
+  const token = isRead(req) ? (url.searchParams.get("t") ?? "") : String(postBody.t ?? "");
   if (token !== row.token) return html("<h1>Invalid link</h1><p class='muted'>This signature link is missing or wrong — use the exact link from your email.</p>", 403);
 
   if (m[2] === "/certificate") {
@@ -267,6 +269,13 @@ document.getElementById('declineBtn').onclick=async()=>{const reason=prompt('Opt
 await fetch(location.pathname,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({t:${JSON.stringify(row.token)},decline:true,reason})});
 document.body.innerHTML='<h1>Declined</h1><p class="muted">The requester has been notified.</p>';};
 </script>`);
+  }
+
+  // HEAD probes: same auth as GET, no pending→viewed side effect.
+  if (req.method === "HEAD") {
+    if (row.status === "completed" || row.status === "pending" || row.status === "viewed")
+      return new Response(null, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
+    return new Response(null, { status: 404, headers: { "content-type": "text/html; charset=utf-8" } });
   }
 
   if (req.method === "POST") {

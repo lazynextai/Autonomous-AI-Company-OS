@@ -2,6 +2,14 @@
 // badge with the number of open tasks.
 const BASE = "https://ai-company.lazynext.com";
 
+// task_log vocabulary is pending | in_progress | completed | failed | escalated.
+// (Older draft used queued/running — those never appear in API responses.)
+function countOpenTasks(tasks) {
+  return (tasks || []).filter(
+    (t) => t.status === "pending" || t.status === "in_progress",
+  ).length;
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.create("poll", { periodInMinutes: 5 });
 });
@@ -22,7 +30,7 @@ async function poll() {
     });
     if (!r.ok) throw new Error(String(r.status));
     const { tasks } = await r.json();
-    const open = (tasks || []).filter((t) => t.status === "queued" || t.status === "running").length;
+    const open = countOpenTasks(tasks);
     chrome.action.setBadgeText({ text: open ? String(open) : "" });
     chrome.action.setBadgeBackgroundColor({ color: "#8B5CF6" });
   } catch {
