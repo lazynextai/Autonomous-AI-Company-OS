@@ -10,6 +10,7 @@ import {
   Activity, Key, Settings, Menu, X, BarChart3, Package, Bell, Search, ChevronDown, Plus,
   Rocket, Code2, MessageSquare, TerminalSquare, ShieldCheck, ScrollText, Shield,
   LogOut, CreditCard, Zap, Palette, LifeBuoy, CalendarClock, ShoppingCart, Send, PenTool, Image, Webhook,
+  Crosshair, Layers,
 } from "lucide-react";
 
 const NAV = [
@@ -35,6 +36,8 @@ const NAV = [
   { href: "/logs", label: "Logs", icon: TerminalSquare },
   { href: "/approvals", label: "Approvals", icon: ShieldCheck },
   { href: "/governance", label: "Governance", icon: Shield },
+  { href: "/mission", label: "Mission", icon: Crosshair },
+  { href: "/templates", label: "Templates", icon: Layers },
   { href: "/audit", label: "Audit", icon: ScrollText },
   { href: "/sandbox", label: "Sandbox", icon: TerminalSquare },
   { href: "/team", label: "Team", icon: Users },

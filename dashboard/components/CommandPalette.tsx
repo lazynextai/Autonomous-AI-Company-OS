@@ -32,6 +32,8 @@ const ITEMS = [
   { href: "/logs", label: "Logs", icon: Activity, hint: "Console — errors + events" },
   { href: "/approvals", label: "Approvals", icon: Activity, hint: "Sign off on sensitive actions" },
   { href: "/governance", label: "Governance", icon: Activity, hint: "Breakers, readiness, decision packages" },
+  { href: "/mission", label: "Mission", icon: Activity, hint: "Task mission → outcome → cost report" },
+  { href: "/templates", label: "Templates", icon: Activity, hint: "Company template packs — validate then activate" },
   { href: "/audit", label: "Audit", icon: Activity, hint: "Who did what — founder + agent events" },
   { href: "/sandbox", label: "Sandbox", icon: Activity, hint: "Cloudflare exec container — run code" },
   { href: "/team", label: "Team", icon: Activity, hint: "1 human + the agent crew" },
