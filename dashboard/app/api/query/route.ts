@@ -4,6 +4,9 @@ import { classifySql, hasMutateConfirm } from "@/lib/blast_radius";
 
 export const dynamic = "force-dynamic";
 
+// NEVER probe this door with DROP/DELETE/DDL against production to "test" the
+// blast-radius guard — verify via unit tests + SELECT only (incident 2026-11-15).
+
 export async function POST(req: NextRequest) {
   let body: { sql?: unknown; params?: unknown };
   try {
