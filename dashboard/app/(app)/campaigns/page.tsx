@@ -51,8 +51,20 @@ export default function CampaignsPage() {
   };
   const send = async (id: number) => {
     const r = await svc(`/api/v1/marketing/campaigns/${id}/send`);
-    const d = await r.json();
-    toast(r.ok ? `Sent to ${d.sent} contacts` : (d.error || "Send failed"));
+    const d = await r.json().catch(() => ({} as { error?: string; reason?: string; sent?: number }));
+    if (r.ok) {
+      toast(`Sent to ${d.sent} contacts`);
+    } else if (
+      r.status === 503 ||
+      /decision\s*gate/i.test(String(d.error || "")) ||
+      /missing approval/i.test(String(d.error || d.reason || ""))
+    ) {
+      toast(
+        `Blocked by decision gate${d.reason ? ` — ${d.reason}` : ""} — approve campaign:${id} under Approvals / Governance first`,
+      );
+    } else {
+      toast(d.error || "Send failed");
+    }
     load();
   };
 

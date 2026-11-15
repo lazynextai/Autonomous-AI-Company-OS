@@ -9,7 +9,7 @@ import {
   LayoutDashboard, Users, ListTodo, Brain, FileText, BookOpen,
   Activity, Key, Settings, Menu, X, BarChart3, Package, Bell, Search, ChevronDown, Plus,
   Rocket, Code2, MessageSquare, TerminalSquare, ShieldCheck, ScrollText, Shield,
-  LogOut, CreditCard, Zap, Palette, LifeBuoy, CalendarClock, ShoppingCart, Send, PenTool, Image,
+  LogOut, CreditCard, Zap, Palette, LifeBuoy, CalendarClock, ShoppingCart, Send, PenTool, Image, Webhook,
 } from "lucide-react";
 
 const NAV = [
@@ -31,6 +31,7 @@ const NAV = [
   { href: "/campaigns", label: "Marketing", icon: Send },
   { href: "/media", label: "Media", icon: Image },
   { href: "/signatures", label: "Signatures", icon: PenTool },
+  { href: "/webhooks", label: "Webhooks", icon: Webhook },
   { href: "/logs", label: "Logs", icon: TerminalSquare },
   { href: "/approvals", label: "Approvals", icon: ShieldCheck },
   { href: "/governance", label: "Governance", icon: Shield },

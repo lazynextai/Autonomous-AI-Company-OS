@@ -75,8 +75,10 @@ export default function TeamPage() {
         <Card>
           <h2 className="text-sm font-semibold mb-2">Human roles</h2>
           <p className="text-xs text-muted">
-            This is a single-owner product — the company is one human plus the agent crew. Seats,
-            SSO and org roles appear if the platform ever goes multi-tenant.
+            This is a single-owner product — the company is one human plus the agent crew. Member
+            email/password accounts can open app pages, but every data API stays owner-session only
+            today (empty shells for members are expected, not a broken login). Seats, SSO and org
+            roles appear if the platform ever goes multi-tenant.
           </p>
         </Card>
       </div>
