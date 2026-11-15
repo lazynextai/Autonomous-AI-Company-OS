@@ -1,19 +1,23 @@
-# Campaign decision packages (draft) — 2026-11-15
+# Campaign decision packages — 2026-11-15 (approved 2026-11-16)
 
-`config:decision_enforce` is **approval**. Campaign sends need an **approved, unexpired** package whose `target` is `campaign:<id>` before `POST /api/v1/marketing/campaigns/:id/send` can proceed. Creating a draft does **not** unlock send.
+`config:decision_enforce` is **approval**. Campaign sends need an **approved, unexpired** package whose `target` is `campaign:<id>` before `POST /api/v1/marketing/campaigns/:id/send` can proceed.
 
-## Packages created (DRAFT only — not approved)
+## Packages (UNLOCKED — send still deliberate)
 
-| Package id | Target | Campaign | Outcome | Expiry |
-|------------|--------|----------|---------|--------|
-| **40** | `campaign:10` | `outreach-founder-perspective-2026-11-03` (draft, subscribed, opt_in) | **draft** | 2026-12-31 |
-| **41** | `campaign:11` | `outreach-round2-2026-11-05` (draft, subscribed, **prospect**) | **draft** | 2026-12-31 |
+| Package id | Target | Campaign | Outcome | Expiry | Decided by |
+|------------|--------|----------|---------|--------|------------|
+| **40** | `campaign:10` | `outreach-founder-perspective-2026-11-03` (draft, subscribed, opt_in) | **approved** | 2026-12-31 | `founder-continue-all` |
+| **41** | `campaign:11` | `outreach-round2-2026-11-05` (draft, subscribed, **prospect**) | **approved** | 2026-12-31 | `founder-continue-all` |
 
-## What the founder must do before send
+Approved 2026-11-16 via `POST /decision/packages/{40\|41}/decide` with `{"outcome":"approved"}` under founder "continue all" (unlock only). Verified live: both `outcome=approved`, targets `campaign:10` / `campaign:11`, `expiry_at=2026-12-31T23:59:59.000Z` (unexpired).
 
-1. Review copy + audience (esp. campaign 11 — `consent_basis=prospect`).
-2. Approve the matching package: `POST /decision/packages/{40|41}/decide` with `{ "outcome": "approved" }` (or use dashboard Governance / Approvals once wired for decide).
-3. Only then call send. The gate still runs on every send; a draft or expired package returns **503**.
+## SEND still requires a separate deliberate action
+
+Approving the package **only** clears the decision gate. It does **not** send mail.
+
+- Do **not** call `POST /api/v1/marketing/campaigns/10/send` or `/11/send` (or Brevo blast) unless the founder explicitly asks to send.
+- Dashboard Marketing → campaign Send, or an admin-scoped API send, remains a separate human step.
+- Campaign 11 still has `consent_basis=prospect` — review audience fit before any send.
 
 ## Skipped (no new package)
 
@@ -23,4 +27,4 @@
 
 ## Dashboard
 
-Draft packages appear on the Approvals governance inbox (`/approvals` filters `outcome=draft` from `/decision/packages`) and on Governance → Decisions. No approve or send was performed in this pass.
+Approved packages show on Governance → Decisions. Gate blocks for `campaign:10` / `campaign:11` should clear once send is attempted with these packages still approved and unexpired.
