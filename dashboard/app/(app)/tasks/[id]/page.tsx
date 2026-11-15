@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { queryApi, parseJson } from "@/lib/api";
+import { queryApi, parseJson, mutateQuery, mutateFetch } from "@/lib/api";
 import { Card, StatusBadge, Empty, timeAgo } from "@/components/ui";
 import { toast } from "@/components/Toast";
 import { ArrowLeft, XCircle, RotateCcw } from "lucide-react";
@@ -32,11 +32,7 @@ export default function TaskDetailPage() {
 
   const act = async (sql: string, msg: string) => {
     setActing(true);
-    const r = await fetch("/api/query", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ sql, params: [id] }),
-    });
+    const r = await mutateQuery(sql, [id]);
     toast(r.ok ? msg : "Action failed");
     setActing(false);
     if (r.ok) setTimeout(() => location.reload(), 600);
@@ -187,13 +183,9 @@ export default function TaskDetailPage() {
               onSubmit={async (e) => {
                 e.preventDefault();
                 if (!comment.trim()) return;
-                const r = await fetch("/api/publish", {
-                  method: "POST",
-                  headers: { "content-type": "application/json" },
-                  body: JSON.stringify({
-                    channel: "task_comments",
-                    payload: { task_id: id, text: comment, by: "founder" },
-                  }),
+                const r = await mutateFetch("/api/publish", {
+                  channel: "task_comments",
+                  payload: { task_id: id, text: comment, by: "founder" },
                 });
                 if (r.ok) {
                   setComments((cs) => [...cs, { text: comment, by: "founder", at: new Date().toISOString() }]);

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PageHeader, Card } from "@/components/ui";
 import { TerminalSquare, ChevronRight as Run } from "lucide-react";
+import { mutateFetch } from "@/lib/api";
 
 const SAMPLE = `import sys, platform
 print("python", platform.python_version())
@@ -18,11 +19,7 @@ export default function SandboxPage() {
     if (!code.trim()) return;
     setRunning(true);
     try {
-      const r = await fetch("/api/sandbox/exec", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ code }),
-      });
+      const r = await mutateFetch("/api/sandbox/exec", { code });
       const d = await r.json();
       const text = d.error || d.stderr || d.stdout || JSON.stringify(d);
       setLog((l) => [{ ok: !!d.success, text }, ...l].slice(0, 20));

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PageHeader, Card } from "@/components/ui";
-import { queryApi } from "@/lib/api";
+import { queryApi, mutateQuery, MUTATE_HEADERS } from "@/lib/api";
 import { toast } from "@/components/Toast";
 import Link from "next/link";
 import {
@@ -183,7 +183,7 @@ function ConnectorHook({ id, name, hint, oauth }: { id: string; name: string; hi
             if (!val) return;
             const r = await fetch("/api/kv", {
               method: "POST",
-              headers: { "content-type": "application/json" },
+              headers: MUTATE_HEADERS,
               body: JSON.stringify({ action: "put", key: `conn:${id}`, value: val }),
             });
             toast(r.ok ? `${name} connected` : "Failed");
@@ -217,7 +217,7 @@ function ConnectorHook({ id, name, hint, oauth }: { id: string; name: string; hi
               if (!appVal) return;
               const r = await fetch("/api/kv", {
                 method: "POST",
-                headers: { "content-type": "application/json" },
+                headers: MUTATE_HEADERS,
                 body: JSON.stringify({ action: "put", key: `conn:${id}:app`, value: appVal }),
               });
               toast(r.ok ? `${name} app creds saved` : "Failed");
@@ -234,9 +234,13 @@ function ConnectorHook({ id, name, hint, oauth }: { id: string; name: string; hi
 }
 
 function kv(action: string, key: string, value?: string) {
+  const headers =
+    action === "get"
+      ? { "content-type": "application/json" }
+      : MUTATE_HEADERS;
   return fetch("/api/kv", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers,
     body: JSON.stringify({ action, key, value }),
   }).then((r) => r.json());
 }
@@ -455,7 +459,7 @@ export default function SettingsPage() {
                   if (!email) return toast("No founder_email set");
                   const r = await fetch("/api/email", {
                     method: "POST",
-                    headers: { "content-type": "application/json" },
+                    headers: MUTATE_HEADERS,
                     body: JSON.stringify({
                       to: email,
                       subject: "Verify your Lazynext email",
@@ -538,18 +542,14 @@ export default function SettingsPage() {
               if (!confirm("Delete all demo data? Agents, tasks, product info, and demo bus messages will be removed.")) return;
               const stmts = [
                 "DELETE FROM task_log WHERE task_id LIKE 'demo-%'",
-                "DELETE FROM agent_memories",
+                "DELETE FROM agent_memories WHERE id IS NOT NULL",
                 "DELETE FROM bus_messages WHERE payload LIKE '%demo%'",
                 "DELETE FROM milestone_log WHERE description LIKE '%demo%'",
-                "UPDATE company_brain SET product_name = NULL, product_description = NULL, shipped_features = '[]', live_urls = '{}', agent_statuses = '{}'",
+                "UPDATE company_brain SET product_name = NULL, product_description = NULL, shipped_features = '[]', live_urls = '{}', agent_statuses = '{}' WHERE id IS NOT NULL",
               ];
               let ok = true;
               for (const sql of stmts) {
-                const r = await fetch("/api/query", {
-                  method: "POST",
-                  headers: { "content-type": "application/json" },
-                  body: JSON.stringify({ sql, params: [] }),
-                });
+                const r = await mutateQuery(sql, []);
                 if (!r.ok) ok = false;
               }
               toast(ok ? "Demo data cleared" : "Some deletions failed");

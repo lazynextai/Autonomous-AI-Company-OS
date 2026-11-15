@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { queryApi, parseJson } from "@/lib/api";
+import { queryApi, parseJson, MUTATE_HEADERS } from "@/lib/api";
 import { Card, StatusBadge, Empty, timeAgo } from "@/components/ui";
 import { ArrowLeft, Settings2 } from "lucide-react";
 import { toast } from "@/components/Toast";
@@ -119,7 +119,7 @@ export default function AgentDetailPage() {
                 onClick={async () => {
                   const r = await fetch("/api/kv", {
                     method: "POST",
-                    headers: { "content-type": "application/json" },
+                    headers: MUTATE_HEADERS,
                     body: JSON.stringify({
                       action: "put",
                       key: `agent_config:${agent.agent_id}`,

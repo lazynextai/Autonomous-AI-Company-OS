@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { queryApi } from "@/lib/api";
+import { queryApi, MUTATE_HEADERS } from "@/lib/api";
 import { PageHeader, Card } from "@/components/ui";
 import { CreditCard, Activity, Key, Rocket, BookOpen, TrendingUp } from "lucide-react";
 import { toast } from "@/components/Toast";
@@ -62,7 +62,7 @@ export default function BillingPage() {
     if (name === "Founder") {
       const r = await fetch("/api/kv", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: MUTATE_HEADERS,
         body: JSON.stringify({ action: "put", key: "plan", value: JSON.stringify({ name }) }),
       });
       if (r.ok) { setPlan(name); setPlanOpen(false); toast(`Plan → ${name}`); }

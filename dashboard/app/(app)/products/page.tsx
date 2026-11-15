@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { queryApi, parseJson } from "@/lib/api";
+import { queryApi, parseJson, mutateFetch } from "@/lib/api";
 import { PageHeader, Card, StatusBadge, Empty, timeAgo } from "@/components/ui";
 import { toast } from "@/components/Toast";
 import { Package, ExternalLink, FolderGit2, Rocket, X } from "lucide-react";
@@ -40,18 +40,14 @@ export default function ProductsPage() {
 
   const deploy = async () => {
     setBusy(true);
-    const r = await fetch("/api/publish", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        channel: "deploys",
-        payload: {
-          type: "deploy_request",
-          product: brain?.product_name,
-          from: "dashboard",
-          requested_by: "founder",
-        },
-      }),
+    const r = await mutateFetch("/api/publish", {
+      channel: "deploys",
+      payload: {
+        type: "deploy_request",
+        product: brain?.product_name,
+        from: "dashboard",
+        requested_by: "founder",
+      },
     });
     setBusy(false);
     setConfirm(false);

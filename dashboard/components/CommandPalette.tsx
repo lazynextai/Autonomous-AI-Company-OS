@@ -7,6 +7,7 @@ import {
   Activity, Key, Settings, Search, Zap, TerminalSquare, Moon, LogOut,
 } from "lucide-react";
 import { toast } from "@/components/Toast";
+import { MUTATE_HEADERS } from "@/lib/api";
 
 const ITEMS = [
   { href: "/", label: "Overview", icon: LayoutDashboard, hint: "Dashboard home" },
@@ -48,7 +49,7 @@ const ACTIONS: { label: string; hint: string; icon: any; run: (router: ReturnTyp
     hint: "One agent generates a message on the bus",
     icon: Zap,
     run: async () => {
-      const r = await fetch("/api/tick", { method: "POST" });
+      const r = await fetch("/api/tick", { method: "POST", headers: MUTATE_HEADERS });
       return r.ok ? "Agent ticked" : "Tick failed";
     },
   },

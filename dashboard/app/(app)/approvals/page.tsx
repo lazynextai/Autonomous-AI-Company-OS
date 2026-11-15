@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { queryApi, parseJson } from "@/lib/api";
+import { queryApi, parseJson, mutateFetch } from "@/lib/api";
 import { PageHeader, Card, Empty, timeAgo } from "@/components/ui";
 import { toast } from "@/components/Toast";
 import { ShieldCheck, Check, X } from "lucide-react";
@@ -15,11 +15,7 @@ interface Approval {
 }
 
 async function publish(payload: any) {
-  return fetch("/api/publish", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ channel: "approvals", payload }),
-  });
+  return mutateFetch("/api/publish", { channel: "approvals", payload });
 }
 
 export default function ApprovalsPage() {

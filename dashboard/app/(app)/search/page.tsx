@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { queryApi, } from "@/lib/api";
+import { queryApi, mutateQuery } from "@/lib/api";
 import { PageHeader, Card, StatusBadge, timeAgo } from "@/components/ui";
 import { Search as SearchIcon, ListTodo, Users, BookOpen, Globe, Loader2, Plus } from "lucide-react";
 
@@ -36,14 +36,10 @@ export default function SearchPage() {
   };
 
   const ingest = async (h: any) => {
-    await fetch("/api/query", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        sql: "INSERT INTO knowledge_chunks (id, filename, category, chunk_index, content) VALUES (lower(hex(randomblob(16))), ?, ?, 0, ?)",
-        params: [h.url, "web_research", `${h.title}\n${h.snippet}`],
-      }),
-    });
+    await mutateQuery(
+      "INSERT INTO knowledge_chunks (id, filename, category, chunk_index, content) VALUES (lower(hex(randomblob(16))), ?, ?, 0, ?)",
+      [h.url, "web_research", `${h.title}\n${h.snippet}`],
+    );
   };
 
   useEffect(() => {

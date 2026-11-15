@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X, Plus } from "lucide-react";
 import { toast } from "@/components/Toast";
+import { mutateFetch } from "@/lib/api";
 
 const ROLES = [
   "ceo_agent", "product_manager_agent", "market_researcher_agent",
@@ -19,18 +20,14 @@ export default function AssignTaskModal({ onDone }: { onDone: () => void }) {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const r = await fetch("/api/publish", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        channel: "tasks",
-        payload: {
-          type: "assign_task",
-          agent_id: role,
-          description: desc,
-          from: "dashboard",
-        },
-      }),
+    const r = await mutateFetch("/api/publish", {
+      channel: "tasks",
+      payload: {
+        type: "assign_task",
+        agent_id: role,
+        description: desc,
+        from: "dashboard",
+      },
     });
     setBusy(false);
     if (r.ok) {
