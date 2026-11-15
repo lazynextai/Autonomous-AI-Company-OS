@@ -80,7 +80,7 @@ Founder completed signed-in Google Search Console as `support@lazynext.com` on p
 
 ## Inbox (safe read, 2026-11-16 ~01:04 IST)
 
-- **Partner Center:** still **no decision email** (no new vetting result from `supportmail@techsupport.microsoft.com` / SellerId `96466040`). Do **not** OTP / browser Partner Center. Email-only follow-up draft remains at `docs/ops/partner-center-followup-draft-2026-11-15.md` if founder wants to send.
+- **Partner Center:** status follow-up **SENT 2026-11-15** (Gmail message `1a1e06da76bf9af8`, thread `1a1b062c0e2d4d77`; IMAP Sent Mail confirmed 2026-11-16). Still **no decision email** from Microsoft. Do **not** OTP / browser Partner Center; do **not** re-send. Archive: `docs/ops/partner-center-followup-draft-2026-11-15.md`.
 - **Cloudflare billing:** no new overdue / Confirm-your-payment alarm in recent inbox sweep (Nov 1 `IN-86694892` stays Paid).
 - **M365 / Power Automate:** watch only — M365 trial ends **~27 Nov 2026** (auto-renew cancelled); Power Automate Premium trial auto-converts ~**2027-01-28** if not cancelled. Sales/advisor marketing mail ignore.
 - **W3C:** no staff reply mail; PR is the signal.
@@ -88,7 +88,7 @@ Founder completed signed-in Google Search Console as `support@lazynext.com` on p
 
 ## Founder / wait list (GSC removed — nowhere else for autonomous continue-all)
 
-1. **Partner Center** — wait for decision email **or** founder sends the email-only follow-up; never OTP loops.
+1. **Partner Center** — wait for Microsoft decision email on thread `1a1b062c0e2d4d77` (follow-up already SENT `1a1e06da76bf9af8`); never OTP loops / re-send.
 2. **Cancel watch** — M365 trial (~27 Nov) + Power Automate Premium (~2027-01-28) before paid convert.
 3. **External directories** — wait: W3C #1459 merge, mcp.so #6529 review (no pay), directree ~35-day approval, AlternativeTo free queue; optionally recheck GSC coverage later (requests already filed).
 4. **WHOIS privacy** — optional flip `lazynext.com` back to Private after Partner Center verification completes (founder call).
