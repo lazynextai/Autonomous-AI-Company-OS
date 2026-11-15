@@ -6,6 +6,12 @@
 <title>Accessibility statement — Lazynext</title>
 <meta name="description" content="Lazynext's accessibility statement for lazynext.com: our WCAG 2.1 Level AA target, the measures we take, known limitations, and how to report a barrier."/>
 <link rel="canonical" href="https://lazynext.com/accessibility"/>
+<meta property="og:title" content="Accessibility statement — Lazynext"/>
+<meta property="og:description" content="Lazynext's accessibility statement for lazynext.com: WCAG 2.1 Level AA target, measures taken, known limitations, and how to report a barrier."/>
+<meta property="og:url" content="https://lazynext.com/accessibility"/>
+<meta property="og:type" content="website"/>
+<meta property="og:image" content="https://lazynext.com/og.png"/>
+<meta name="twitter:card" content="summary_large_image"/>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%238B5CF6'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='sans-serif'>◆</text></svg>"/>
 <style>
 :root{--bg:#0A0A0B;--card:#141419;--border:#26262E;--accent:#8B5CF6;--accentSoft:#A78BFA;--accentBg:#1E1B2E;--text:#FAFAFA;--muted:#9C9CAA}
@@ -40,8 +46,9 @@ li strong{color:var(--text)}
 .callout{background:var(--accentBg);border:1px solid var(--accent);border-radius:12px;padding:18px 22px;margin:14px 0 4px}
 .callout p{margin:0;color:var(--text);font-size:14px}
 footer{border-top:1px solid var(--border);padding:28px 0;color:var(--muted);font-size:12px;text-align:center}
-footer a{color:var(--muted);text-decoration:underline;text-underline-offset:3px;display:inline-block;min-height:24px;padding:9px 6px;margin:-9px -2px;
+footer a{color:var(--muted);text-decoration:underline;text-underline-offset:3px;display:inline-block;min-height:24px;padding:9px 6px;margin:-9px -2px}
 footer a:hover{color:var(--text)}
+pre{overflow-x:auto;max-width:100%}
 .skip{position:absolute;left:-9999px;top:0;background:#6D28D9;color:#fff;padding:10px 18px;border-radius:0 0 10px 0;font-size:13px;font-weight:700;z-index:999}.skip:focus{left:0}
 @media(max-width:700px){h1{font-size:28px}}
 </style>
@@ -59,7 +66,7 @@ footer a:hover{color:var(--text)}
 <header>
   <h1>Accessibility statement</h1>
   <p class="sub">For <strong>lazynext.com</strong> — what we commit to, what we have done, what still falls short, and how to tell us.</p>
-  <p class="meta">Last reviewed: <time datetime="2026-11-05">5 November 2026</time></p>
+  <p class="meta">Last reviewed: <time datetime="2026-11-14">14 November 2026</time></p>
 </header>
 
 <nav class="toc" aria-labelledby="toc-heading">
@@ -114,10 +121,10 @@ footer a:hover{color:var(--text)}
 <p>These are the gaps we know about as of 5 November 2026. They are listed rather than hidden, and each has an owner.</p>
 <ul>
   <li><strong>The status page depends on JavaScript.</strong> <code>lazynext.com/status</code> builds its service list and uptime display client-side. With JavaScript disabled the rows stay at "checking…" and no change history appears. The rest of the site's content does not depend on scripting.</li>
-  <li><strong>The waitlist form has no non-JavaScript fallback and no live region.</strong> On the home page, submitting the form sends a request with JavaScript and writes the result as plain text; that message is not announced to screen reader users, and there is no fallback when scripting is off. If the form does not work for you, email <a href="mailto:support@lazynext.com">support@lazynext.com</a> and we will add you to the list by hand.</li>
+  <li><strong>The waitlist form has no non-JavaScript fallback.</strong> On the home page, submitting the form sends a request with JavaScript; the result message is announced to screen reader users via a live region, but there is no fallback when scripting is off. If the form does not work for you, email <a href="mailto:support@lazynext.com">support@lazynext.com</a> and we will add you to the list by hand.</li>
   <li><strong>Data tables and code samples can require horizontal scrolling.</strong> On the documentation page, wide tables and long code lines scroll inside their container. This is deliberate for tabular data, but it means some content is not fully readable at 400% zoom on a narrow viewport.</li>
   <li><strong>Email and linked third-party services are outside our control.</strong> We send transactional mail through Brevo and link to GitHub and Penpot; we cannot guarantee the accessibility of interfaces we do not build.</li>
-  <li><strong>Some content is still being audited.</strong> Older pages have not all been through a manual review. Pages reviewed so far: this statement, home, docs, legal, pricing, status. The changelog is pending.</li>
+  <li><strong>Some content is still being audited.</strong> Older pages have not all been through a manual review. Pages reviewed so far: this statement, home, pricing, docs, status, changelog, legal, privacy, terms, and the blog post. Reviewed on 14 November 2026.</li>
 </ul>
 </section>
 
@@ -145,7 +152,7 @@ footer a:hover{color:var(--text)}
 <h2>Enforcement and contact</h2>
 <p>This statement is published by <strong>UNITED GLOBAL VENTURES PRIVATE LIMITED</strong>, trading as Lazynext, Aspire Coworks, No. 472/7 Balaji Arcade, 2nd &amp; 3rd Floor, A.V.S. Compound, 20th L Cross Road, AVS Layout, Ejipura, Koramangala 4th Block, Bengaluru, Karnataka 560095, India.</p>
 <p>Accessibility contact: <a href="mailto:support@lazynext.com">support@lazynext.com</a>. If you are not satisfied with our response, reply on the same thread and ask for it to be escalated; the request is reviewed by the person accountable for this statement, not by the agent that answered first.</p>
-<p>Statement prepared on 5 November 2026 and reviewed on the same date. We review it whenever the site's structure changes and at least every six months, or sooner if a report tells us something here is wrong.</p>
+<p>Statement prepared on 5 November 2026 and last reviewed on 14 November 2026. We review it whenever the site's structure changes and at least every six months, or sooner if a report tells us something here is wrong.</p>
 </section>
 
 </main>

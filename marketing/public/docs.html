@@ -4,7 +4,14 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Docs — Lazynext</title>
+<meta name="description" content="Documentation for the Lazynext platform — API reference, quickstart, MCP, A2A, agent.json, OpenAPI 3.1 and llms.txt surfaces."/>
 <link rel="canonical" href="https://lazynext.com/docs"/>
+<meta property="og:title" content="Docs — Lazynext"/>
+<meta property="og:description" content="Everything about the Lazynext platform — API, agents, integrations. MCP, A2A, OpenAPI 3.1, llms.txt — all live."/>
+<meta property="og:url" content="https://lazynext.com/docs"/>
+<meta property="og:type" content="website"/>
+<meta property="og:image" content="https://lazynext.com/og.png"/>
+<meta name="twitter:card" content="summary_large_image"/>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%238B5CF6'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='sans-serif'>◆</text></svg>"/>
 <style>
 :root{--bg:#0A0A0B;--card:#141419;--border:#26262E;--input:#0E0E13;--accent:#8B5CF6;--accentSoft:#A78BFA;--accentBg:#1E1B2E;--text:#FAFAFA;--muted:#9C9CAA;--ok:#22C55E}
@@ -68,13 +75,13 @@ footer a{display:inline-block;min-height:24px;padding:9px 6px;margin:-9px -2px;t
   <div class="card"><div class="ic">⚡</div><h2><a class="cardlink" href="https://ai-company.lazynext.com/api/v1/docs">API reference</a></h2><p>REST endpoints, scopes, rate limits — interactive Swagger docs.</p></div>
   <div class="card"><div class="ic">▶</div><h2><a class="cardlink" href="#quickstart">Quickstart</a></h2><p>Clone, configure, make dev — your company starts running.</p></div>
   <div class="card"><div class="ic">◐</div><h2><a class="cardlink" href="https://penpot.lazynext.com">Design system</a></h2><p>132 boards + tokens.json — the full product blueprint.</p></div>
-  <div class="card"><div class="ic">◆</div><h2><a class="cardlink" href="https://github.com/Lazynext-AI">GitHub</a></h2><p>The whole platform, open on GitHub.</p></div>
+  <div class="card"><div class="ic">◆</div><h2><a class="cardlink" href="https://github.com/lazynextai">GitHub</a></h2><p>The whole platform, open on GitHub.</p></div>
   <div class="card"><div class="ic">◉</div><h2><a class="cardlink" href="#agent-surfaces">Agent surfaces</a></h2><p>MCP, A2A, agent.json, llms.txt — callable today, verified live.</p></div>
 </div>
 
 <section id="quickstart">
 <h2>Quickstart</h2>
-<pre>git clone https://github.com/Lazynext-AI/Autonomous-AI-Company-Operating-System
+<pre>git clone https://github.com/lazynextai/Autonomous-AI-Company-OS
 cp .env.example .env   # add ATLAS, Cloudflare, GitHub, Brevo keys
 make dev</pre>
 <p class="body">Agents boot, register in D1, and begin research → plan → build → ship cycles. Watch them on the dashboard.</p>
@@ -111,7 +118,7 @@ make dev</pre>
 <tr><td><strong>agent.json</strong></td><td><a href="https://checker.lazynext.com/.well-known/agent.json" style="color:var(--accentSoft)"><code>/.well-known/agent.json</code></a></td><td>A2A 0.3.0 discovery card, 3 skills</td></tr>
 <tr><td><strong>llms.txt</strong></td><td><a href="https://checker.lazynext.com/llms.txt" style="color:var(--accentSoft)"><code>/llms.txt</code></a></td><td>Plain-text orientation for LLM crawlers</td></tr>
 <tr><td><strong>REST</strong></td><td><code>/scan</code>, <code>/report/:id</code>, <code>/rules</code>, <code>/badge/:id.svg</code>, <code>/health</code></td><td>The same scanner over plain HTTP</td></tr>
-<tr><td><strong>GitHub Action</strong></td><td><a href="https://github.com/Lazynext-AI/accessibility-checker/blob/main/action.yml" style="color:var(--accentSoft)"><code>uses: Lazynext-AI/accessibility-checker@v1</code></a></td><td>Fail the build below a score threshold</td></tr>
+<tr><td><strong>GitHub Action</strong></td><td><a href="https://github.com/lazynextai/accessibility-checker/blob/main/action.yml" style="color:var(--accentSoft)"><code>uses: lazynextai/accessibility-checker@v1</code></a></td><td>Fail the build below a score threshold</td></tr>
 </table>
 </div>
 <p class="body">No demo call. Scan a page now, or call the API — free tier included, $9/mo Pro, cancel any time.</p>
