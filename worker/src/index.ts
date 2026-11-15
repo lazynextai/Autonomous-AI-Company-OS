@@ -6,7 +6,7 @@
  * (public /api/v1/* + /mcp).
  */
 
-import { Env, json, cors, preflight, listAll } from "./gateway";
+import { Env, json, cors, preflight, listAll, isRead, headEmpty } from "./gateway";
 import { handlePublicApi } from "./public_api";
 import { handleMcp } from "./mcp";
 import { handleA2a } from "./a2a";
@@ -179,9 +179,9 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, path: string
     return json({ ok: true });
   }
 
-  // Read-only KV fetch usable over GET ?key= — ops/debug convenience.
-  // (Every other route below is POST-only.)
-  if (path === "/kv/get" && req.method === "GET") {
+  // Read-only KV fetch usable over GET/HEAD ?key= — ops/debug convenience.
+  // (Every other route below is POST-only, aside from the read block.)
+  if (path === "/kv/get" && isRead(req)) {
     const key = new URL(req.url).searchParams.get("key");
     const value = key ? await env.EPHEMERAL.get(key) : null;
     return json({ value });
@@ -189,8 +189,9 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, path: string
 
   // Governance / ledger / readiness / observer / manifest reads. All internal
   // (operator bearer) — they expose the decision trail and live probe results,
-  // which are operator surfaces, not customer data.
-  if (req.method === "GET") {
+  // which are operator surfaces, not customer data. HEAD shares GET so uptime
+  // probes do not 404 on read-only routes.
+  if (isRead(req)) {
     if (path === "/decision/packages") return listDecisionPackages(env, new URL(req.url));
     if (path === "/decision/blocks") return listDecisionBlocks(env, new URL(req.url));
     if (path === "/ledger/summary") return ledgerSummary(env, new URL(req.url));
@@ -463,51 +464,51 @@ export default {
       // Public surface: API-key gateway (own auth) + CORS
       if (path === "/favicon.ico") return new Response(null, { status: 204 });
       if (req.method === "OPTIONS") return preflight();
-      if (path === "/mcp") return cors(req, await handleMcp(req, env, ctx));
-      if (path === "/a2a" || path === "/.well-known/agent.json")
-        return cors(req, await handleA2a(req, env, ctx, path));
-      if (path.startsWith("/oauth/"))
-        return cors(req, await handleOAuth(req, env, path, url));
-      if (path === "/widget.js" || path === "/api/v1/widget/chat")
-        return cors(req, await handleWidget(req, env, ctx, path));
-      if (path.startsWith("/api/v1/billing"))
-        return cors(req, await handleBilling(req, env, ctx, path));
-      if (path.startsWith("/api/v1/webhooks"))
-        return cors(req, await handleWebhooks(req, env, ctx, path));
-      if (path.startsWith("/api/v1/signwell/webhook/"))
-        return cors(req, await handleSignwellWebhook(req, env, path));
-      if (path.startsWith("/api/v1/brevo/events/"))
-        return cors(req, await handleBrevoWebhook(req, env, path));
-      if (path.startsWith("/api/v1/brevo/inbound/"))
-        return cors(req, await handleBrevoInbound(req, env, ctx, path));
-      if (path.startsWith("/api/v1/connect/"))
-        return cors(req, await handleConnect(req, env, path, url));
-      // Public media serve — social platforms fetch these URLs server-side.
-      // UUID-shaped only so the public gate can't shadow internal routes.
-      if (/^\/media\/[0-9a-f-]{36}$/.test(path))
-        return cors(req, await handleMediaServe(req, env, path));
-      // Public e-sign surface — token-gated signing page + completion cert.
-      // UUID-shaped only: a bare /sign/ prefix would shadow internal routes
-      // like /sign/request before the bearer gate.
-      if (/^\/sign\/[0-9a-f-]{36}/.test(path))
-        return cors(req, await handleSignPublic(req, env, ctx, path, url));
-      // Native e-sign API — trailing slash keeps it disjoint from /signwell.
-      if (path.startsWith("/api/v1/sign/"))
-        return cors(req, await handleSignApi(req, env, ctx, path));
-      if (path.startsWith("/api/v1/crm") || path.startsWith("/api/v1/support") ||
+      let res: Response;
+      if (path === "/mcp") res = cors(req, await handleMcp(req, env, ctx));
+      else if (path === "/a2a" || path === "/.well-known/agent.json")
+        res = cors(req, await handleA2a(req, env, ctx, path));
+      else if (path.startsWith("/oauth/"))
+        res = cors(req, await handleOAuth(req, env, path, url));
+      else if (path === "/widget.js" || path === "/api/v1/widget/chat")
+        res = cors(req, await handleWidget(req, env, ctx, path));
+      else if (path.startsWith("/api/v1/billing"))
+        res = cors(req, await handleBilling(req, env, ctx, path));
+      else if (path.startsWith("/api/v1/webhooks"))
+        res = cors(req, await handleWebhooks(req, env, ctx, path));
+      else if (path.startsWith("/api/v1/signwell/webhook/"))
+        res = cors(req, await handleSignwellWebhook(req, env, path));
+      else if (path.startsWith("/api/v1/brevo/events/"))
+        res = cors(req, await handleBrevoWebhook(req, env, path));
+      else if (path.startsWith("/api/v1/brevo/inbound/"))
+        res = cors(req, await handleBrevoInbound(req, env, ctx, path));
+      else if (path.startsWith("/api/v1/connect/"))
+        // OAuth start/callback stay GET-exact — HEAD must not mint state or exchange codes.
+        res = cors(req, await handleConnect(req, env, path, url));
+      else if (/^\/media\/[0-9a-f-]{36}$/.test(path))
+        res = cors(req, await handleMediaServe(req, env, path));
+      else if (/^\/sign\/[0-9a-f-]{36}/.test(path))
+        // Public e-sign GET marks pending→viewed — keep HEAD out of that path
+        // (handleSignPublic is GET-exact for the mutating branch).
+        res = cors(req, await handleSignPublic(req, env, ctx, path, url));
+      else if (path.startsWith("/api/v1/sign/"))
+        res = cors(req, await handleSignApi(req, env, ctx, path));
+      else if (path.startsWith("/api/v1/crm") || path.startsWith("/api/v1/support") ||
           path.startsWith("/api/v1/booking") || path.startsWith("/api/v1/store") ||
           path.startsWith("/api/v1/marketing") || path.startsWith("/api/v1/signwell") ||
           path.startsWith("/api/v1/social") || path.startsWith("/api/v1/connectors") ||
           path.startsWith("/api/v1/ops") || path.startsWith("/api/v1/media"))
-        return cors(req, await handleServices(req, env, ctx, path));
-      if (path.startsWith("/api/")) return cors(req, await handlePublicApi(req, env, ctx, path));
-
-      // Internal surface: shared-secret auth as before
-      if (env.API_TOKEN) {
-        const auth = req.headers.get("authorization") ?? "";
-        if (auth !== `Bearer ${env.API_TOKEN}`) return unauthorized();
+        res = cors(req, await handleServices(req, env, ctx, path));
+      else if (path.startsWith("/api/")) res = cors(req, await handlePublicApi(req, env, ctx, path));
+      else {
+        // Internal surface: shared-secret auth as before
+        if (env.API_TOKEN) {
+          const auth = req.headers.get("authorization") ?? "";
+          if (auth !== `Bearer ${env.API_TOKEN}`) return unauthorized();
+        }
+        res = await route(req, env, ctx, path);
       }
-      return await route(req, env, ctx, path);
+      return headEmpty(req, res);
     } catch (e) {
       return json({ error: e instanceof Error ? e.message : String(e) }, 500);
     }

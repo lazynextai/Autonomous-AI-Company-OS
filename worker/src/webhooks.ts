@@ -2,7 +2,7 @@
  * Outbound webhooks - the bus is the company's event stream, so every
  * /bus/publish fans out to registered endpoints. Deliveries are logged.
  */
-import { Env, json, authorize, touchKey } from "./gateway";
+import { Env, json, authorize, touchKey, isRead } from "./gateway";
 
 interface WebhookEndpoint {
   id: number;
@@ -111,7 +111,8 @@ export async function handleWebhooks(
   ctx: ExecutionContext,
   path: string,
 ): Promise<Response> {
-  const { key, res } = await authorize(req, env, req.method === "GET" ? "read" : "write");
+  const read = isRead(req);
+  const { key, res } = await authorize(req, env, read ? "read" : "write");
   if (res) return res;
   touchKey(env, ctx, key!.id);
 
@@ -130,14 +131,14 @@ export async function handleWebhooks(
     return json({ ok: true, url, channels }, 201);
   }
 
-  if (req.method === "GET" && path === "/api/v1/webhooks") {
+  if (read && path === "/api/v1/webhooks") {
     const { results } = await env.DB.prepare(
       "SELECT id, url, channels, active, created_at FROM webhook_endpoints ORDER BY id",
     ).all();
     return json({ webhooks: results ?? [] });
   }
 
-  if (req.method === "GET" && path === "/api/v1/webhooks/deliveries") {
+  if (read && path === "/api/v1/webhooks/deliveries") {
     const { results } = await env.DB.prepare(
       "SELECT * FROM webhook_deliveries ORDER BY id DESC LIMIT 50",
     ).all();

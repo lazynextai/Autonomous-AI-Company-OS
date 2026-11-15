@@ -43,6 +43,17 @@ export interface ApiKey {
 
 export const JSON_HEADERS = { "content-type": "application/json" };
 
+/** Read-only probes: HEAD must share GET routing (status/headers) without a body. */
+export function isRead(req: Request): boolean {
+  return req.method === "GET" || req.method === "HEAD";
+}
+
+/** Drop the body for HEAD while keeping status + headers (uptime-probe parity). */
+export function headEmpty(req: Request, res: Response): Response {
+  if (req.method !== "HEAD") return res;
+  return new Response(null, { status: res.status, statusText: res.statusText, headers: res.headers });
+}
+
 export function json(data: unknown, status = 200, extra?: Record<string, string>): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -52,7 +63,7 @@ export function json(data: unknown, status = 200, extra?: Record<string, string>
 
 const CORS: Record<string, string> = {
   "access-control-allow-origin": "*",
-  "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
+  "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
   "access-control-allow-headers": "authorization, content-type, mcp-protocol-version, mcp-method, mcp-name, x-api-key",
 };
 

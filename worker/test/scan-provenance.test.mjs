@@ -41,14 +41,16 @@ assert.match(
   "handleBilling must use the shared provenance helpers, not a private copy",
 );
 const billingJs = transpile(billingImpl[0]);
+const isRead = (req) => req.method === "GET" || req.method === "HEAD";
 const makeHandleBilling = (deps) =>
   new Function(
     "listAll",
     "json",
     "countExternalReports",
     "countBySource",
+    "isRead",
     `${billingJs}; return handleBilling;`,
-  )(deps.listAll, deps.json, deps.countExternalReports, deps.countBySource);
+  )(deps.listAll, deps.json, deps.countExternalReports, deps.countBySource, deps.isRead ?? isRead);
 
 const fakeJson = (data, status = 200) =>
   new Response(JSON.stringify(data), {

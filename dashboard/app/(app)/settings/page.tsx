@@ -422,7 +422,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm text-fg">Two-factor auth</div>
-                <div className="text-xs text-muted">Real TOTP — an authenticator code is required at sign-in</div>
+                <div className="text-xs text-muted">Owner passphrase login only (Google Authenticator &quot;Lazynext: Admin&quot;). Member email/password accounts do not share this secret.</div>
               </div>
               <button
                 onClick={async () => {
