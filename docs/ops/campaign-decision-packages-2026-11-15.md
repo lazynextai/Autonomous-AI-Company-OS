@@ -20,16 +20,25 @@ Sent 2026-11-15 via admin-scoped `POST /api/v1/marketing/campaigns/:id/send` (Us
 | **10** | `outreach-founder-perspective-2026-11-03` | `opt_in` | subscribed | **200** | `ok:true, sent:35, total:35` | `status=sent`, `sent_count=35` | ~18:58:20 |
 | **11** | `outreach-round2-2026-11-05` | `prospect` | subscribed | **200** | `ok:true, sent:35, total:35` | `status=sent`, `sent_count=35` | ~18:58:39 |
 
-### Brevo / `email_events` breadcrumbs (minutes after send)
+### Brevo / `email_events` breadcrumbs
 
-Tags land as JSON arrays (`["campaign:10"]` / `["campaign:11"]`). Snapshot shortly after send:
+Tags land as JSON arrays (`["campaign:10"]` / `["campaign:11"]`).
+
+**~minutes after send:**
 
 | Tag | delivered | unique_opened | deferred | click | click_unsubscribe |
 |-----|-----------|---------------|----------|-------|-------------------|
 | campaign:10 | 34 | 10 | 1 | 0 | 3 |
 | campaign:11 | 34 | 9 | 1 | 3 | 4 |
 
-Early `click` / `click_unsubscribe` within seconds of delivery are consistent with **mail-scanner prefetch** (same class that previously mutated unsubscribe on campaign 12 before GET `/unsubscribe` was made non-mutating). Do not treat immediate scanner opens/unsub clicks as human engagement without checking timing.
+**Post-send health recheck 2026-11-16 (~1.5h later):**
+
+| Tag | delivered | unique_opened | opened | click | click_unsubscribe (uniq) |
+|-----|-----------|---------------|--------|-------|--------------------------|
+| campaign:10 | **35** | **11** | 1 | 0 | 6 events / **3** emails |
+| campaign:11 | **35** | **10** | 2 | 4 / 2 uniq | 6 events / **2** emails |
+
+Scanner verdict confirmed: illinois / psu / uh / aph.org hit List-Unsubscribe within ~2 min, often 2–3×. `unsub:<email>` KV **null**, `email_contacts.subscribed=1`, Brevo 2-day `unsubscribed:0`. GET `/unsubscribe` non-mutating is doing its job — **not real churn**.
 
 ## Skipped (no new package)
 
