@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { queryApi } from "@/lib/api";
+import { queryApi, mutateFetch } from "@/lib/api";
 import { PageHeader, Card, Empty, timeAgo } from "@/components/ui";
 import { toast } from "@/components/Toast";
 import { Webhook, Plus, X, Copy } from "lucide-react";
@@ -106,13 +106,9 @@ export default function WebhooksPage() {
                     <>
                       <button
                         onClick={async () => {
-                          const r = await fetch("/api/publish", {
-                            method: "POST",
-                            headers: { "content-type": "application/json" },
-                            body: JSON.stringify({
-                              channel: e.channels.split(",")[0].trim(),
-                              payload: { type: "webhook_test", by: "founder", at: new Date().toISOString() },
-                            }),
+                          const r = await mutateFetch("/api/publish", {
+                            channel: e.channels.split(",")[0].trim(),
+                            payload: { type: "webhook_test", by: "founder", at: new Date().toISOString() },
                           });
                           toast(r.ok ? "Test fired — check deliveries" : "Test failed");
                         }}

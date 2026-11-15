@@ -142,6 +142,144 @@ export async function govGet<T>(path: string): Promise<T> {
   return data as T;
 }
 
+/** POST through the same proxy — only paths on the svc INTERNAL_WRITE / ALLOWED lists. */
+export async function govPost<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch("/api/svc", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ path, body, method: "POST" }),
+    cache: "no-store",
+  });
+  const data: unknown = await res.json().catch(() => null);
+  if (!res.ok || data == null) throw new Error(errorMessage(data, res.status));
+  return data as T;
+}
+
+// —— C2 mission roll-up (GET /report/mission/:taskId) ————————————————————
+
+export interface MissionTask {
+  task_id: string;
+  agent_id: string | null;
+  description: string | null;
+  status: string | null;
+  attempts: number | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string | null;
+}
+
+export interface MissionPackageRow {
+  id: number;
+  title: string | null;
+  objective: string | null;
+  proposed_action: string | null;
+  authority: string | null;
+  outcome: string | null;
+  decided_by: string | null;
+  target: string | null;
+  expiry_at: string | null;
+  cost_projection_cents: number | null;
+  executed_task_id: string | null;
+  link: "package_direct";
+  link_confidence: "exact";
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface MissionLedgerRow {
+  id: number;
+  ref_type: string;
+  ref_id: string;
+  agent_id: string | null;
+  provider: string | null;
+  model: string | null;
+  duration_ms: number | null;
+  retries: number | null;
+  est_cost_cents: number | null;
+  acceptance: string | null;
+  downstream_note: string | null;
+  dedupe_key: string | null;
+  created_at: string | null;
+  link: "task_direct" | "package_target";
+  link_confidence: "exact" | "derived";
+}
+
+export interface MissionTotals {
+  row_count: number;
+  duration_ms: number | null;
+  retries: number | null;
+  est_cost_cents: number | null;
+  cost_kind: "estimated";
+  cost_derivation: string;
+  acceptance: {
+    passed: number;
+    failed: number;
+    na: number;
+    pass_rate: number | null;
+  } | null;
+}
+
+export interface MissionReport {
+  task_id: string;
+  generated_at: string;
+  task: MissionTask;
+  grouping: {
+    method: "derived";
+    lineage: { available: false; column: null; reason: string };
+    rules: string[];
+  };
+  decision_packages: MissionPackageRow[] | null;
+  ledger_rows: MissionLedgerRow[];
+  totals: MissionTotals;
+}
+
+// —— C5 template packs (GET /templates, POST /manifests/validate|activate) ——
+
+export interface TemplatePackSummary {
+  name: string;
+  description: string;
+  version: number;
+  body?: Record<string, unknown>;
+}
+
+export interface TemplatesResponse {
+  packs?: TemplatePackSummary[];
+}
+
+export interface ActiveManifestRow {
+  id: number;
+  name: string;
+  version: number;
+  body?: string;
+  valid: number;
+  activated: number;
+  created_at: string;
+}
+
+export interface LatestManifestResponse {
+  active: ActiveManifestRow | null;
+}
+
+export interface ManifestValidateResponse {
+  ok: boolean;
+  name: string;
+  version: number;
+  valid: boolean;
+  errors: string[];
+  stored: boolean;
+  activated: boolean;
+  note?: string;
+}
+
+export interface ManifestActivateResponse {
+  ok: boolean;
+  name: string;
+  version: number;
+  intent_surface?: string;
+  pointer?: Record<string, unknown>;
+  error?: string;
+}
+
 /** One `episodic_events` row, scope `decision_gate` — payload is a JSON string. */
 export interface GateBlock {
   id: number;

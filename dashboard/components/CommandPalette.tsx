@@ -7,6 +7,7 @@ import {
   Activity, Key, Settings, Search, Zap, TerminalSquare, Moon, LogOut,
 } from "lucide-react";
 import { toast } from "@/components/Toast";
+import { MUTATE_HEADERS } from "@/lib/api";
 
 const ITEMS = [
   { href: "/", label: "Overview", icon: LayoutDashboard, hint: "Dashboard home" },
@@ -31,6 +32,8 @@ const ITEMS = [
   { href: "/logs", label: "Logs", icon: Activity, hint: "Console — errors + events" },
   { href: "/approvals", label: "Approvals", icon: Activity, hint: "Sign off on sensitive actions" },
   { href: "/governance", label: "Governance", icon: Activity, hint: "Breakers, readiness, decision packages" },
+  { href: "/mission", label: "Mission", icon: Activity, hint: "Task mission → outcome → cost report" },
+  { href: "/templates", label: "Templates", icon: Activity, hint: "Company template packs — validate then activate" },
   { href: "/audit", label: "Audit", icon: Activity, hint: "Who did what — founder + agent events" },
   { href: "/sandbox", label: "Sandbox", icon: Activity, hint: "Cloudflare exec container — run code" },
   { href: "/team", label: "Team", icon: Activity, hint: "1 human + the agent crew" },
@@ -48,7 +51,7 @@ const ACTIONS: { label: string; hint: string; icon: any; run: (router: ReturnTyp
     hint: "One agent generates a message on the bus",
     icon: Zap,
     run: async () => {
-      const r = await fetch("/api/tick", { method: "POST" });
+      const r = await fetch("/api/tick", { method: "POST", headers: MUTATE_HEADERS });
       return r.ok ? "Agent ticked" : "Tick failed";
     },
   },

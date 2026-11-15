@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { queryApi } from "@/lib/api";
+import { queryApi, mutateQuery } from "@/lib/api";
 import { PageHeader, Card, Empty, timeAgo } from "@/components/ui";
 import { toast } from "@/components/Toast";
 import { Plus, X } from "lucide-react";
@@ -28,14 +28,10 @@ export default function KnowledgePage() {
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const r = await fetch("/api/query", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        sql: "INSERT INTO knowledge_chunks (id, filename, category, chunk_index, content) VALUES (lower(hex(randomblob(16))), ?, ?, 0, ?)",
-        params: [title.trim() || "untitled.md", category, content],
-      }),
-    });
+    const r = await mutateQuery(
+      "INSERT INTO knowledge_chunks (id, filename, category, chunk_index, content) VALUES (lower(hex(randomblob(16))), ?, ?, 0, ?)",
+      [title.trim() || "untitled.md", category, content],
+    );
     setBusy(false);
     if (r.ok) {
       toast("Knowledge added");

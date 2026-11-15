@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { queryApi, parseJson } from "@/lib/api";
+import { queryApi, parseJson, mutateFetch } from "@/lib/api";
 import { PageHeader, Card, Empty, timeAgo } from "@/components/ui";
 import { toast } from "@/components/Toast";
 import { MessageSquare, Send } from "lucide-react";
@@ -53,13 +53,9 @@ export default function ConversationsPage() {
     if (!draft.trim() || !active) return;
     setSending(true);
     const text = draft;
-    const r = await fetch("/api/publish", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        channel: active,
-        payload: { from: "founder", text, via: "dashboard" },
-      }),
+    const r = await mutateFetch("/api/publish", {
+      channel: active,
+      payload: { from: "founder", text, via: "dashboard" },
     });
     if (r.ok) {
       setDraft("");

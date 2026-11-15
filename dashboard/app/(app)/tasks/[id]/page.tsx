@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { queryApi, parseJson } from "@/lib/api";
+import { queryApi, parseJson, mutateQuery, mutateFetch } from "@/lib/api";
 import { Card, StatusBadge, Empty, timeAgo } from "@/components/ui";
+import { MissionReportPanel } from "@/components/governance/MissionReportPanel";
 import { toast } from "@/components/Toast";
-import { ArrowLeft, XCircle, RotateCcw } from "lucide-react";
+import { ArrowLeft, XCircle, RotateCcw, Crosshair } from "lucide-react";
 
 interface Task {
   task_id: string;
@@ -32,11 +33,7 @@ export default function TaskDetailPage() {
 
   const act = async (sql: string, msg: string) => {
     setActing(true);
-    const r = await fetch("/api/query", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ sql, params: [id] }),
-    });
+    const r = await mutateQuery(sql, [id]);
     toast(r.ok ? msg : "Action failed");
     setActing(false);
     if (r.ok) setTimeout(() => location.reload(), 600);
@@ -131,6 +128,12 @@ export default function TaskDetailPage() {
               <RotateCcw className="w-3.5 h-3.5" /> Retry
             </button>
           )}
+          <Link
+            href={`/mission/${encodeURIComponent(task.task_id)}`}
+            className="inline-flex items-center gap-1.5 bg-card hover:bg-cardHover border border-border text-fg text-xs font-semibold px-3.5 py-2 rounded-lg transition"
+          >
+            <Crosshair className="w-3.5 h-3.5 text-accentSoft" /> Mission
+          </Link>
           <StatusBadge status={task.status} />
         </div>
       </div>
@@ -187,13 +190,9 @@ export default function TaskDetailPage() {
               onSubmit={async (e) => {
                 e.preventDefault();
                 if (!comment.trim()) return;
-                const r = await fetch("/api/publish", {
-                  method: "POST",
-                  headers: { "content-type": "application/json" },
-                  body: JSON.stringify({
-                    channel: "task_comments",
-                    payload: { task_id: id, text: comment, by: "founder" },
-                  }),
+                const r = await mutateFetch("/api/publish", {
+                  channel: "task_comments",
+                  payload: { task_id: id, text: comment, by: "founder" },
                 });
                 if (r.ok) {
                   setComments((cs) => [...cs, { text: comment, by: "founder", at: new Date().toISOString() }]);
@@ -214,6 +213,10 @@ export default function TaskDetailPage() {
             </form>
           </Card>
         </div>
+      </div>
+
+      <div className="mt-5 max-w-6xl">
+        <MissionReportPanel taskId={task.task_id} compact />
       </div>
     </>
   );

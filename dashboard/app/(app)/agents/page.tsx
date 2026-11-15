@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { queryApi, parseJson } from "@/lib/api";
+import { queryApi, parseJson, MUTATE_HEADERS } from "@/lib/api";
 import Link from "next/link";
 import { PageHeader, Card, StatusBadge, Empty, timeAgo } from "@/components/ui";
 import { Zap } from "lucide-react";
@@ -26,7 +26,7 @@ export default function AgentsPage() {
 
   const tick = async () => {
     setTicking(true);
-    const r = await fetch("/api/tick", { method: "POST" });
+    const r = await fetch("/api/tick", { method: "POST", headers: MUTATE_HEADERS });
     const d = await r.json().catch(() => ({}));
     if (r.ok) toast(`${d.agent}: "${d.text}"`);
     else toast("Tick failed");
