@@ -1,9 +1,14 @@
-# Partner Center follow-up draft — 2026-11-15 (DO NOT SEND)
+# Partner Center follow-up — 2026-11-15 (SENT)
 
-**Status:** DRAFT for founder approval only. Not sent.  
-**Channel:** email-only to `supportmail@techsupport.microsoft.com`. Never Partner Center browser / MSA code login.
+**Status:** SENT 2026-11-15 via Gmail from `support@lazynext.com` (founder "continue all").  
+**Evidence (IMAP Sent Mail, read-only 2026-11-16):** Gmail message id `1a1e06da76bf9af8`, thread id `1a1b062c0e2d4d77` (Swasthik chase), X-GM-MSGID/X-GM-THRID hex match, `\Seen` in `[Gmail]/Sent Mail`.  
+**RFC822 Message-Id:** `<CAN39tRonYdffKc+GR8uCenOuwwBx2w2UOEBFas+i3DXjLcv6tA@mail.gmail.com>`  
+**Date:** Sun, 15 Nov 2026 10:17:24 -0800  
+**To:** `supportmail@techsupport.microsoft.com`  
+**Subject:** `Re: Partner Center account verification rejected; email OTP service fails with EmailToken_Verification_Panel_Create_Error... - TrackingID#2610070060003196`  
+**Channel:** email-only. Never Partner Center browser / MSA code login. Do **not** re-send.
 
-## Inbox verdict (read-only, 2026-11-15)
+## Inbox verdict (read-only, as of send)
 
 | Fact | Detail |
 |------|--------|
@@ -12,17 +17,17 @@
 | Last **Microsoft** inbound | 2026-11-06 — Swasthik b: *"We have not received the requested documents yet"* (thread `1a1b062c0e2d4d77`) |
 | Docs re-sent as attachments | 2026-11-06/07 — WHOIS/RDAP + Certificate of Incorporation (SENT `1a1b26669f127041`) |
 | Our chase | 2026-11-12 — follow-up from `support@lazynext.com` (same thread; **not** a Microsoft reply) |
-| Decision / approval email | **None.** No inbound from `supportmail@techsupport.microsoft.com` after 2026-11-06. Search after 2026-11-12 → 0. |
-| Window | Attempt-3 review was due ~2026-11-04; docs chase + resend then silent past ~2026-11-06/07. Today is **2026-11-15** — past the email-only follow-up window. |
+| This status follow-up | **SENT 2026-11-15** — message `1a1e06da76bf9af8` (no new PDF attachments) |
+| Decision / approval email | **None yet.** Wait for Microsoft reply on this thread. |
 
-**Verdict:** Still silent on a decision. Founder may send the draft below (or a shorter variant). Do **not** open Partner Center, do **not** request email codes, do **not** resubmit via the dashboard.
+**Post-send rule:** Wait for Microsoft. Do **not** open Partner Center, do **not** request email codes, do **not** resubmit via the dashboard, do **not** send another chase unless the founder explicitly authorizes one after another silent window.
 
 ---
 
-## Draft email (founder may copy/send)
+## Body that was sent (archive)
 
 **To:** `supportmail@techsupport.microsoft.com`  
-**Subject:** `Re: Partner Center account verification — TrackingID#2610070060003196 / SellerId 96466040`
+**Subject (threaded):** TrackingID `#2610070060003196` / SellerId `96466040`
 
 ```
 Dear Microsoft Vetting Operations,
@@ -48,9 +53,9 @@ UNITED GLOBAL VENTURES PRIVATE LIMITED (trading as Lazynext)
 support@lazynext.com
 ```
 
-## Send checklist (when founder approves)
+## Post-send checklist (done)
 
-1. Reply in-thread to the Swasthik chase if Gmail still shows it; otherwise new mail with TrackingID in the subject (Gmail threading quirk is known).
-2. Do **not** re-attach PDFs unless Microsoft again says "not received."
-3. Do **not** open Partner Center or request OTP codes.
-4. After send: record message id + date in `docs/ops/watch-calendar.md`.
+1. In-thread reply to the Swasthik chase (thread `1a1b062c0e2d4d77`).
+2. No new PDF attachments (docs already re-sent 2026-11-07).
+3. Partner Center / OTP not opened.
+4. Message id + date recorded in `docs/ops/watch-calendar.md`.
