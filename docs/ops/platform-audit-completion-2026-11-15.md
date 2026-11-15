@@ -1,6 +1,8 @@
 # Platform audit completion — 2026-11-15
 
-Concise wrap of the same-day platform / product / dashboard audits, the D1 incident, and what remains for the founder. No redeploy in this docs pass.
+Concise wrap of the same-day platform / product / dashboard audits, the D1 incident, and what remains for the founder.
+
+**Autonomous track status (rechecked 2026-11-16 ~00:34 IST):** engineering / safe-ops continue-all is **complete**. Further “continue all” has nowhere safe to go without founder or external parties (see blocked list below).
 
 ## Audits done
 
@@ -11,15 +13,16 @@ Concise wrap of the same-day platform / product / dashboard audits, the D1 incid
 | Dashboard | `audit-reports/dashboard-audit-2026-11-15.md` | Auth gate + governance reads verified; remaining items landed via PRs |
 | PWA + checkout (Dodo **test**) | `audit-reports/pwa-checkout-verification-2026-11-15.md` | PWA criteria PASS; checkout → test.dodopayments (no live flip) |
 
-Dogfood score target after shipped remediations: **100/100** on marketing + checker UI (marketing target-size / focus-occlusion + checker `select#viewport` non-text contrast). Live free `/scan` re-check at wrap-up hit the 3/day quota — re-verify when quota resets.
+Dogfood Pro `/scan` (2026-11-16): **`lazynext.com` 100/100** (0 issues) and **`checker.lazynext.com` 100/100** (0 issues).
 
-## PRs merged (same day)
+## PRs merged (same day + follow-ons)
 
 | PR | Repo | What |
 |----|------|------|
 | [#78](https://github.com/lazynextai/Autonomous-AI-Company-OS/pull/78) | platform | Remaining medium/low audit findings + prior audit-fix branches onto main |
 | [#82](https://github.com/lazynextai/Autonomous-AI-Company-OS/pull/82) | platform | Dashboard reconcile: blast-radius guards + C2/C5 after deploy race |
 | [#83](https://github.com/lazynextai/Autonomous-AI-Company-OS/pull/83) | platform | Ops rule: forbid destructive SQL probes against production |
+| [#84](https://github.com/lazynextai/Autonomous-AI-Company-OS/pull/84)–[#86](https://github.com/lazynextai/Autonomous-AI-Company-OS/pull/86) | platform | Ops docs: completion + packages 40/41 approve + campaign 10/11 send record |
 | [#124](https://github.com/Lazynext-AI/accessibility-checker/pull/124) | product | Viewport contrast override + `manifest.webmanifest` alias |
 
 ## D1 incident + restore
@@ -29,20 +32,23 @@ Dogfood score target after shipped remediations: **100/100** on marketing + chec
 - **Post-restore health (SELECT-only):** `task_log` count **3177** (re-checked 2026-11-15).
 - **Policy:** Never DROP/DELETE/DDL against prod D1 or `/api/query` — verify with SELECT / code / unit tests only (`docs/ops` + PR #83).
 
-## Live tip
+## Live tip + blast-radius
 
-- Dashboard worker tip **`47794592`** (`47794592-54d2-4da2-ad3b-63c9ac355700`) — 100% traffic as of 2026-11-15T17:56Z. Carries blast-radius + C2/C5 after the #82 reconcile.
+- Dashboard tip carried blast-radius + C2/C5 after the #82 reconcile (`47794592` family).
+- **Recheck 2026-11-16:** unauthenticated `POST https://dashboard.lazynext.com/api/query` → **401** `{"error":"unauthorized"}` (blast-radius still live).
 
-## Campaign decision packages (draft only)
+## Campaigns 10 / 11 (sent)
 
-| Package | Target | Outcome | Expiry |
-|---------|--------|---------|--------|
-| **40** | `campaign:10` | **draft** | 2026-12-31 |
-| **41** | `campaign:11` | **draft** | 2026-12-31 |
+Packages **40** / **41** approved then sent (founder continue-all). Detail: `docs/ops/campaign-decision-packages-2026-11-15.md`.
 
-See `docs/ops/campaign-decision-packages-2026-11-15.md`. **Not approved. Not sent.** `config:decision_enforce=approval` → send returns 503 until founder approves.
+| Campaign | Status | Delivered | Unique opens | Clicks | Real Brevo unsubs |
+|----------|--------|-----------|--------------|--------|-------------------|
+| **10** | `sent` / 35 | 35 | 11 | 0 product clicks | **0** |
+| **11** | `sent` / 35 | 35 | 10 | 4 events / 2 uniq | **0** |
 
-## Host matrix (light verify, 2026-11-15)
+**Unsubscribe spike = scanner prefetch, not real opt-outs.** Twelve `click_unsubscribe` events within ~2 min of send (illinois / psu / uh / aph.org, often 2–3× each). `unsub:<email>` KV still null; `email_contacts.subscribed=1` for all four; Brevo 2-day aggregate `unsubscribed:0`. Matches GET `/unsubscribe` non-mutating design (POST required). Do not treat those clicks as churn.
+
+## Host matrix (recheck 2026-11-16)
 
 | Host | Result |
 |------|--------|
@@ -53,16 +59,39 @@ See `docs/ops/campaign-decision-packages-2026-11-15.md`. **Not approved. Not sen
 | `api.lazynext.com/health` | 200 |
 | `dashboard.lazynext.com` | 307 → `/login` |
 | `ai-company.lazynext.com/api/v1/openapi.json` | 200 |
+| `status.lazynext.com` | 301 → `/status` |
+| `penpot.lazynext.com` | 200 |
 
-## Founder action list (remaining)
+## External queues (read-only, 2026-11-16)
 
-1. **GSC re-index** — signed-in Google Search Console: request indexing for the real apex / product pages (duplicate-canonical fix already live; this half needs the founder session).
-2. **Partner Center — email-only follow-up** — still **no decision email** as of 2026-11-15 (last Microsoft inbound 2026-11-06). Draft ready at `docs/ops/partner-center-followup-draft-2026-11-15.md`. Do **not** open Partner Center / OTP loops.
-3. **Campaign approve** — review copy/audiences for campaigns 10/11, then approve packages **40** / **41** (or decline). Agents must not approve or send.
+| Channel | Status |
+|---------|--------|
+| **apis.io** | **LISTED** — provider `checker-lazynext` + Accessibility Checker API in catalog search (was 0 on 2026-11-03). |
+| W3C WAI tools PR [#1459](https://github.com/w3c/wai-evaluation-tools-list/pull/1459) | Still **open** (not in published list). Wait for W3C merge. |
+| mcp.so issue [#6529](https://github.com/chatmcp/mcpso/issues/6529) | Still **open**, 0 comments; public listing 404. Do **not** pay $39. |
+| directree | Public listing live (`directree.io/tool/accessibility-checker`); `robots: noindex` until ~35-day review (~2026-12-06). Do not pay Fast Lane. |
+| AlternativeTo | Still free-queue / owner-only; public curl hits CF challenge — no agent action. |
+
+## Inbox (safe read, 2026-11-16)
+
+- **Partner Center:** still **no decision email** (no new `supportmail@techsupport.microsoft.com` vetting result). Do **not** OTP / browser Partner Center. Email-only follow-up draft remains at `docs/ops/partner-center-followup-draft-2026-11-15.md` if founder wants to send.
+- **Cloudflare billing:** no new overdue / Confirm-your-payment alarm in recent inbox sweep (Nov 1 `IN-86694892` stays Paid).
+- **M365 / Power Automate:** watch only — M365 trial ends **~27 Nov 2026** (auto-renew cancelled); Power Automate Premium trial auto-converts ~**2027-01-28** if not cancelled. Sales/advisor marketing mail ignore.
+- **W3C:** no staff reply mail; PR is the signal.
+- **LinkedIn case `261115-006005`:** new “Waiting For Information” inbound — **parked**. Personal-ID gate; do not reply / reopen / ask founder for ID.
+
+## Founder / wait list (nowhere else for autonomous continue-all)
+
+1. **GSC re-index** — signed-in Search Console: request indexing for real apex / product pages (duplicate-canonical fix live; GSC also emailed a 5xx indexing reason earlier — founder session to clear).
+2. **Partner Center** — wait for decision email **or** founder sends the email-only follow-up; never OTP loops.
+3. **Cancel watch** — M365 trial (~27 Nov) + Power Automate Premium (~2027-01-28) before paid convert.
+4. **External directories** — wait: W3C #1459 merge, mcp.so #6529 review (no pay), directree ~35-day approval, AlternativeTo free queue.
+5. **WHOIS privacy** — optional flip `lazynext.com` back to Private after Partner Center verification completes (founder call).
 
 ## Explicit non-actions
 
-- No selfies / personal IDs.  
-- No LinkedIn / TikTok / Snapchat / Viber native signups.  
+- No selfies / personal IDs / LinkedIn / TikTok / Snapchat / Viber native gates.  
 - Dodo stays **test** (permanent).  
-- No campaign send without founder-approved packages.
+- No new campaign sends without fresh founder-approved packages.  
+- No DROP/DELETE on prod D1.  
+- No paying for mcp.so / directory review skips.
