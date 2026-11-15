@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
 
-// Session gate: everything except /login, /api/login, and static assets
-// requires the lazynext_session cookie (set by /api/login with the
+// Root-level public files only (dashboard/public/*). Nested paths like
+// /agents/test.js or /tasks/foo.bar are app routes and MUST hit the session gate.
+const ROOT_STATIC_EXT =
+  /\.(js|css|png|jpg|jpeg|gif|webp|avif|svg|ico|woff2?|ttf|otf|map|json|txt|webmanifest|xml)$/i;
+
+function isPublicStatic(pathname: string): boolean {
+  if (pathname.startsWith("/_next/") || pathname.startsWith("/favicon")) return true;
+  const rest = pathname.startsWith("/") ? pathname.slice(1) : pathname;
+  if (!rest || rest.includes("/")) return false;
+  return ROOT_STATIC_EXT.test(rest);
+}
+
+// Session gate: everything except public auth pages, their APIs, and real
+// static assets requires the lazynext_session cookie (set by /api/login with the
 // owner passphrase stored in the DASHBOARD_PASSPHRASE secret).
 // Internal /api/* routes proxy to the worker with the owner bearer token,
 // so they require the owner session specifically — a member session
@@ -17,9 +29,7 @@ export async function proxy(req: NextRequest) {
     pathname === "/reset" ||
     pathname === "/api/login" ||
     pathname === "/api/auth" ||
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon") ||
-    pathname.includes(".")
+    isPublicStatic(pathname)
   ) {
     return NextResponse.next();
   }

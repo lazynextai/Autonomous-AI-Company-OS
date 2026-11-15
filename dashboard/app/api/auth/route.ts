@@ -76,11 +76,23 @@ export async function POST(req: NextRequest) {
     if (!u || !(await verifyPassword(String(password ?? ""), u.salt, u.password_hash)))
       return NextResponse.json({ error: "invalid credentials" }, { status: 401 });
     if (!u.email_verified) return NextResponse.json({ error: "verify your email first" }, { status: 403 });
-    const twoFa = (await (await workerFetch("/kv/get", { key: "flag:two_factor" })).json()).value === "true";
-    const secret = (await (await workerFetch("/kv/get", { key: "2fa:secret" })).json()).value;
-    if (twoFa && secret) {
+    // Founder TOTP (flag:two_factor + 2fa:secret / Google Authenticator
+    // "Lazynext: Admin") is OWNER-ONLY via /api/login. Members must never
+    // authenticate against that shared secret. Optional per-member factor
+    // lives at KV 2fa:user:<id> when enrolled separately.
+    const memberSecret = (
+      await (await workerFetch("/kv/get", { key: `2fa:user:${u.id}` })).json()
+    ).value as string | null | undefined;
+    if (memberSecret) {
       if (!code) return NextResponse.json({ totp: true });
-      const t = new OTPAuth.TOTP({ issuer: "Lazynext", label: "founder", algorithm: "SHA1", digits: 6, period: 30, secret: OTPAuth.Secret.fromBase32(secret) });
+      const t = new OTPAuth.TOTP({
+        issuer: "Lazynext",
+        label: emailAddr,
+        algorithm: "SHA1",
+        digits: 6,
+        period: 30,
+        secret: OTPAuth.Secret.fromBase32(memberSecret),
+      });
       if (t.validate({ token: String(code), window: 1 }) === null)
         return NextResponse.json({ error: "invalid code" }, { status: 401 });
     }
