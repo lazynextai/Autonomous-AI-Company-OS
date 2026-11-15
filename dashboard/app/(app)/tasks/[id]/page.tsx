@@ -5,8 +5,9 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { queryApi, parseJson } from "@/lib/api";
 import { Card, StatusBadge, Empty, timeAgo } from "@/components/ui";
+import { MissionReportPanel } from "@/components/governance/MissionReportPanel";
 import { toast } from "@/components/Toast";
-import { ArrowLeft, XCircle, RotateCcw } from "lucide-react";
+import { ArrowLeft, XCircle, RotateCcw, Crosshair } from "lucide-react";
 
 interface Task {
   task_id: string;
@@ -131,6 +132,12 @@ export default function TaskDetailPage() {
               <RotateCcw className="w-3.5 h-3.5" /> Retry
             </button>
           )}
+          <Link
+            href={`/mission/${encodeURIComponent(task.task_id)}`}
+            className="inline-flex items-center gap-1.5 bg-card hover:bg-cardHover border border-border text-fg text-xs font-semibold px-3.5 py-2 rounded-lg transition"
+          >
+            <Crosshair className="w-3.5 h-3.5 text-accentSoft" /> Mission
+          </Link>
           <StatusBadge status={task.status} />
         </div>
       </div>
@@ -214,6 +221,10 @@ export default function TaskDetailPage() {
             </form>
           </Card>
         </div>
+      </div>
+
+      <div className="mt-5 max-w-6xl">
+        <MissionReportPanel taskId={task.task_id} compact />
       </div>
     </>
   );
