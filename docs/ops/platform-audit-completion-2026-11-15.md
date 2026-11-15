@@ -2,7 +2,7 @@
 
 Concise wrap of the same-day platform / product / dashboard audits, the D1 incident, and what remains for the founder.
 
-**Autonomous track status (rechecked 2026-11-16 ~00:34 IST):** engineering / safe-ops continue-all is **complete**. Further “continue all” has nowhere safe to go without founder or external parties (see blocked list below).
+**Autonomous track status (rechecked 2026-11-16 ~01:05 IST):** engineering / safe-ops continue-all is **complete**. GSC Fix 2 is now done (founder). Further “continue all” has nowhere safe to go without founder or external parties (see remaining list below — GSC removed).
 
 ## Audits done
 
@@ -48,7 +48,9 @@ Packages **40** / **41** approved then sent (founder continue-all). Detail: `doc
 
 **Unsubscribe spike = scanner prefetch, not real opt-outs.** Twelve `click_unsubscribe` events within ~2 min of send (illinois / psu / uh / aph.org, often 2–3× each). `unsub:<email>` KV still null; `email_contacts.subscribed=1` for all four; Brevo 2-day aggregate `unsubscribed:0`. Matches GET `/unsubscribe` non-mutating design (POST required). Do not treat those clicks as churn.
 
-## Host matrix (recheck 2026-11-16)
+## Host matrix (recheck 2026-11-16 ~01:04 IST)
+
+One-liner: **apex 200 · www 301 → apex · marketing 301 → apex · checker 200 · penpot 200** (redirect + product hosts healthy).
 
 | Host | Result |
 |------|--------|
@@ -62,31 +64,34 @@ Packages **40** / **41** approved then sent (founder continue-all). Detail: `doc
 | `status.lazynext.com` | 301 → `/status` |
 | `penpot.lazynext.com` | 200 |
 
-## External queues (read-only, 2026-11-16)
+## GSC Fix 2 — DONE (2026-11-16)
+
+Founder completed signed-in Google Search Console as `support@lazynext.com` on property **`sc-domain:lazynext.com`**: **Indexing requested** for all **8** target URLs. Duplicate-canonical Fix 1 was already live (marketing → apex 301). No further agent GSC action — wait for Google crawl/index results (days–weeks). Do not re-request unless coverage stalls after a sensible window.
+
+## External queues (read-only, 2026-11-16 ~01:04 IST)
 
 | Channel | Status |
 |---------|--------|
 | **apis.io** | **LISTED** — provider `checker-lazynext` + Accessibility Checker API in catalog search (was 0 on 2026-11-03). |
-| W3C WAI tools PR [#1459](https://github.com/w3c/wai-evaluation-tools-list/pull/1459) | Still **open** (not in published list). Wait for W3C merge. |
-| mcp.so issue [#6529](https://github.com/chatmcp/mcpso/issues/6529) | Still **open**, 0 comments; public listing 404. Do **not** pay $39. |
-| directree | Public listing live (`directree.io/tool/accessibility-checker`); `robots: noindex` until ~35-day review (~2026-12-06). Do not pay Fast Lane. |
-| AlternativeTo | Still free-queue / owner-only; public curl hits CF challenge — no agent action. |
+| W3C WAI tools PR [#1459](https://github.com/w3c/wai-evaluation-tools-list/pull/1459) | Still **open**, `merged_at: null`, last update **2026-11-04** (our a11yloc comment). Not in published list. Wait for W3C merge. |
+| mcp.so issue [#6529](https://github.com/chatmcp/mcpso/issues/6529) | Still **open**, **0 comments**, last update **2026-11-01**. Do **not** pay $39. |
+| directree | Public listing live (`directree.io/tool/accessibility-checker`); review ~35 days (~2026-12-06). Do not pay Fast Lane. |
+| AlternativeTo | Still free-queue / owner-only — no agent action. |
 
-## Inbox (safe read, 2026-11-16)
+## Inbox (safe read, 2026-11-16 ~01:04 IST)
 
-- **Partner Center:** still **no decision email** (no new `supportmail@techsupport.microsoft.com` vetting result). Do **not** OTP / browser Partner Center. Email-only follow-up draft remains at `docs/ops/partner-center-followup-draft-2026-11-15.md` if founder wants to send.
+- **Partner Center:** still **no decision email** (no new vetting result from `supportmail@techsupport.microsoft.com` / SellerId `96466040`). Do **not** OTP / browser Partner Center. Email-only follow-up draft remains at `docs/ops/partner-center-followup-draft-2026-11-15.md` if founder wants to send.
 - **Cloudflare billing:** no new overdue / Confirm-your-payment alarm in recent inbox sweep (Nov 1 `IN-86694892` stays Paid).
 - **M365 / Power Automate:** watch only — M365 trial ends **~27 Nov 2026** (auto-renew cancelled); Power Automate Premium trial auto-converts ~**2027-01-28** if not cancelled. Sales/advisor marketing mail ignore.
 - **W3C:** no staff reply mail; PR is the signal.
-- **LinkedIn case `261115-006005`:** new “Waiting For Information” inbound — **parked**. Personal-ID gate; do not reply / reopen / ask founder for ID.
+- **LinkedIn case `261115-006005`:** “Waiting For Information” inbound — **parked**. Personal-ID gate; do not reply / reopen / ask founder for ID.
 
-## Founder / wait list (nowhere else for autonomous continue-all)
+## Founder / wait list (GSC removed — nowhere else for autonomous continue-all)
 
-1. **GSC re-index** — signed-in Search Console: request indexing for real apex / product pages (duplicate-canonical fix live; GSC also emailed a 5xx indexing reason earlier — founder session to clear).
-2. **Partner Center** — wait for decision email **or** founder sends the email-only follow-up; never OTP loops.
-3. **Cancel watch** — M365 trial (~27 Nov) + Power Automate Premium (~2027-01-28) before paid convert.
-4. **External directories** — wait: W3C #1459 merge, mcp.so #6529 review (no pay), directree ~35-day approval, AlternativeTo free queue.
-5. **WHOIS privacy** — optional flip `lazynext.com` back to Private after Partner Center verification completes (founder call).
+1. **Partner Center** — wait for decision email **or** founder sends the email-only follow-up; never OTP loops.
+2. **Cancel watch** — M365 trial (~27 Nov) + Power Automate Premium (~2027-01-28) before paid convert.
+3. **External directories** — wait: W3C #1459 merge, mcp.so #6529 review (no pay), directree ~35-day approval, AlternativeTo free queue; optionally recheck GSC coverage later (requests already filed).
+4. **WHOIS privacy** — optional flip `lazynext.com` back to Private after Partner Center verification completes (founder call).
 
 ## Explicit non-actions
 
