@@ -3,7 +3,7 @@
  * Thin facade over D1/KV/bus - reuses the same internals as the internal worker
  * endpoints and the Python agents. No duplicated business logic.
  */
-import { Env, json, authorize, touchKey, extractKey, sha256, generateKey } from "./gateway";
+import { Env, json, authorize, touchKey, extractKey, sha256, generateKey, isRead } from "./gateway";
 import { OPENAPI_SPEC, DOCS_HTML } from "./openapi";
 import { publishToBus } from "./webhooks";
 import { enrollLead } from "./services";
@@ -156,7 +156,7 @@ async function handleKeyAdmin(req: Request, env: Env, path: string): Promise<Res
     return json({ api_key: raw, name: b.name.trim(), scopes, note: "Store this key - it will not be shown again." }, 201);
   }
 
-  if (req.method === "GET" && path === "/api/v1/keys") {
+  if (isRead(req) && path === "/api/v1/keys") {
     const { results } = await env.DB.prepare(
       "SELECT id, key_prefix, name, scopes, rate_limit_rpm, created_at, last_used_at, revoked_at FROM api_keys ORDER BY id",
     ).all();
@@ -226,22 +226,24 @@ export async function handlePublicApi(
   if (path.startsWith("/api/v1/keys")) return handleKeyAdmin(req, env, path);
 
   // Everything below needs an API key. Mutations need write scope.
+  // HEAD shares GET on read-only routes (uptime probes); POSTs stay exact-match.
+  const read = isRead(req);
   const needsWrite = req.method === "POST" && path === "/api/v1/tasks";
   const { key, res } = await authorize(req, env, needsWrite ? "write" : "read");
   if (res) return res;
   touchKey(env, ctx, key!.id);
 
-  if (req.method === "GET" && path === "/api/v1/status") return companyStatus(env);
-  if (req.method === "GET" && path === "/api/v1/briefings") {
+  if (read && path === "/api/v1/status") return companyStatus(env);
+  if (read && path === "/api/v1/briefings") {
     return listBriefings(env, clamp(parseInt(url.searchParams.get("limit") ?? "20", 10) || 20, 1, 100));
   }
-  if (req.method === "GET" && path.startsWith("/api/v1/briefings/")) {
+  if (read && path.startsWith("/api/v1/briefings/")) {
     return getBriefing(env, parseInt(path.split("/").pop() ?? "", 10));
   }
-  if (req.method === "GET" && path === "/api/v1/tasks") return listTasks(env, url);
+  if (read && path === "/api/v1/tasks") return listTasks(env, url);
   if (req.method === "POST" && path === "/api/v1/tasks") return createTask(env, ctx, req);
   if (req.method === "POST" && path === "/api/v1/knowledge/search") return knowledgeSearch(env, req);
-  if (req.method === "GET" && path === "/api/v1/agents") {
+  if (read && path === "/api/v1/agents") {
     const { results } = await env.DB.prepare(
       "SELECT agent_id, COUNT(*) AS tasks, MAX(created_at) AS last_seen FROM task_log GROUP BY agent_id ORDER BY last_seen DESC",
     ).all();

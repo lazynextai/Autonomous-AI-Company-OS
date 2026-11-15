@@ -3,7 +3,7 @@
  * CRM (HubSpot/Salesforce), support tickets (Intercom/Zendesk),
  * scheduling (Calendly), and a storefront (Shopify; checkout via Dodo).
  */
-import { Env, json, authorize, touchKey, listAll } from "./gateway";
+import { Env, json, authorize, touchKey, listAll, isRead } from "./gateway";
 import { publishToBus } from "./webhooks";
 import { recordLeadEvidence, listLeadEvidence, evidenceSummary, evidenceCorroborations } from "./evidence";
 import { outboundDecision, noteBreakerTrip, recordDispatchAudit, breakerAdmin } from "./breakers";
@@ -195,10 +195,12 @@ export async function consumeConnectorDailyCap(env: Env, id: string): Promise<Co
 export async function handleServices(
   req: Request, env: Env, ctx: ExecutionContext, path: string,
 ): Promise<Response> {
-  const { key, res } = await authorize(req, env, req.method === "GET" ? "read" : "write");
+  // HEAD shares GET on read-only routes (uptime probes); mutations stay exact-match.
+  const read = isRead(req);
+  const { key, res } = await authorize(req, env, read ? "read" : "write");
   if (res) return res;
   touchKey(env, ctx, key!.id);
-  const b = req.method === "GET" ? {} : ((await req.json().catch(() => ({}))) as Record<string, unknown>);
+  const b = read ? {} : ((await req.json().catch(() => ({}))) as Record<string, unknown>);
   // id is the last numeric segment — for ".../{id}/send" or ".../{id}/sign" the
   // id is second-to-last, not last.
   const segs = path.split("/").filter(Boolean);
@@ -207,7 +209,7 @@ export async function handleServices(
   const id = parseInt(idSeg, 10);
 
   // --- CRM ----------------------------------------------------------------
-  if (path === "/api/v1/crm/leads" && req.method === "GET")
+  if (path === "/api/v1/crm/leads" && read)
     return list(env, "crm_leads");
   if (path === "/api/v1/crm/leads" && req.method === "POST") {
     if (!b.name) return json({ error: "name required" }, 400);
@@ -227,18 +229,18 @@ export async function handleServices(
   const evidenceMatch = path.match(/^\/api\/v1\/crm\/leads\/(\d+)\/evidence$/);
   if (evidenceMatch) {
     const leadId = Number(evidenceMatch[1]);
-    if (req.method === "GET") return listLeadEvidence(env, leadId);
+    if (read) return listLeadEvidence(env, leadId);
     if (req.method === "POST") return recordLeadEvidence(env, leadId, b);
   }
-  if (path === "/api/v1/crm/evidence/summary" && req.method === "GET")
+  if (path === "/api/v1/crm/evidence/summary" && read)
     return evidenceSummary(env);
   // Claim-level corroboration across independent sources — read-only, the
   // same computed view the summary now carries under `corroboration`.
-  if (path === "/api/v1/crm/evidence/corroborations" && req.method === "GET")
+  if (path === "/api/v1/crm/evidence/corroborations" && read)
     return evidenceCorroborations(env);
 
   // --- Support tickets ------------------------------------------------------
-  if (path === "/api/v1/support/tickets" && req.method === "GET")
+  if (path === "/api/v1/support/tickets" && read)
     return list(env, "support_tickets");
   if (path === "/api/v1/support/tickets" && req.method === "POST") {
     if (!b.subject) return json({ error: "subject required" }, 400);
@@ -280,7 +282,7 @@ export async function handleServices(
   }
 
   // --- Scheduling (bookings) ------------------------------------------------
-  if (path === "/api/v1/booking" && req.method === "GET")
+  if (path === "/api/v1/booking" && read)
     return list(env, "bookings");
   if (path === "/api/v1/booking" && req.method === "POST") {
     if (!b.title || !b.starts_at || !b.ends_at)
@@ -293,7 +295,7 @@ export async function handleServices(
     return update(env, "bookings", id, { status: "cancelled" });
 
   // --- Storefront -----------------------------------------------------------
-  if (path === "/api/v1/store/products" && req.method === "GET")
+  if (path === "/api/v1/store/products" && read)
     return list(env, "store_products", "WHERE active = 1");
   if (path === "/api/v1/store/products" && req.method === "POST") {
     if (!b.name) return json({ error: "name required" }, 400);
@@ -301,7 +303,7 @@ export async function handleServices(
       ["name", "description", "price_cents", "currency", "dodo_product_id"],
       [b.name, str(b.description), Number(b.price_cents ?? 0), str(b.currency) ?? "usd", str(b.dodo_product_id)]);
   }
-  if (path === "/api/v1/store/orders" && req.method === "GET")
+  if (path === "/api/v1/store/orders" && read)
     return list(env, "store_orders");
   if (path === "/api/v1/store/orders" && req.method === "POST") {
     if (!b.product_id) return json({ error: "product_id required" }, 400);
@@ -311,7 +313,7 @@ export async function handleServices(
   }
 
   // --- Email marketing (replaces Mailchimp/SendGrid; sends via Brevo) ------
-  if (path === "/api/v1/marketing/contacts" && req.method === "GET")
+  if (path === "/api/v1/marketing/contacts" && read)
     return list(env, "email_contacts");
   if (path === "/api/v1/marketing/contacts" && req.method === "POST") {
     if (!b.email) return json({ error: "email required" }, 400);
@@ -325,7 +327,7 @@ export async function handleServices(
     if (b.name) f.name = b.name;
     return update(env, "email_contacts", id, f);
   }
-  if (path === "/api/v1/marketing/campaigns" && req.method === "GET")
+  if (path === "/api/v1/marketing/campaigns" && read)
     return list(env, "email_campaigns");
   if (path === "/api/v1/marketing/campaigns" && req.method === "POST") {
     if (!b.name || !b.subject || !b.html) return json({ error: "name + subject + html required" }, 400);
@@ -458,7 +460,7 @@ export async function handleServices(
   // they are recorded (see classifyClick): only human product clicks land as
   // 'click', so the added human_clicks/bot_clicks fields are honest where the
   // raw totals mix in mail-scanner prefetches.
-  if (path === "/api/v1/marketing/stats" && req.method === "GET") {
+  if (path === "/api/v1/marketing/stats" && read) {
     const { results: totals } = await env.DB.prepare(
       "SELECT event, COUNT(*) c, COUNT(DISTINCT email) uniq FROM email_events GROUP BY event",
     ).all();
@@ -475,7 +477,7 @@ export async function handleServices(
   // Worker-side dispatch for the Connector library — Settings → Connector
   // library writes conn:<id> to KV; core/tools/connectors.py mirrors this for
   // the local fleet. Nothing runs until a credential is connected.
-  if (path === "/api/v1/connectors" && req.method === "GET") {
+  if (path === "/api/v1/connectors" && read) {
     const status: Record<string, boolean> = {};
     // brevo reports actual send capability (conn:brevo OR BREVO_API_KEY
     // secret), not just whether the connector-library key exists.
@@ -621,7 +623,7 @@ export async function handleServices(
   // breaker policy governs what the company may say externally.
   if (path === "/api/v1/ops/breakers" || path === "/api/v1/ops/breakers/reset") {
     const isAdmin = (key!.scopes ?? "").split(",").map((s) => s.trim()).includes("admin");
-    if (req.method === "GET") return breakerAdmin(env, path, "GET", {});
+    if (read) return breakerAdmin(env, path, "GET", {});
     if (!isAdmin) return json({ error: "scope 'admin' required — breaker policy governs outbound" }, 403);
     return breakerAdmin(env, path, req.method, b);
   }
@@ -651,7 +653,7 @@ export async function handleServices(
     ctx.waitUntil(queueSocialPost(env, Number(r.meta.last_row_id), runAt));
     return json({ id: r.meta.last_row_id, connector: id, run_at: runAt, status: "queued" }, 201);
   }
-  if (path === "/api/v1/social/posts" && req.method === "GET") {
+  if (path === "/api/v1/social/posts" && read) {
     const { results } = await env.DB.prepare(
       "SELECT id, connector, payload, run_at, status, attempts, last_error, created_at, posted_at FROM social_posts ORDER BY id DESC LIMIT 100",
     ).all();
@@ -710,7 +712,7 @@ export async function handleServices(
     await env.EPHEMERAL.put(`media:${id}:meta`, JSON.stringify({ name, type, size: bytes.length, created: Date.now(), store: env.MEDIA ? "r2" : "kv", rights_basis: rights }));
     return json({ id, name, type, size: bytes.length, rights_basis: rights, url: `${MEDIA_BASE}/media/${id}` }, 201);
   }
-  if (path === "/api/v1/media" && req.method === "GET") {
+  if (path === "/api/v1/media" && read) {
     const keys = await listAll(env.EPHEMERAL, "media:");
     const items: Record<string, unknown>[] = [];
     for (const k of keys) {
@@ -739,7 +741,7 @@ export async function handleServices(
   // The only signing path — credential lives in KV as conn:signwell (bare API
   // key from signwell.com/app → API; prefix "test:" for unlimited free
   // test-mode sends). SignWell's free plan includes a legal production API.
-  if (path === "/api/v1/signwell/documents" && req.method === "GET") {
+  if (path === "/api/v1/signwell/documents" && read) {
     ctx.waitUntil(ensureSignwellSecret(env));
     return signwell(env, "GET", "/documents/");
   }
@@ -757,7 +759,7 @@ export async function handleServices(
     if (!r.connected) return json({ connected: false, ...r.data }, 503);
     return json({ connected: true, ok: r.ok, status: r.status, ...r.data }, r.ok ? 200 : r.status);
   }
-  if (path === "/api/v1/signwell/events" && req.method === "GET") {
+  if (path === "/api/v1/signwell/events" && read) {
     const sec = await env.EPHEMERAL.get("signwell:whsec");
     return json({
       events: JSON.parse((await env.EPHEMERAL.get("signwell:events")) ?? "[]"),

@@ -2,7 +2,7 @@
 // Merchant-of-record: Dodo handles tax/compliance; we just create
 // a checkout link and update the plan on payment success.
 // Host: test.dodopayments.com (test mode) or live.dodopayments.com.
-import { Env, json, listAll } from "./gateway";
+import { Env, json, listAll, isRead } from "./gateway";
 import { signwellSendFromTemplate } from "./services";
 import { countExternalReports, countBySource } from "./scanprovenance";
 
@@ -276,7 +276,7 @@ export async function handleBilling(
 
   // List registered Dodo webhooks — internal token only. Verifies the live
   // registration still points at this worker (silent drops = dead billing).
-  if (req.method === "GET" && path === "/api/v1/billing/webhooks") {
+  if (isRead(req) && path === "/api/v1/billing/webhooks") {
     const auth = req.headers.get("authorization") ?? "";
     if (auth !== `Bearer ${env.API_TOKEN}`) return json({ error: "unauthorized" }, 401);
     const r = await dodoFetch(env, "/webhooks", undefined, "GET");
@@ -340,7 +340,7 @@ export async function handleBilling(
   }
 
   // List Dodo discounts — internal token only (verify codes survived).
-  if (req.method === "GET" && path === "/api/v1/billing/discounts") {
+  if (isRead(req) && path === "/api/v1/billing/discounts") {
     const auth = req.headers.get("authorization") ?? "";
     if (auth !== `Bearer ${env.API_TOKEN}`) return json({ error: "unauthorized" }, 401);
     const r = await dodoFetch(env, "/discounts", undefined, "GET");
@@ -383,18 +383,20 @@ export async function handleBilling(
   // Product introspection + maintenance — internal token only. GET lists the
   // Dodo catalog (used to verify periods after creation); PATCH updates or
   // archives a product ({archived:true} retires a wrongly-created one).
-  if (req.method === "GET" && path === "/api/v1/billing/products") {
+  if (isRead(req) && path === "/api/v1/billing/products") {
     const auth = req.headers.get("authorization") ?? "";
     if (auth !== `Bearer ${env.API_TOKEN}`) return json({ error: "unauthorized" }, 401);
     const r = await dodoFetch(env, "/products?page_size=100", undefined, "GET");
     return json(await r.json(), r.status);
   }
   const prodMatch = path.match(/^\/api\/v1\/billing\/products\/(pdt_[\w]+)$/);
-  if (prodMatch && (req.method === "GET" || req.method === "PATCH")) {
+  if (prodMatch && (isRead(req) || req.method === "PATCH")) {
     const auth = req.headers.get("authorization") ?? "";
     if (auth !== `Bearer ${env.API_TOKEN}`) return json({ error: "unauthorized" }, 401);
     const body = req.method === "PATCH" ? await req.json() : undefined;
-    const r = await dodoFetch(env, `/products/${prodMatch[1]}`, body, req.method);
+    // HEAD probes must not forward HEAD to Dodo — use GET for the upstream read.
+    const upstream = req.method === "PATCH" ? "PATCH" : "GET";
+    const r = await dodoFetch(env, `/products/${prodMatch[1]}`, body, upstream);
     const text = await r.text(); // Dodo PATCH answers 200/204 with an empty body
     return json(text ? JSON.parse(text) : { ok: true }, r.status);
   }
@@ -467,7 +469,7 @@ export async function handleBilling(
 
   // List active subscriptions — internal token. Billing visibility for the
   // dashboard/ops and the source of truth for reconciling `subs:active`.
-  if (req.method === "GET" && path === "/api/v1/billing/subscriptions") {
+  if (isRead(req) && path === "/api/v1/billing/subscriptions") {
     const auth = req.headers.get("authorization") ?? "";
     if (auth !== `Bearer ${env.API_TOKEN}`) return json({ error: "unauthorized" }, 401);
     const r = await dodoFetch(env, "/subscriptions?status=active", undefined, "GET");
@@ -477,7 +479,7 @@ export async function handleBilling(
   }
 
   // Current plan — public read for the dashboard.
-  if (req.method === "GET" && path === "/api/v1/billing/plan") {
+  if (isRead(req) && path === "/api/v1/billing/plan") {
     const plan = await env.EPHEMERAL.get("plan");
     return json({ plan: plan ? JSON.parse(plan) : { name: "Founder" } });
   }
@@ -485,7 +487,7 @@ export async function handleBilling(
   // Conversion funnel — internal token. Aggregates the product funnel for
   // the dashboard: scans → leads → trials → paid subscriptions. Counts are
   // current-state views (KV records decay by TTL), not cumulative totals.
-  if (req.method === "GET" && path === "/api/v1/billing/funnel") {
+  if (isRead(req) && path === "/api/v1/billing/funnel") {
     const auth = req.headers.get("authorization") ?? "";
     if (auth !== `Bearer ${env.API_TOKEN}`) return json({ error: "unauthorized" }, 401);
     const [reports, leads, trials, licenses, mons] = await Promise.all([

@@ -18,7 +18,7 @@
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","name":"Lazynext","url":"https://lazynext.com/","logo":"https://lazynext.com/og.png","sameAs":[]},{"@type":"WebSite","name":"Lazynext","url":"https://lazynext.com/","publisher":{"@type":"Organization","name":"Lazynext"}}]}</script>
 <style>
 :root{--bg:#0A0A0B;--card:#141419;--cardHover:#1A1A21;--border:#26262E;--input:#0E0E13;--accent:#8B5CF6;--accentSoft:#A78BFA;--accentBg:#1E1B2E;--text:#FAFAFA;--muted:#9C9CAA;--ok:#22C55E}
-html{scroll-padding-bottom:110px} /* keep focused elements clear of the fixed cookie banner */
+html{scroll-padding-bottom:0} /* cookie banner is in-flow (not fixed) so it cannot occlude focused footer links */
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--bg);color:var(--text);font-family:'Source Sans Pro',ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}
@@ -73,12 +73,15 @@ h2{font-size:36px;font-weight:800;text-align:center;margin-bottom:12px}
 .ctaband h2{margin-bottom:10px}
 .ctaband p{color:var(--muted);margin-bottom:32px}
 footer{border-top:1px solid var(--border);padding:40px 0;color:var(--muted);font-size:13px}
-footer a{display:inline-block;min-height:24px;padding:9px 6px;margin:-9px -2px;text-underline-offset:3px}
-.fgrid{display:flex;justify-content:space-between;align-items:center}
-.flinks{display:flex;gap:24px;flex-wrap:wrap}
-.flinks a{color:var(--muted);padding:15px 0;display:inline-block}.flinks a:hover{color:var(--text)}
+footer a{display:inline-block;min-height:44px;padding:12px 10px;margin:0;text-underline-offset:3px;box-sizing:border-box}
+.fgrid{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap}
+.flinks{display:flex;gap:8px 12px;flex-wrap:wrap;max-width:720px}
+.flinks a{color:var(--muted);padding:12px 14px;margin:0;display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;box-sizing:border-box}.flinks a:hover{color:var(--text)}
+footer .badge-link{display:block;margin:20px auto 0;padding:0;min-height:0;width:fit-content}
+#cookie a{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:12px 14px;margin:0 4px;box-sizing:border-box;border-radius:8px}
+#cookie button{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:12px 18px;font-size:14px;box-sizing:border-box}
 .agentready{display:inline-block;margin-top:6px;color:var(--accentSoft);font-size:12px}
-@media(max-width:860px){h1{font-size:40px}.grid3,.tiers,.how{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.navlinks a:not(.btn){display:none}}
+@media(max-width:860px){h1{font-size:40px}.grid3,.tiers,.how{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.navlinks a:not(.btn){display:none}.fgrid{flex-direction:column}}
 .skip{position:absolute;left:-9999px;top:0;background:#6D28D9;color:#fff;padding:10px 18px;border-radius:0 0 10px 0;font-size:13px;font-weight:700;z-index:999}.skip:focus{left:0}
 </style>
 <script type="text/javascript">
@@ -228,14 +231,15 @@ document.getElementById('waitlist').addEventListener('submit',async e=>{
     <a href="/sitemap.xml">Sitemap</a>
   </div>
 </div>
-<a href="https://www.directree.io" target="_blank" rel="noopener"><img src="https://www.directree.io/badge/directree-badge-lightmode.svg" alt="Verified on directree" width="200" height="37" style="display:block;margin:14px auto 0;opacity:.9" /></a> </footer>
-<div id="cookie" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#141419;border:1px solid #26262E;border-radius:14px;padding:14px 18px;font-size:13px;color:#FAFAFA;max-width:560px;z-index:99;box-shadow:0 8px 30px rgba(0,0,0,.5)">
-  We use a single auth cookie to keep you signed in — no trackers, no ads.
+<a class="badge-link" href="https://www.directree.io" target="_blank" rel="noopener"><img src="https://www.directree.io/badge/directree-badge-lightmode.svg" alt="Verified on directree" width="200" height="37" style="display:block;opacity:.9" /></a>
+</footer>
+<div id="cookie" style="display:none;margin:24px auto 40px;background:#141419;border:1px solid #26262E;border-radius:14px;padding:14px 18px;font-size:13px;color:#FAFAFA;max-width:560px;width:calc(100% - 32px);box-shadow:0 8px 30px rgba(0,0,0,.5);align-items:center;flex-wrap:wrap;gap:4px">
+  <span style="flex:1 1 200px;line-height:1.45">We use a single auth cookie to keep you signed in — no trackers, no ads.</span>
   <a href="/legal" style="color:#A78BFA">Legal</a>
-  <button onclick="localStorage.setItem('lz_cookie_ok','1');document.getElementById('cookie').style.display='none';document.body.style.paddingBottom=''" style="margin-left:14px;background:#6D28D9;color:#fff;border:1.5px solid #A78BFA;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">OK</button>
+  <button type="button" onclick="localStorage.setItem('lz_cookie_ok','1');document.getElementById('cookie').style.display='none'" style="background:#6D28D9;color:#fff;border:1.5px solid #A78BFA;border-radius:8px;font-weight:700;cursor:pointer">OK</button>
 </div>
 <script>
-if(!localStorage.getItem('lz_cookie_ok')){var c=document.getElementById('cookie');c.style.display='block';document.body.style.paddingBottom=(c.offsetHeight+40)+'px'}
+if(!localStorage.getItem('lz_cookie_ok')){document.getElementById('cookie').style.display='flex'}
 </script>
 </body>
 </html>
