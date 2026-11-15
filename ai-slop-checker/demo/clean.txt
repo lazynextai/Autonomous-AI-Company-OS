@@ -1,0 +1,19 @@
+The bakery opens at six. By five forty-five the oven room smells of yeast and
+burnt sugar, and the first tray of sourdough comes out at six ten with a crust
+that cracks when you touch it. Maya sets the loaves on the counter in order of
+size, largest first, because the morning customers buy the big round one
+before they look at anything else.
+
+Orders arrive by phone and by foot. The woman in the blue coat asks for a
+seeded loaf and a currant bun, pays with coins, and is gone before the kettle
+boils. A child presses his nose to the glass and points at the chocolate
+croissant, which Maya wraps in paper without saying a word.
+
+At noon the tables are wiped, the floor is swept, and the day's receipts are
+counted twice. The flour dust settles on the window ledge. Maya locks the door
+at two, walks to the market for lemons, and starts the dough for tomorrow
+evening while the radio plays a jazz station she does not recognize.
+
+Run the checker on this file (it should score clean):
+
+    node api/cli.js --file demo/clean.txt

@@ -1,0 +1,22 @@
+In today's fast-paced world, it's important to note that we truly need to
+leverage our robust cutting-edge solutions to navigate the complexities of the
+modern landscape. Let me be clear: this game-changer empowers teams to delve
+into a seamless journey of transformative innovation.
+
+At its core, the reality is that most people don't know the secret to
+unlocking success. What nobody tells you is that the uncomfortable truth is
+that synergy matters. Here's the thing: it's not just about technology, it's
+about people. The best part: it learns.
+
+Experts agree that studies show this paradigm shift fosters a multifaceted
+tapestry of value. Stands as a testament to our meticulous approach, it marks
+a pivotal moment. Ultimately, we need to circle back and double down on
+low-hanging fruit. Let's dive in!
+
+What if I told you that it wasn't the tool. It was the process. Plot twist:
+we're all better off. Not a feature. Not a bug. A culture. That's it. That's
+the whole thing. Really. Just. Literally. Arguably.
+
+Run the checker on this file:
+
+    node api/cli.js --file demo/slop.txt

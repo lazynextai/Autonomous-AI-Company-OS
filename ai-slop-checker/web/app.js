@@ -1,0 +1,317 @@
+"use strict";
+/**
+ * Lazynext AI Slop Checker — web app logic.
+ *
+ * Runs the shared engine (data/slop-patterns.js + src/scanner.js +
+ * src/rewriter.js, loaded as browser globals) fully in-browser. When this
+ * page is served by the Lazynext API (node api/server.js), URL scans are
+ * attempted server-side via POST /scan and fall back to a direct fetch.
+ */
+
+(function () {
+  const scanner = window.SlopScanner;
+  const rewriter = window.SlopRewriter;
+
+  const els = {
+    tabText: document.getElementById("tab-text"),
+    tabUrl: document.getElementById("tab-url"),
+    paneText: document.getElementById("pane-text"),
+    paneUrl: document.getElementById("pane-url"),
+    inputText: document.getElementById("input-text"),
+    inputUrl: document.getElementById("input-url"),
+    btnScan: document.getElementById("btn-scan"),
+    btnSample: document.getElementById("btn-sample"),
+    engineMode: document.getElementById("engine-mode"),
+    engineVersion: document.getElementById("engine-version"),
+    scanError: document.getElementById("scan-error"),
+    results: document.getElementById("results"),
+    gaugeFill: document.getElementById("gauge-fill"),
+    scoreValue: document.getElementById("score-value"),
+    verdictValue: document.getElementById("verdict-value"),
+    verdictHeading: document.getElementById("verdict-heading"),
+    summaryText: document.getElementById("summary-text"),
+    categoryList: document.getElementById("category-list"),
+    matchList: document.getElementById("match-list"),
+    rewriteBefore: document.getElementById("rewrite-before"),
+    rewriteAfter: document.getElementById("rewrite-after"),
+    rewriteNote: document.getElementById("rewrite-note"),
+  };
+
+  const SLOP_SAMPLE = `In today's fast-paced world, it's important to note that we truly need to
+leverage our robust cutting-edge solutions to navigate the complexities of the
+modern landscape. Let me be clear: this game-changer empowers teams to delve
+into a seamless journey of transformative innovation.
+
+At its core, the reality is that most people don't know the secret to
+unlocking success. What nobody tells you is that the uncomfortable truth is
+that synergy matters. Here's the thing: it's not just about technology, it's
+about people. The best part: it learns.
+
+Experts agree that studies show this paradigm shift fosters a multifaceted
+tapestry of value. Stands as a testament to our meticulous approach, it marks
+a pivotal moment. Ultimately, we need to circle back and double down on
+low-hanging fruit. Let's dive in!`;
+
+  function showError(message) {
+    els.scanError.textContent = message;
+    els.scanError.hidden = false;
+  }
+  function clearError() {
+    els.scanError.hidden = true;
+  }
+
+  function setupTabs() {
+    const tabs = [els.tabText, els.tabUrl];
+    for (const tab of tabs) {
+      tab.addEventListener("click", () => {
+        tabs.forEach((t) => t.setAttribute("aria-selected", String(t === tab)));
+        const pane = document.getElementById(tab.getAttribute("aria-controls"));
+        els.paneText.hidden = tab !== els.tabText;
+        els.paneUrl.hidden = tab !== els.tabUrl;
+      });
+    }
+  }
+
+  function setEngineMode(text) {
+    els.engineMode.textContent = text;
+  }
+
+  function detectApiAvailability() {
+    // When served by the API, /health exists on the same origin.
+    return fetch("health", { method: "GET", headers: { Accept: "application/json" }, cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => (d && d.ok === true ? true : false))
+      .catch(() => false);
+  }
+
+  function attemptApiScan(payload) {
+    return fetch("scan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then(async (r) => {
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({}));
+        throw new Error(body.error || `API scan failed (${r.status})`);
+      }
+      return r.json();
+    });
+  }
+
+  function colorForScore(score) {
+    if (score <= 9) return "#1a7f4b";
+    if (score <= 29) return "#0a8f8f";
+    if (score <= 59) return "#b27b0c";
+    return "#c2410c";
+  }
+
+  function renderReport(report) {
+    const score = report.score;
+    const verdict = report.verdict;
+
+    els.results.hidden = false;
+    els.scoreValue.textContent = String(score);
+    els.verdictValue.textContent = verdict;
+
+    const circumference = 2 * Math.PI * 52;
+    els.gaugeFill.style.strokeDasharray = String(circumference);
+    els.gaugeFill.style.strokeDashoffset = String(circumference * (1 - score / 100));
+    els.gaugeFill.style.stroke = colorForScore(score);
+
+    els.verdictHeading.textContent =
+      report.clean ? "Clean" : verdict === "light" ? "Light slop" : verdict === "moderate" ? "Moderate slop" : "Heavy slop";
+
+    const counts = report.categories.map((c) => `${c.count}× ${c.name}`).join(", ");
+    els.summaryText.textContent =
+      report.clean
+        ? `No AI tells found in ${report.input.length.toLocaleString()} characters.`
+        : `${report.matches.length} tell(s) found: ${counts.slice(0, 200)}.`;
+
+    // Categories
+    els.categoryList.innerHTML = "";
+    for (const c of report.categories) {
+      const li = document.createElement("li");
+      const mk = (tag, cls, text) => {
+        const el = document.createElement(tag);
+        if (cls) el.className = cls;
+        el.textContent = text;
+        return el;
+      };
+      const name = mk("span", "cat-name", c.name);
+      const count = mk("span", "cat-count", `${c.count} · ${c.points} pts`);
+      const bar = document.createElement("div");
+      bar.className = "cat-bar";
+      const fill = document.createElement("i");
+      const maxPoints = Math.max(...report.categories.map((x) => x.points), 1);
+      fill.style.width = `${Math.round((c.points / maxPoints) * 100)}%`;
+      bar.appendChild(fill);
+      li.appendChild(name);
+      li.appendChild(count);
+      li.appendChild(bar);
+      els.categoryList.appendChild(li);
+    }
+
+    // Matches
+    els.matchList.innerHTML = "";
+    for (const m of report.matches.slice(0, 120)) {
+      const li = document.createElement("li");
+      const head = document.createElement("div");
+      head.className = "match-head";
+
+      const sev = document.createElement("span");
+      sev.className = `sev sev-${m.severity}`;
+      sev.textContent = `S${m.severity}`;
+      head.appendChild(sev);
+
+      const id = document.createElement("span");
+      id.className = "match-id";
+      id.textContent = m.id;
+      head.appendChild(id);
+
+      const cat = document.createElement("span");
+      cat.className = "match-category";
+      cat.textContent = m.category;
+      head.appendChild(cat);
+
+      const snippet = document.createElement("div");
+      snippet.className = "match-snippet";
+      snippet.textContent = m.snippet;
+
+      const fixEl = document.createElement("p");
+      fixEl.className = "match-fix";
+      fixEl.textContent = m.rewrite ? `Fix: ${m.fix} → ${m.rewrite}` : `Fix: ${m.fix}`;
+
+      li.appendChild(head);
+      li.appendChild(snippet);
+      li.appendChild(fixEl);
+      els.matchList.appendChild(li);
+    }
+    if (report.matches.length > 120) {
+      const more = document.createElement("li");
+      more.textContent = `… and ${report.matches.length - 120} more matches (${report.matches.length} total).`;
+      els.matchList.appendChild(more);
+    }
+
+    // Rewrite preview (text-only inputs)
+    els.rewriteBefore.textContent = "";
+    els.rewriteAfter.textContent = "";
+    els.rewriteNote.textContent = "";
+    if (report.input.type === "text" && report.source && typeof report.source.length === "number") {
+      const original = els.inputText ? els.inputText.value : "";
+      if (original) {
+        const preview = rewriter.rewriteText(original);
+        els.rewriteBefore.textContent = original;
+        if (preview.changed) {
+          els.rewriteAfter.textContent = preview.text;
+          els.rewriteNote.textContent = `${preview.changes.length} safe change(s) applied.`;
+        } else {
+          els.rewriteAfter.textContent = original;
+          els.rewriteNote.textContent = "No safe automatic rewrites; see fix suggestions above.";
+        }
+      }
+    }
+  }
+
+  async function scanLocal() {
+    const input = els.inputText.value.trim();
+    if (!input) {
+      showError("Paste some text first, or switch to the URL tab.");
+      return null;
+    }
+    const report = scanner.scanText(input);
+    report.source = { type: "text", length: input.length };
+    setEngineMode("engine: in-browser (local)");
+    return { report, input };
+  }
+
+  async function scanUrlLocal(url) {
+    const res = await fetch(url, { headers: { "User-Agent": "LazynextSlopChecker/1.0 (+https://lazynext.com)" }, redirect: "follow" });
+    if (!res.ok) throw new Error(`could not fetch URL (HTTP ${res.status})`);
+    const html = await res.text();
+    if (html.length > 2_000_000) throw new Error("document too large (limit 2MB)");
+    const report = scanner.scanHtml(html);
+    setEngineMode("engine: in-browser (direct fetch)");
+    report.source = { type: "url", url };
+    return { report, input: html };
+  }
+
+  function run() {
+    const activePaneId = els.tabText.getAttribute("aria-selected") === "true" ? "text" : "url";
+    clearError();
+    els.btnScan.disabled = true;
+    els.btnScan.textContent = "Scanning…";
+
+    const finish = (result) => {
+      els.btnScan.disabled = false;
+      els.btnScan.textContent = "Scan for slop";
+      renderReport(result.report);
+    };
+    const fail = (message) => {
+      els.btnScan.disabled = false;
+      els.btnScan.textContent = "Scan for slop";
+      showError(message);
+    };
+
+    (async () => {
+      const apiAvailable = await detectApiAvailability().catch(() => false);
+
+      if (activePaneId === "text") {
+        const local = await scanLocal();
+        if (!local) return fail("");
+        if (apiAvailable) {
+          // Server-side scan keeps input handling identical and returns the
+          // same report shape; reuse it when reachable.
+          return attemptApiScan({ text: local.input, rewrite: true })
+            .then((report) => finish({ report }))
+            .catch(() => finish(local));
+        }
+        return finish(local);
+      }
+
+      const url = els.inputUrl.value.trim();
+      if (!/^https?:\/\//i.test(url)) {
+        return fail("Enter a valid http(s) URL (e.g. https://example.com).");
+      }
+
+      // URL scan: prefer the API (server-side fetch), fall back to a direct
+      // browser fetch which may hit CORS limits.
+      if (apiAvailable) {
+        try {
+          const report = await attemptApiScan({ url });
+          setEngineMode("engine: API (server-side fetch)");
+          return finish({ report });
+        } catch (err) {
+          // fall through to direct fetch
+        }
+      }
+      try {
+        const result = await scanUrlLocal(url);
+        return finish(result);
+      } catch (err) {
+        return fail(`URL scan failed: ${err.message}. Tip: served via the API, URL scans run server-side; a bare browser fetch may be blocked by CORS.`);
+      }
+    })();
+  }
+
+  function loadSample() {
+    els.tabText.click();
+    els.inputText.value = SLOP_SAMPLE;
+    clearError();
+  }
+
+  function init() {
+    if (!scanner || !rewriter) {
+      showError("Engine failed to load. Serve this page via `node api/server.js` so the engine files resolve.");
+      return;
+    }
+    els.engineVersion.textContent = `engine v${scanner.version} · ${scanner.patterns.length} patterns · ${scanner.categories.length} categories`;
+    setupTabs();
+    els.btnScan.addEventListener("click", run);
+    els.btnSample.addEventListener("click", loadSample);
+    detectApiAvailability().then((ok) => {
+      setEngineMode(ok ? "engine: API + in-browser" : "engine: in-browser (offline)");
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+})();
