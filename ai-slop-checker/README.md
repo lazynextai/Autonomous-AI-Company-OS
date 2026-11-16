@@ -63,7 +63,10 @@ dependencies).
 npm install        # no-op today: declares no dependencies (package-lock generation only)
 
 # Tests
-npm test           # = node --test   (222 tests)
+npm test           # = node --test   (319 tests)
+
+# End-to-end API contract matrix (spawns api/server.js on port 8793)
+npm run e2e        # asserts every route (GET/POST/MCP/A2A), prints a table, exits non-zero on failure
 
 # CLI
 node api/cli.js "We must leverage this robust cutting-edge solution."
@@ -123,7 +126,7 @@ lockfiles, and binaries are skipped.
 ```js
 {
   engine: "lazynext-ai-slop-checker",
-  version: "1.3.0",
+  version: "1.4.0",
   input: { type: "text", length: 412 },
   score: 63,                    // 0 (clean) - 100 (max slop)
   verdict: "moderate",          // clean | light | moderate | heavy
@@ -251,8 +254,8 @@ and was **not** executed for this deliverable:
 
 ```sh
 cd ai-slop-checker
-docker build -t lazynext/ai-slop-checker:1.3.0 .
-docker run --rm -p 3000:3000 lazynext/ai-slop-checker:1.3.0
+docker build -t lazynext/ai-slop-checker:1.4.0 .
+docker run --rm -p 3000:3000 lazynext/ai-slop-checker:1.4.0
 # or the Worker:
 export CLOUDFLARE_API_TOKEN="$CLOUDFLARE_DEPLOY_TOKEN"   # see docs/DEPLOYMENT.md
 wrangler deploy --name lazynext-ai-slop-checker
@@ -392,13 +395,51 @@ ai-slop-checker/
   non-mutating re-score over the same decay curve, so the corpus never
   changes between profiles.
 
+## Hardening & robustness
+
+The engine treats every input as hostile. A fuzz battery
+(`test/fuzz-robustness.test.js`, 79 tests) throws binary bytes, lone
+surrogates, 1 MB repeats, 1000-deep nested HTML, malformed markup,
+JSON/JS-as-text, entity storms, and mixed-script soup at every entry point
+(`scanText`, `scanHtml`, `scanDesign`, `rewriteText`, `scanProject`,
+`scanRender`) and asserts no-throw, byte-identical determinism, valid report
+shape, and a <1s per-call budget. Four crash classes were fixed and
+regression-guarded: out-of-range numeric character references
+(`&#1114112;`, `&#x110000;`) decode to U+FFFD instead of throwing;
+hex entity references decode base 16 (`&#x1F600;` → 😀); hostile snapshot
+styles (string px values, object `backgroundImage`, non-finite rects) are
+sanitized deterministically with a zero-copy fast path for conforming
+snapshots; and all-invalid `screens` indices are dropped instead of
+crashing `checkScreenBudget`. The corpus itself is structure-gated:
+`scripts/check-corpus.js` validates ids (`^[a-z][a-z0-9-]*$`), required
+fields, severities, per-category duplicate matches, and cross-file
+uniqueness (base 279/27 + ru/hi/es → merged 382/30, zero duplication),
+with `test/corpus-validate.test.js` pinning the same rules in the suite.
+
+## PERFORMANCE
+
+Measured on macOS Apple Silicon (arm64) with Node v25.9.0 — real wall-clock
+`ms` from `node bench/perf.js`, inputs synthesized from the demo fixtures:
+
+| bench | ms | input | KB/ms | verdict |
+|---|---|---|---|---|
+| `scanText` ~100 KB prose mix | 9.1 | 100.0 KB | 11.04 | heavy |
+| `scanHtml` ~200 KB HTML | 35.3 | 200.8 KB | 5.69 | light |
+| `scanProject` demo/fixture-project/ | 12.3 | — | — | heavy |
+| `rewriteText` ~100 KB prose mix | 57.3 | 100.0 KB | 1.75 | — |
+
+A 100 KB realistic prose document scans in ~9 ms. Re-run anytime with
+`node bench/perf.js` (or `--json`) — numbers vary by machine, so record
+your own.
+
 ## Roadmap
 
 See [`ROADMAP.md`](ROADMAP.md) for what is genuinely left (a theme catalog
 as a human guide, judgement tells, non-English built-ins as content, a
 `.github/`-gated CI, plugin packaging) and why each item is deferred.
-Rendered-tier browser checks shipped in v1.3.0 as pure snapshot checks
-(with a real-browser CI harness still a `.github/`-gated follow-up).
+Phase 5 (v1.4.0) shipped fuzz robustness, corpus quality gates, the perf
+bench, the e2e contract matrix, and packaging validation; the real-browser
+render CI harness and the `.github/` CI gate stay devops-gated follow-ups.
 
 Deferred from this deliverable, consciously: no real-browser CI gate
 (`.github/`-gated and devops-owned per house rules — not created here), no

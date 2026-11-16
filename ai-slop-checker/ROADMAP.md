@@ -1,7 +1,30 @@
 # Roadmap — Lazynext AI Slop Checker
 
-What is genuinely left after v1.3.0. Ordered roughly by leverage; nothing
+What is genuinely left after v1.4.0. Ordered roughly by leverage; nothing
 here has a hard date. The engine stays deterministic and dependency-free.
+
+## SHIPPED — Phase 5 hardening & release readiness (v1.4.0, 2026-11-16)
+
+- **Fuzz robustness** — `test/fuzz-robustness.test.js` (79 tests): hostile
+  inputs (binary bytes, lone surrogates, 1 MB repeats, deep/malformed HTML,
+  entity storms, mixed-script soup…) across scanText/scanHtml/scanDesign/
+  rewriteText/scanProject/scanRender with no-throw, determinism, shape, and
+  <1s budgets. 4 crash fixes landed (out-of-range entities → U+FFFD;
+  snapshot style sanitization; hex-entity radix; all-invalid screen
+  indices).
+- **Corpus quality gates** — `scripts/check-corpus.js` (ids
+  `^[a-z][a-z0-9-]*$`, required fields, severity 1-3, no duplicate matches
+  per category, per-category counts, cross-file uniqueness, FAIL exit 1) +
+  `test/corpus-validate.test.js` (base 279/27 + ru/hi/es → merged 382/30,
+  zero id duplication).
+- **Performance bench** — `bench/perf.js` (real ms / input size / KB/ms /
+  verdict; numbers in README → PERFORMANCE, macOS Apple Silicon).
+- **E2E contract matrix** — `scripts/e2e.js` (`npm run e2e`): boots the
+  real server on an isolated port, asserts every documented route with real
+  HTTP, prints a pass/fail table, exits non-zero on failure.
+- **Packaging validation** — `package.json` `files` allowlist +
+  `test/package.test.js` (exports resolve, engine require()s from a temp
+  dir); `npm pack --dry-run` = 38 files / 3.6 MB. Nothing published.
 
 ## SHIPPED — Rendered-tier browser checks (v1.3.0, 2026-11-16)
 
@@ -76,7 +99,17 @@ enforcement policy (hard fail vs comment-only). **Deliberately not created
 in v1.3.0:** `.github/` is devops-role-gated per house rules, and the
 real-browser render CI harness (playwright collector against live
 fixtures) would live here too. Founder decision + devops action required
-before either lands.
+before either lands. **Still open in v1.4.0** — do NOT create workflows in
+`.github/` from this repo (devops-owned per house rules).
+
+## Package publishing
+
+`npm pack --dry-run` is validated (38 files / 3.6 MB, `files` allowlist,
+v1.4.0) and the engine require()s through the package name from a temp
+dir — but **nothing is published**. Publishing `@lazynext/ai-slop-checker`
+is a founder decision: license confirmation (MIT header/naming policy,
+see ATTRIBUTIONS) must land first, then an npm account is required (no
+accounts or paid services were opened for this deliverable).
 
 ## PWA shell for the web checker
 
@@ -93,15 +126,23 @@ the inspirations' installers. The skill content exists; packaging is an
 account/release decision (no accounts or paid services were opened for this
 deliverable).
 
-## Deferred in v1.3.0 (with reasons)
+## Deferred (founder-gated / devops-gated, with reasons)
 
 - **No deployment executed** — code + docs only (`Dockerfile`,
   `wrangler.toml`, `docs/DEPLOYMENT.md`); deploying is a founder decision.
-  Docker tags bumped to 1.3.0 but nothing was built or pushed.
+  Docker tags bumped to 1.4.0 but nothing was built or pushed.
+- **License confirmation** — the MIT header/naming policy for a
+  Lazynext-authored open product has not been confirmed by the founder
+  (see the note in ATTRIBUTIONS). Ship shape is ready (LICENSE, package
+  metadata, `files` allowlist); the license decision is a founder call.
 - **Real-browser render CI** — the collector (`src/collect-render.js`)
   needs playwright + a browser farm; that lives under `.github/` which is
   devops-gated. The pure checks are fully tested without a browser
-  (34 hand-crafted snapshot tests).
+  (34 hand-crafted snapshot tests + the hostile-snapshot fuzz battery).
+- **CI gate (`slop-check` action)** — `.github/` is devops-role-gated per
+  house rules; the action is a thin `--exit-code` wrapper but needs a
+  founder decision on enforcement policy (hard fail vs comment-only)
+  before devops can create it. Do NOT create workflows in this repo.
 - **A2A is deliberately lightweight** — task results replay from an
   in-memory store (bounded, 30-min TTL), not persistent KV/files, because
   the plain-Node server has no KV. Production persistence for A2A tasks is a
@@ -113,3 +154,5 @@ deliverable).
   single-POST subset; streaming needs a hosted upgrade.
 - **Theme catalog stays a human guide** — shipped as documentation
   (`docs/design-review-guide.md`), never as machine-applied code.
+- **Judgement tells (soft, non-regex)** — kept out of the deterministic
+  core until precision beats recall (see the Judgement tells section).

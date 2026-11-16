@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Lazynext AI Slop Checker API",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "description": "Deterministic scanner for AI writing tells and AI-default visual design tics. Scans plain text, HTML, URLs (10s timeout), whole project directories, and rendered computed snapshots (pure rendered-tier checks); also exposes MCP (JSON-RPC 2.0) and A2A surfaces, a discovery card, an embeddable widget, an external-rules extension mechanism (`rules_url`), and severity profiles (`profile`). Zero dependencies, no LLM, same input always gives the same score.",
     "contact": { "name": "Lazynext (UNITED GLOBAL VENTURES PRIVATE LIMITED)", "email": "support@lazynext.com" },
     "license": { "name": "MIT" }

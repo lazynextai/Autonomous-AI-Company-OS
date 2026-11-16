@@ -103,7 +103,7 @@ const AGENT_CARD = {
   description:
     "Deterministic scanner for AI writing tells and AI-default visual design tics — text, HTML, whole-project, and rendered-snapshot scans with score, verdict, category breakdown, fixes, and safe rewrites.",
   url: "https://slop-checker.lazynext.com/a2a",
-  version: "1.3.0",
+  version: "1.4.0",
   protocolVersion: "0.3.0",
   preferredTransport: "JSONRPC",
   capabilities: { streaming: false, pushNotifications: false },

@@ -258,6 +258,29 @@ Lazynext's own expression of the ideas already credited above:
 
 No new accounts, keys, signups, or deployments were made in phase 4.
 
+## Phase 5 note (v1.4.0, 2026-11-16)
+
+The hardening & release-readiness work added **no new absorbed content**
+from the five source projects — everything is Lazynext's own work:
+
+- `test/fuzz-robustness.test.js`, the 4 crash fixes in `src/scanner.js`
+  (out-of-range numeric entities → U+FFFD, hex-entity radix) and
+  `src/render-checks.js` (snapshot sanitization, screen-index filtering),
+  and their regression tests — pure robustness engineering; no source
+  material.
+- `scripts/check-corpus.js` + `test/corpus-validate.test.js` — structural
+  validation of OUR OWN corpus; no source material.
+- `bench/perf.js` — performance measurement of our own engine; no source
+  material.
+- `scripts/e2e.js` + `test/package.test.js` + the `package.json` `files`
+  allowlist — release engineering; no source material.
+- `docs/usage.md`, README PERFORMANCE/hardening notes, CHANGELOG v1.4.0,
+  ROADMAP updates — our own documentation.
+
+No new accounts, keys, signups, or deployments were made in phase 5. The
+npm package was validated with `npm pack --dry-run` only; nothing was
+published.
+
 ## License flags for founder review
 
 1. **Our MIT license choice.** This repository's code is original Lazynext

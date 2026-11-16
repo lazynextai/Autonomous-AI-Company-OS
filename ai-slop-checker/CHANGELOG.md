@@ -3,9 +3,87 @@
 All notable changes to the Lazynext AI Slop Checker. SemVer; unreleased
 changes live in the "Unreleased" section until tagged.
 
-## Unreleased
+## v1.4.0 — 2026-11-16 (phase 5: hardening & release readiness)
 
-Nothing yet.
+### Fuzz robustness
+- **Hostile-input battery** — `test/fuzz-robustness.test.js` (79 tests):
+  empty / whitespace / 1 MB repeated / binary non-UTF8 / lone surrogates /
+  astral emoji / RTL Hebrew-Arabic / NUL bytes / 1000-deep nested HTML /
+  malformed HTML / JSON & JS-as-text / punctuation runs / single char /
+  100k-char word / mixed-script soup / entity storms, run through
+  `scanText`, `scanHtml`, `scanDesign`, `rewriteText` (no-throw,
+  byte-identical determinism, valid report shape, <1s budget) plus a
+  hostile temp fixture through `scanProject` and 10 hostile snapshots
+  through `scanRender`.
+- **4 crash/robustness fixes** (2 inherited + 2 reviewed while committing):
+  1. out-of-range numeric character references (`&#1114112;`, `&#x110000;`)
+     now decode to U+FFFD instead of `String.fromCodePoint` throwing
+     `RangeError` on hostile markup;
+  2. snapshot sanitization (`src/render-checks.js`) — hostile style values
+     (string px, object `backgroundImage`, non-finite rects) and non-object
+     elements are normalized deterministically before any check runs;
+     conforming snapshots keep a zero-copy fast path;
+  3. hex entity references (`&#x1F600;`) now decode base 16 — the inherited
+     shared base-10 decoder silently corrupted every hex entity to U+0001..;
+  4. an all-invalid `screens` array could reintroduce raw indices (fallback
+     to the untrusted source) and crash `checkScreenBudget` — the sanitizer
+     output is now authoritative.
+- Regression-guarded in `test/scanner.test.js` + `test/render-checks.test.js`
+
+### Corpus quality gates
+- **`scripts/check-corpus.js`** — validates one or more corpora: ids unique
+  and `^[a-z][a-z0-9-]*$`, required fields (id/category/severity 1-3/match/
+  fix), valid kinds, category ids unique with name+desc, no duplicate
+  identical match strings per category, per-category counts, and — when
+  extra files are passed — cross-file pattern/category id uniqueness against
+  the merged universe (i18n corpora legitimately reuse built-in category
+  ids). Prints `INTEGRITY PASS`/`FAIL`; exits non-zero on failure.
+- **`test/corpus-validate.test.js`** (9 tests) — base 279/27, ru(36) +
+  hi(33) + es(34), merged via `loadRules` = **382 patterns / 30 categories**,
+  zero id duplication across all four corpora.
+
+### Performance bench
+- **`bench/perf.js`** — real wall-clock measurements (ms, input size,
+  KB/ms, verdict): `scanText` on a ~100 KB realistic prose mix,
+  `scanHtml` on a ~200 KB HTML document, `scanProject` over
+  `demo/fixture-project/`, `rewriteText` on the 100 KB text; `--json` for
+  machine output. Real measured numbers recorded in README → PERFORMANCE
+  (macOS Apple Silicon).
+
+### Packaging validation
+- **`package.json` `files` allowlist** — README, LICENSE, CHANGELOG,
+  llms.txt, `data/`, `src/`, `api/`, `web/`, `skill/`, `docs/`, `assets/`;
+  excludes `bench/`, `demo/`, `test/`, `scripts/`, `Dockerfile`,
+  `wrangler.toml`. `npm pack --dry-run`: **38 files, 3.6 MB**, v1.4.0.
+- **`test/package.test.js`** (4 tests) — metadata validity, `main`+every
+  `exports` target resolves, allowlist covers the runtime surface, and the
+  engine `require()`s through the package name from a temp dir
+  (`os.tmpdir` + node_modules symlink, `child_process`).
+
+### E2E contract matrix
+- **`scripts/e2e.js`** (`npm run e2e`) — boots `api/server.js` on an
+  isolated port (8793; refuses 8792), waits for `/health`, then asserts the
+  full contract with real HTTP: 7 GET surfaces, `/scan` text/html/
+  `rules_url`-400, `/scan-project` with a self-created temp fixture,
+  `/render-scan` with a hand-built gradient snapshot, MCP
+  initialize/tools/list/tools/call, A2A message/send + `GET /a2a/tasks/:id`
+  replay. Prints a route→status table; exits non-zero on any failure.
+
+### Version + docs
+- 1.3.0 → 1.4.0 in `package.json`, `data/slop-patterns.js` (corpus
+  version — reported by every engine), `api/agent-surfaces.js` (agent
+  card), `api/openapi.json` (info.version), `src/render-checks.js`
+  (fallback literal), `test/worker.test.js` (assertions), `docs/DEPLOYMENT.md`
+  (docker tags), README (report shape + docker tags).
+- **`docs/usage.md`** — complete usage reference: CLI flag matrix
+  (`--profile`/`--rules`/`--dir`/`--top`/`--snapshot`/`--render`/`--json`/
+  `--rewrite`/`--file`/`--url`) + CLI exit codes, every API route with
+  request/response shapes, MCP tools, A2A, and the HTTP + JSON-RPC error
+  code tables.
+- README: new **PERFORMANCE** section (real bench numbers), hardening/
+  robustness note, `npm run e2e` quickstart. ROADMAP: phase-5 items moved
+  to SHIPPED. ATTRIBUTIONS: phase-5 note.
+- Full suite: **319 tests, all green** (was 222).
 
 ## v1.3.0 — 2026-11-16 (phase 4: rendered-tier checks, profiles, i18n, PWA)
 
