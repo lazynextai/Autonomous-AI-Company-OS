@@ -63,7 +63,7 @@ dependencies).
 npm install        # no-op today: declares no dependencies (package-lock generation only)
 
 # Tests
-npm test           # = node --test   (166 tests)
+npm test           # = node --test   (222 tests)
 
 # CLI
 node api/cli.js "We must leverage this robust cutting-edge solution."
@@ -73,27 +73,42 @@ node api/cli.js --url https://example.com
 node api/cli.js --json "machine readable report"
 node api/cli.js --rules                                    # dump the corpus shorthand
 node api/cli.js --rules data/rules.ru.js "В современном мире..."   # scan with external rules
+node api/cli.js --rules data/rules.hi.js "आज के डिजिटल युग में..."   # Hindi i18n corpus
+node api/cli.js --rules data/rules.es.js "En el mundo actual..."   # Spanish i18n corpus
 node api/cli.js --rules "rules/**\/*.js" --dir src          # external rules + project scan
 node api/cli.js --dir path/to/project        # whole-project scan
 node api/cli.js --dir path/to/project --top 20
 node api/cli.js --dir path/to/project --json
+node api/cli.js --profile strict "delve deep into this"     # severity profile
+node api/cli.js --profile lenient --dir path/to/project     # profile + project scan
+
+# Rendered-tier checks (pure functions over computed snapshots)
+node api/cli.js --snapshot snapshot.json                    # check a collected/pasted snapshot
+node api/cli.js --render https://example.com                # collect (needs playwright) + check
 
 # API server (also serves the web checker at http://localhost:8787)
 node api/server.js
 PORT=3000 node api/server.js
+curl -s -X POST localhost:8787/render-scan -H 'content-type: application/json' \
+  -d '{"snapshot":{"viewport":{"width":1280,"height":800},"elements":[]}}'
 
 # Web checker (in-browser engine, no server needed): open web/index.html,
 # or visit http://localhost:8787 with the API running. Includes a
 # "Scan a folder" mode (File System Access API, file-input fallback) that
-# scans chosen website assets entirely in the browser.
+# scans chosen website assets entirely in the browser, and a
+# "Design reviews" panel that runs the rendered-tier checks over a pasted
+# snapshot JSON — also entirely in the browser. Installable as a PWA when
+# served over http(s) (manifest + service worker; file:// stays untouched).
 ```
 
 External rules files accept a path, a `.json` file, a glob, or a
 comma-separated list, and deep-merge into the built-in corpus: custom
 categories are appended, custom patterns in existing categories fold in,
 and duplicate pattern ids are rejected with a clear error. The merged corpus
-wins the report's `version`. `data/rules.ru.js` is a shipped sample — an
-original Russian AI-slop-tell corpus demonstrating the general i18n path.
+wins the report's `version`. `data/rules.ru.js`, `data/rules.hi.js` and
+`data/rules.es.js` are shipped samples — original Russian, Hindi and
+Spanish AI-slop-tell corpora demonstrating the general i18n path (279 +
+36 + 33 + 34 patterns when merged; zero duplication).
 
 Project scans infer each file's lens — `.md`/`.txt` are prose-scanned,
 `.html`/`.jsx`/`.tsx`/`.vue`/`.svelte`/`.astro` are HTML-scanned, and
@@ -108,7 +123,7 @@ lockfiles, and binaries are skipped.
 ```js
 {
   engine: "lazynext-ai-slop-checker",
-  version: "1.2.0",
+  version: "1.3.0",
   input: { type: "text", length: 412 },
   score: 63,                    // 0 (clean) - 100 (max slop)
   verdict: "moderate",          // clean | light | moderate | heavy
@@ -142,9 +157,15 @@ mapped through an exponential decay to a 0–100 scale.
 ```js
 const { scanText, scanHtml } = require("@lazynext/ai-slop-checker"); // or ./src/scanner.js
 const { rewriteText } = require("./src/rewriter.js");
+const { scanRender } = require("./src/render-checks.js"); // rendered-tier checks (pure)
 
 const report = scanText("In today's fast-paced world, we must leverage our robust solution.");
 const htmlReport = scanHtml("<style>.hero{background:linear-gradient(135deg,#6366f1,#a855f7)}</style><h1>Hello</h1>");
+const strictReport = scanText("We must utilize this.", { profile: "strict" }); // severity profile
+
+// Rendered-tier checks over a computed snapshot (no browser needed):
+const snapshot = { viewport: { width: 1280, height: 800 }, documentStyle: { backgroundColor: "#ffffff" }, elements: [...] };
+const renderReport = scanRender(snapshot); // r-kicker-size, r-contrast, r-fold-budget, ...
 
 const { text, changes } = rewriteText("We should utilize this tool and leverage the API.");
 ```
@@ -160,7 +181,8 @@ const merged = loadRules("data/rules.ru.js");           // path, .json, glob, li
 const engine = createEngine(merged);                    // scan via the merged corpus
 const rewriter = createRewriter(merged, engine);        // rewrites via the same corpus
 const ruReport = engine.scanText("В современном мире …");
-// merged.version is reported; merged.patterns.length = 279 + 36
+const hiEsMerged = loadRules("data/rules.hi.js,data/rules.es.js"); // Hindi + Spanish together
+// merged.version is reported; merged.patterns.length = 279 + 36 + 33 + 34 (ru + hi + es)
 ```
 
 ### API
@@ -171,9 +193,10 @@ const ruReport = engine.scanText("В современном мире …");
 | `/index.html` | GET | — | web checker page (alias of `/`) |
 | `/health` | GET | — | liveness probe |
 | `/rules` | GET | — | full pattern corpus manifest (279 rules, list-rules style) |
-| `/scan` | POST | `{text}` · `{html}` · `{url}` · `{rules_url?}` | scan report; `{rewrite:true}` for text adds safe rewrites; `rules_url` (http(s) JSON, 10s timeout) deep-merges external rules for the scan |
-| `/scan-project` | POST | `{dir}` · `{topFiles?}` | scan a directory tree; pooled report (local filesystem only) |
-| `/mcp` | POST | JSON-RPC 2.0 | MCP: `initialize`/`ping`/`tools/list`/`tools/call` — tools `list_rules`, `scan_text`, `scan_html`, `scan_project`, `rewrite_text`; GET is 405 (no SSE) |
+| `/scan` | POST | `{text}` · `{html}` · `{url}` · `{rules_url?}` · `{profile?}` | scan report; `{rewrite:true}` for text adds safe rewrites; `rules_url` (http(s) JSON, 10s timeout) deep-merges external rules; `profile` (`"default"|"strict"|"lenient"`) selects the severity threshold |
+| `/scan-project` | POST | `{dir}` · `{topFiles?}` · `{profile?}` | scan a directory tree; pooled report (local filesystem only) |
+| `/render-scan` | POST | `{snapshot}` · `{url}` · `{profile?}` | rendered-tier r-* checks over a computed snapshot (pure, no browser); `{url}` collects first and needs the optional playwright collector (501 when absent) |
+| `/mcp` | POST | JSON-RPC 2.0 | MCP: `initialize`/`ping`/`tools/list`/`tools/call` — tools `list_rules`, `scan_text`, `scan_html`, `scan_project`, `scan_render`, `rewrite_text`; GET is 405 (no SSE) |
 | `/a2a` | POST | JSON-RPC 2.0 | lightweight A2A: `message/send`, `tasks/send`, `tasks/get`; task id == request id |
 | `/a2a/tasks/{id}` | GET | — | replay a completed A2A task result (in-memory recent store, 30-min TTL) |
 | `/.well-known/agent.json` | GET | — | agent discovery card |
@@ -228,8 +251,8 @@ and was **not** executed for this deliverable:
 
 ```sh
 cd ai-slop-checker
-docker build -t lazynext/ai-slop-checker:1.2.0 .
-docker run --rm -p 3000:3000 lazynext/ai-slop-checker:1.2.0
+docker build -t lazynext/ai-slop-checker:1.3.0 .
+docker run --rm -p 3000:3000 lazynext/ai-slop-checker:1.3.0
 # or the Worker:
 export CLOUDFLARE_API_TOKEN="$CLOUDFLARE_DEPLOY_TOKEN"   # see docs/DEPLOYMENT.md
 wrangler deploy --name lazynext-ai-slop-checker
@@ -248,12 +271,17 @@ field guide for visual AI tells.
 ai-slop-checker/
 ├── data/
 │   ├── slop-patterns.js      # 279-rule corpus, 27 categories (UMD: Node + browser)
-│   └── rules.ru.js           # original Russian sample corpus — external-rules/i18n demo
+│   ├── profiles.js           # severity profiles: default / strict / lenient (UMD)
+│   ├── rules.ru.js           # original Russian sample corpus — external-rules/i18n demo
+│   ├── rules.hi.js           # original Hindi sample corpus (loanwords, epochs, hedges)
+│   └── rules.es.js           # original Spanish sample corpus (anglicisms, superlatives)
 ├── src/
 │   ├── scanner.js            # scanText / scanHtml / scanDesign / extractText (UMD)
 │   ├── project-scanner.js    # scanProject — whole-directory scan (--dir)
 │   ├── project-scanner-browser.js  # browser-safe project scan (folder pick)
 │   ├── rules-loader.js       # loadRules — deep-merge external corpora
+│   ├── render-checks.js      # rendered-tier r-* checks — PURE functions over snapshots (UMD)
+│   ├── collect-render.js     # OPTIONAL playwright collector (never loaded by the engine)
 │   └── rewriter.js           # conservative before/after rewrites (UMD; createRewriter)
 ├── api/
 │   ├── server.js             # plain-Node HTTP API + static web checker host
@@ -262,9 +290,13 @@ ai-slop-checker/
 │   ├── openapi.json          # OpenAPI 3.1 contract
 │   └── cli.js                # zero-dep CLI
 ├── web/
-│   ├── index.html            # branded checker: paste-text / URL / folder input
-│   ├── app.js                # in-browser engine + API fallback + folder scan
-│   └── style.css             # Lazynext brand tokens
+│   ├── index.html            # branded checker: paste-text / URL / folder input + PWA links
+│   ├── app.js                # in-browser engine + API fallback + folder scan + design reviews
+│   ├── style.css             # Lazynext brand tokens
+│   ├── manifest.webmanifest  # PWA manifest (brand colors, 192/512 icons)
+│   ├── sw.js                 # service worker (network-first page, cache-first assets)
+│   ├── register-sw.js        # http(s)-guarded SW registration
+│   └── icons/                # icon-192.png + icon-512.png (sips-derived from favicon)
 ├── skill/
 │   ├── SKILL.md              # agent skill (SKILL.md format)
 │   ├── CLAUDE.md             # CLAUDE.md-style variant
@@ -275,6 +307,10 @@ ai-slop-checker/
 │   ├── rewriter.test.js      # rewrite correctness, determinism, safety
 │   ├── project-scanner.test.js # directory scan, lenses, aggregation, CLI --dir
 │   ├── project-scanner-browser.test.js  # browser lens parity + web asset checks
+│   ├── render-checks.test.js # r-* checks over hand-crafted snapshots (fire + non-fire)
+│   ├── profiles.test.js      # default/strict/lenient on the same text (CLI/API/render/project)
+│   ├── i18n.test.js          # hi + es corpora, ru+hi+es merge, dup rejection
+│   ├── pwa.test.js           # manifest keys, icon PNGs, sw.js parse, guarded registration
 │   ├── api.test.js           # HTTP contract tests
 │   ├── api-rules-url.test.js # POST /scan rules_url (local fixture server)
 │   ├── agent-surfaces.test.js # MCP handshake + tools, A2A, discovery, widget
@@ -290,6 +326,7 @@ ai-slop-checker/
 │   └── web-checker-scan.png  # verified screenshot of the web checker running
 ├── docs/
 │   ├── DEPLOYMENT.md         # Docker + Worker run books (not executed)
+│   ├── design-review-guide.md # human review guide: modes, craft floor, 5 questions, refusal
 │   └── dogfood-report.md     # bench table + real finds fixed
 ├── assets/
 │   ├── lazynext-logo.jpg     # brand anchor (copied from the Lazynext brand kit)
@@ -342,18 +379,32 @@ ai-slop-checker/
   zero build step. `src/project-scanner-browser.js` reuses the same lenses
   over in-memory files picked via the File System Access API (or a file
   input), so the web checker's folder scan matches `--dir`.
+- **Rendered tier** (`src/render-checks.js` + optional
+  `src/collect-render.js`) — 11 `r-*` checks are PURE functions over a
+  computed snapshot (`{elements: [...]}` with serialized computed styles),
+  so they run in Node, in the browser ("Design reviews" panel), on the
+  Workers entry, and over hand-crafted fixtures with no browser. The only
+  browser part is the OPTIONAL collector (`collectRender(url)`), lazily
+  loaded and never required by the engine; without `npm i -D playwright`
+  it throws the documented opt-in message.
+- **Severity profiles** (`data/profiles.js`) — `default` / `strict` /
+  `lenient` select the score threshold + included severities; applied as a
+  non-mutating re-score over the same decay curve, so the corpus never
+  changes between profiles.
 
 ## Roadmap
 
-See [`ROADMAP.md`](ROADMAP.md) for what is genuinely left (rendered-tier
-browser checks, a theme catalog, judgement tells, non-English built-ins,
-severity profiles, CI gate, PWA shell, plugin packaging) and why each item
-is deferred.
+See [`ROADMAP.md`](ROADMAP.md) for what is genuinely left (a theme catalog
+as a human guide, judgement tells, non-English built-ins as content, a
+`.github/`-gated CI, plugin packaging) and why each item is deferred.
+Rendered-tier browser checks shipped in v1.3.0 as pure snapshot checks
+(with a real-browser CI harness still a `.github/`-gated follow-up).
 
-Deferred from this deliverable, consciously: no rendered-browser heuristics
-(needs a browser dependency), no LLM-based scoring (the engine is deliberately
-deterministic), and no deployment of the worker, API, or container (run books
-in `docs/DEPLOYMENT.md`, not executed).
+Deferred from this deliverable, consciously: no real-browser CI gate
+(`.github/`-gated and devops-owned per house rules — not created here), no
+LLM-based scoring (the engine is deliberately deterministic), and no
+deployment of the worker, API, or container (run books in
+`docs/DEPLOYMENT.md`, not executed).
 
 ## License & attribution
 

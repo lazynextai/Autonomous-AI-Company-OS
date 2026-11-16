@@ -1,6 +1,6 @@
 # Dogfood report — Lazynext AI Slop Checker runs on itself
 
-Date: **2026-11-16**. Engine version: **1.2.0**. This report records the
+Date: **2026-11-16**. Engine version: **1.3.0** (v1.2.0 record + phase-4 addendum below). This report records the
 bench table from `bench/run.js` and every real finding fixed in our own
 docs/web copy. The scanner was NOT weakened; the copy was improved.
 
@@ -115,3 +115,25 @@ wall of glowing cards, every default switched on at once, until every
   skill visual-tells are clean (fixed finds stay fixed)") so a future edit
   that reintroduces the habit fails CI-style.
 - Full suite green at the time of writing: 166 tests, 0 failures.
+
+## Phase 4 addendum (v1.3.0, 2026-11-16)
+
+- `web/index.html` stayed clean (0/0) after its purely additive PWA change
+  (manifest link + theme-color meta + `defer` register script) —
+  regression-locked by the same bench test.
+- `web/app.js` gained the "Design reviews" panel; its design-lens score is
+  now **19/2** (`d-indigo-violet-gradient` ×2). Both matches are
+  **deliberate demonstrative content** in the same class as README/
+  ATTRIBUTIONS: the snapshot *placeholder* and the "Load a slop snapshot"
+  sample quote `linear-gradient(135deg,#6366f1,#a855f7)` so the
+  `r-gradient-text` check visibly fires. Rewriting the sample would destroy
+  its purpose; the text was audited, and any other quoting (e.g. a
+  now-reworded hint that listed "marquees") was removed from our own prose.
+- `web/sw.js`, `web/register-sw.js`, `data/profiles.js`,
+  `data/rules.hi.js`, `data/rules.es.js`: 0/0 clean under the design lens.
+- `docs/design-review-guide.md` scores high under the text lens — it is a
+  deliberate quotation (it names the tells the guide reviews); same policy
+  as README/ATTRIBUTIONS entries.
+- Demo controls and bench assertions unchanged: `demo/clean.txt` 0,
+  `demo/slop.txt` > 50, `web/index.html` 0, `visual-tells.md` 0.
+- Full suite green: **222 tests, 0 failures** (v1.3.0).

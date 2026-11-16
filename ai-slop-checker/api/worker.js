@@ -70,8 +70,9 @@ function serviceDescriptor() {
     endpoints: {
       health: { method: "GET", path: "/health" },
       rules: { method: "GET", path: "/rules" },
-      scan: { method: "POST", path: "/scan", body: { text: "string", html: "string", url: "http(s) URL", rewrite: "boolean (text only)", rules_url: "http(s) URL to a JSON custom-rules file" } },
+      scan: { method: "POST", path: "/scan", body: { text: "string", html: "string", url: "http(s) URL", rewrite: "boolean (text only)", rules_url: "http(s) URL to a JSON custom-rules file", profile: '"default" | "strict" | "lenient"' } },
       projectScan: { method: "POST", path: "/scan-project", note: "local filesystem only — not available on Workers; use the local Node server" },
+      renderScan: { method: "POST", path: "/render-scan", body: { snapshot: "computed snapshot object ({elements:[...]}) — pure checks, no browser needed", url: "http(s) URL to collect + check (needs the optional playwright collector)", profile: '"default" | "strict" | "lenient"' }, note: "exactly one of snapshot|url; snapshot runs anywhere, url needs the local collector" },
       mcp: { method: "POST", path: "/mcp", note: "JSON-RPC 2.0 (initialize/ping/tools/list/tools/call); GET is 405 (no SSE)" },
       a2a: { method: "POST", path: "/a2a", note: "JSON-RPC 2.0 (message/send, tasks/send, tasks/get); GET /a2a/tasks/:id replays" },
       agentCard: { method: "GET", path: "/.well-known/agent.json" },
@@ -108,6 +109,13 @@ function enginesForWorker() {
     scanHtml,
     rewriteText,
     ruleManifest,
+    renderScan: (snapshotOrUrl, opts) => {
+      // Snapshot scans are pure and run on the edge; URL collection needs
+      // the local playwright collector.
+      const { scanRender } = require("../src/render-checks.js");
+      if (snapshotOrUrl && typeof snapshotOrUrl === "object") return scanRender(snapshotOrUrl, opts);
+      throw new Error("url render-scan needs the optional local playwright collector — POST {snapshot} instead");
+    },
     scanUrl: async (urlString) => {
       const remote = await fetchRemote(urlString);
       return { report: scanHtml(remote.html), remote };
@@ -125,10 +133,11 @@ async function handleScan(req) {
     return json({ error: "invalid JSON body" }, 400);
   }
 
-  const { text, html, url, rewrite, rules_url } = body;
+  const { text, html, url, rewrite, rules_url, profile } = body;
   const kinds = [text !== undefined, html !== undefined, url !== undefined].filter(Boolean).length;
   if (kinds === 0) return json({ error: "provide one of: text, html, url" }, 400);
   if (kinds > 1) return json({ error: "provide exactly one of: text, html, url" }, 400);
+  const scanOpts = profile !== undefined && profile !== null ? { profile } : undefined;
 
   let engine = { scanText, scanHtml, rewriteText, ruleManifest, version };
   if (rules_url !== undefined) {
@@ -180,14 +189,14 @@ async function handleScan(req) {
     let source;
     if (text !== undefined) {
       if (typeof text !== "string") return json({ error: "text must be a string" }, 400);
-      report = engine.scanText(text);
+      report = engine.scanText(text, scanOpts);
       source = { type: "text", length: text.length };
       if (rewrite === true) {
         report = { ...report, rewrite: engine.rewriteText(text) };
       }
     } else if (html !== undefined) {
       if (typeof html !== "string") return json({ error: "html must be a string" }, 400);
-      report = engine.scanHtml(html);
+      report = engine.scanHtml(html, scanOpts);
       source = { type: "html", length: html.length };
     } else {
       if (typeof url !== "string" || !/^https?:\/\//i.test(url)) {
@@ -199,12 +208,44 @@ async function handleScan(req) {
       } catch (err) {
         return json({ error: `could not fetch url: ${err.message}` }, 502);
       }
-      report = engine.scanHtml(remote.html);
+      report = engine.scanHtml(remote.html, scanOpts);
       source = { type: "url", url };
     }
     return json({ ...report, source });
   } catch (err) {
     return json({ error: `scan failed: ${err.message}` }, 500);
+  }
+}
+
+async function handleRenderScan(req, env, ctx) {
+  let body = {};
+  try {
+    const raw = await req.text();
+    if (raw.length > MAX_BODY_BYTES) return json({ error: "body too large (limit 1MB)" }, 413);
+    if (raw) body = JSON.parse(raw);
+  } catch {
+    return json({ error: "invalid JSON body" }, 400);
+  }
+  const { snapshot, url, profile } = body;
+  const hasSnapshot = snapshot !== undefined;
+  const hasUrl = url !== undefined;
+  if (hasSnapshot === hasUrl) return json({ error: "provide exactly one of: snapshot, url" }, 400);
+
+  const { scanRender } = require("../src/render-checks.js");
+  const opts = profile !== undefined && profile !== null ? { profile } : {};
+  try {
+    if (hasSnapshot) {
+      if (!snapshot || typeof snapshot !== "object" || !Array.isArray(snapshot.elements)) {
+        return json({ error: "snapshot must be an object with an elements array (see src/render-checks.js)" }, 400);
+      }
+      const report = scanRender(snapshot, opts);
+      return json({ ...report, source: { type: "render-snapshot" } });
+    }
+    // URL collection needs the local playwright collector — not available on
+    // the edge entry; the pure checks still run anywhere.
+    return json({ error: "url render-scan needs the optional local playwright collector — POST {snapshot} here or run the local Node server (node api/server.js)" }, 501);
+  } catch (err) {
+    return json({ error: `render scan failed: ${err.message}` }, 400);
   }
 }
 
@@ -221,6 +262,7 @@ module.exports = {
     if (req.method === "POST" && pathname === "/scan-project") {
       return json({ error: "project scan needs local filesystem access — run the local Node server (node api/server.js) instead" }, 400);
     }
+    if (req.method === "POST" && pathname === "/render-scan") return handleRenderScan(req, env, ctx);
 
     // ── Agent surfaces ────────────────────────────────────────────────
     if (pathname === "/mcp") {
@@ -281,6 +323,6 @@ module.exports = {
       }
     }
 
-    return json({ error: "not found", endpoints: ["/", "/health", "/rules", "/scan", "/scan-project", "/mcp", "/a2a", "/.well-known/agent.json", "/widget.js", "/openapi.json", "/llms.txt"] }, 404);
+    return json({ error: "not found", endpoints: ["/", "/health", "/rules", "/scan", "/scan-project", "/render-scan", "/mcp", "/a2a", "/.well-known/agent.json", "/widget.js", "/openapi.json", "/llms.txt"] }, 404);
   },
 };

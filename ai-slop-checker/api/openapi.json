@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Lazynext AI Slop Checker API",
-    "version": "1.2.0",
-    "description": "Deterministic scanner for AI writing tells and AI-default visual design tics. Scans plain text, HTML, URLs (10s timeout), and whole project directories; also exposes MCP (JSON-RPC 2.0) and A2A surfaces, a discovery card, an embeddable widget, and an external-rules extension mechanism (`rules_url`). Zero dependencies, no LLM, same input always gives the same score.",
+    "version": "1.3.0",
+    "description": "Deterministic scanner for AI writing tells and AI-default visual design tics. Scans plain text, HTML, URLs (10s timeout), whole project directories, and rendered computed snapshots (pure rendered-tier checks); also exposes MCP (JSON-RPC 2.0) and A2A surfaces, a discovery card, an embeddable widget, an external-rules extension mechanism (`rules_url`), and severity profiles (`profile`). Zero dependencies, no LLM, same input always gives the same score.",
     "contact": { "name": "Lazynext (UNITED GLOBAL VENTURES PRIVATE LIMITED)", "email": "support@lazynext.com" },
     "license": { "name": "MIT" }
   },
@@ -113,7 +113,8 @@
                 "required": ["dir"],
                 "properties": {
                   "dir": { "type": "string", "description": "path to a directory" },
-                  "topFiles": { "type": "integer", "minimum": 1, "maximum": 25, "description": "how many top files to report (default 10)" }
+                  "topFiles": { "type": "integer", "minimum": 1, "maximum": 25, "description": "how many top files to report (default 10)" },
+                  "profile": { "type": "string", "enum": ["default", "strict", "lenient"], "description": "severity profile (default | strict | lenient)" }
                 }
               }
             }
@@ -123,6 +124,37 @@
           "200": { "description": "Pooled project report", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProjectReport" } } } },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "413": { "description": "Request body over the 1MB limit", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/render-scan": {
+      "post": {
+        "summary": "Rendered-tier design checks over a computed snapshot (or a URL when the optional collector is present)",
+        "description": "Pure functions over a computed snapshot ({elements:[...]}, see src/render-checks.js): kicker size, gradient text, tracked caps, glued arrows, marquee, hidden reveal, fold budget, screen word budget, section rhythm, fake progress, and WCAG contrast. Provide exactly one of snapshot | url. snapshot runs anywhere; url requires the optional playwright collector (501 when absent).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "snapshot": { "type": "object", "description": "computed snapshot: { viewport?, documentStyle?, elements: [...], screens? }" },
+                  "url": { "type": "string", "format": "uri", "description": "http(s) URL to collect then check (requires the optional playwright collector)" },
+                  "profile": { "type": "string", "enum": ["default", "strict", "lenient"], "description": "severity profile (default | strict | lenient)" }
+                },
+                "oneOf": [
+                  { "required": ["snapshot"] },
+                  { "required": ["url"] }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Render scan report", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RenderReport" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "413": { "description": "Request body over the 1MB limit", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "501": { "description": "URL collect requested but the optional playwright collector is not installed", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
@@ -282,14 +314,68 @@
           "html": { "type": "string", "description": "HTML document to scan" },
           "url": { "type": "string", "format": "uri", "description": "http(s) URL to fetch and scan (10s timeout)" },
           "rewrite": { "type": "boolean", "description": "include safe auto-rewrites (text input only)" },
-          "rules_url": { "type": "string", "format": "uri", "description": "http(s) URL to a JSON custom-rules file to deep-merge for this scan (10s timeout)" }
+          "rules_url": { "type": "string", "format": "uri", "description": "http(s) URL to a JSON custom-rules file to deep-merge for this scan (10s timeout)" },
+          "profile": { "type": "string", "enum": ["default", "strict", "lenient"], "description": "severity profile (default | strict | lenient)" }
         },
-        "description": "Exactly one of text | html | url must be present; rules_url and rewrite are optional.",
+        "description": "Exactly one of text | html | url must be present; rules_url, profile and rewrite are optional.",
         "oneOf": [
           { "required": ["text"] },
           { "required": ["html"] },
           { "required": ["url"] }
         ]
+      },
+      "RenderReport": {
+        "type": "object",
+        "required": ["engine", "version", "input", "score", "verdict", "clean", "totalPoints", "matches", "categories"],
+        "properties": {
+          "engine": { "type": "string", "const": "lazynext-ai-slop-checker-render" },
+          "version": { "type": "string" },
+          "profile": { "type": "string", "enum": ["strict", "lenient"], "description": "present when a profile recomputed the report" },
+          "input": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "const": "render-snapshot" },
+              "elements": { "type": "integer" },
+              "viewport": { "type": "object", "properties": { "width": { "type": "integer" }, "height": { "type": "integer" } } }
+            }
+          },
+          "source": {
+            "type": "object",
+            "properties": { "type": { "type": "string", "enum": ["render-snapshot", "render-url"] }, "url": { "type": "string" }, "collected": { "type": "object" } }
+          },
+          "score": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "verdict": { "type": "string", "enum": ["clean", "light", "moderate", "heavy"] },
+          "clean": { "type": "boolean" },
+          "totalPoints": { "type": "integer" },
+          "matches": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "category", "severity", "index", "snippet"],
+              "properties": {
+                "id": { "type": "string" },
+                "category": { "type": "string" },
+                "severity": { "type": "integer" },
+                "index": { "type": "integer" },
+                "snippet": { "type": "string" },
+                "detail": { "type": "string" },
+                "fix": { "type": "string" }
+              }
+            }
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "name", "count", "points"],
+              "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "count": { "type": "integer" }, "points": { "type": "integer" } }
+            }
+          },
+          "checks": {
+            "type": "array",
+            "items": { "type": "object", "required": ["id", "name"], "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "desc": { "type": "string" } } }
+          }
+        }
       },
       "ScanReport": {
         "type": "object",
@@ -352,7 +438,8 @@
               "changed": { "type": "boolean" },
               "changes": { "type": "array", "items": { "type": "object" } }
             }
-          }
+          },
+          "profile": { "type": "string", "enum": ["strict", "lenient"], "description": "present when a profile recomputed the report" }
         }
       },
       "ProjectReport": {
@@ -390,7 +477,8 @@
               "totalMatches": { "type": "integer" },
               "totalPoints": { "type": "integer" },
               "score": { "type": "integer" },
-              "verdict": { "type": "string" }
+              "verdict": { "type": "string" },
+              "profile": { "type": "string", "enum": ["strict", "lenient"], "description": "present when a profile recomputed the project" }
             }
           },
           "topFiles": {

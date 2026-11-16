@@ -121,9 +121,10 @@ function isBinary(buf) {
  * single file — errors become a `{ error }` entry so one bad file can't kill
  * a whole tree pass. `engine` defaults to the built-in scanner; pass a
  * custom engine (scanner.createEngine(loadRules(...))) to scan with
- * external rules.
+ * external rules. `profile` (optional) is forwarded to every engine scan so
+ * per-file reports already honour the severity profile.
  */
-function scanFile(file, engine) {
+function scanFile(file, engine, profile) {
   let buf;
   try {
     const st = fs.statSync(file.full);
@@ -135,12 +136,13 @@ function scanFile(file, engine) {
   }
   if (isBinary(buf)) return { file: file.rel, kind: file.kind, skipped: "binary" };
   const raw = buf.toString("utf8");
+  const scanOpts = profile !== undefined ? { profile } : undefined;
 
   try {
-    if (file.kind === "prose") return { file: file.rel, kind: file.kind, report: engine.scanText(raw) };
-    if (file.kind === "markup") return { file: file.rel, kind: file.kind, report: engine.scanHtml(raw) };
+    if (file.kind === "prose") return { file: file.rel, kind: file.kind, report: engine.scanText(raw, scanOpts) };
+    if (file.kind === "markup") return { file: file.rel, kind: file.kind, report: engine.scanHtml(raw, scanOpts) };
     // styles + code: design tells only (raw source; no text extraction)
-    return { file: file.rel, kind: file.kind, report: engine.scanDesign(raw) };
+    return { file: file.rel, kind: file.kind, report: engine.scanDesign(raw, scanOpts) };
   } catch (err) {
     return { file: file.rel, kind: file.kind, error: err.message };
   }
@@ -163,11 +165,12 @@ function scanProject(rootDir, opts = {}) {
 
   const maxFiles = Number.isInteger(opts.maxFiles) ? opts.maxFiles : MAX_FILES;
   const engine = opts.engine || BUILTIN_ENGINE;
+  const profile = opts.profile !== undefined && opts.profile !== null ? opts.profile : undefined;
   const files = walk(root, maxFiles);
   const scanned = [];
 
   for (const file of files) {
-    const out = scanFile(file, engine);
+    const out = scanFile(file, engine, profile);
     if (out.report) {
       out.score = out.report.score;
       out.points = out.report.totalPoints;
@@ -178,39 +181,58 @@ function scanProject(rootDir, opts = {}) {
   }
 
   // Aggregate: pool every pattern hit's points the same way the single-file
-  // scorer does, then map through the same exponential decay.
-  const pointsByPattern = new Map();
-  const categoryStats = new Map(); // category id -> { name, count, points }
-  let totalPoints = 0;
+  // scorer does, then map through the same exponential decay. When a
+  // severity profile is active, pool through the shared profile scorer so
+  // the project-level threshold + severity inclusion match the per-file
+  // reports (lenient ignores warn-class contributions here too).
+  let pools;
+  if (profile) {
+    const profilesModule = require("../data/profiles.js");
+    const prof = profilesModule.resolveProfile(profile);
+    const flatMatches = [];
+    for (const entry of scanned) {
+      if (entry.report) flatMatches.push(...entry.report.matches);
+    }
+    pools = profilesModule.scoreMatches(flatMatches, prof);
+    pools.profile = prof.id;
+  } else {
+    const pointsByPattern = new Map();
+    const categoryStats = new Map(); // category id -> { count, points }
+    let totalPoints = 0;
+    for (const entry of scanned) {
+      if (entry.skipped || entry.error) continue;
+      for (const match of entry.report.matches) {
+        const cap = match.severity * 3;
+        const used = pointsByPattern.get(match.id) || 0;
+        const add = Math.min(match.severity, Math.max(0, cap - used));
+        pointsByPattern.set(match.id, used + add);
+        totalPoints += add;
+        const slot = categoryStats.get(match.category) || { count: 0, points: 0 };
+        slot.count += 1;
+        slot.points += add;
+        categoryStats.set(match.category, slot);
+      }
+    }
+    const score = Math.round(100 * (1 - Math.exp(-totalPoints / 28)));
+    const clamped = Math.max(0, Math.min(100, score));
+    const verdict = clamped <= 9 ? "clean" : clamped <= 29 ? "light" : clamped <= 59 ? "moderate" : "heavy";
+    const categories = [...categoryStats.entries()]
+      .map(([id, slot]) => ({ id, count: slot.count, points: slot.points }))
+      .sort((a, b) => b.points - a.points || b.count - a.count);
+    pools = { totalPoints, score: clamped, verdict, clean: clamped <= 9, categories, categoryIds: new Set(categories.map((c) => c.id)) };
+  }
+
+  // Files-with-hits and skipped counts are computed outside the point pool
+  // (the profile path pools only matches, not entries).
   let filesWithHits = 0;
   let filesSkipped = 0;
-
   for (const entry of scanned) {
     if (entry.skipped || entry.error) {
       filesSkipped += 1;
       continue;
     }
     if (entry.report.totalPoints > 0) filesWithHits += 1;
-    for (const match of entry.report.matches) {
-      const cap = match.severity * 3;
-      const used = pointsByPattern.get(match.id) || 0;
-      const add = Math.min(match.severity, Math.max(0, cap - used));
-      pointsByPattern.set(match.id, used + add);
-      totalPoints += add;
-      const slot = categoryStats.get(match.category) || { count: 0, points: 0 };
-      slot.count += 1;
-      slot.points += add;
-      categoryStats.set(match.category, slot);
-    }
   }
-
-  const score = Math.round(100 * (1 - Math.exp(-totalPoints / 28)));
-  const clamped = Math.max(0, Math.min(100, score));
-  const verdict = clamped <= 9 ? "clean" : clamped <= 29 ? "light" : clamped <= 59 ? "moderate" : "heavy";
-
-  const categories = [...categoryStats.entries()]
-    .map(([id, slot]) => ({ id, count: slot.count, points: slot.points }))
-    .sort((a, b) => b.points - a.points || b.count - a.count);
 
   const withHits = scanned.filter((e) => e.report && e.report.totalPoints > 0);
   const topFiles = [...withHits]
@@ -225,26 +247,39 @@ function scanProject(rootDir, opts = {}) {
       verdict: e.verdict,
     }));
 
+  const summary = {
+    filesScanned: scanned.length,
+    filesWithHits,
+    filesSkipped,
+    totalMatches: withHits.reduce((n, e) => n + e.matches, 0),
+    totalPoints: pools.totalPoints,
+    score: pools.score,
+    verdict: pools.verdict,
+    verdictBands: [
+      { max: 9, label: "clean" },
+      { max: 29, label: "light" },
+      { max: 59, label: "moderate" },
+      { max: Infinity, label: "heavy" },
+    ],
+  };
+  if (profile) summary.profile = pools.profile ?? (typeof profile === "string" ? profile : profile.id);
+
+  let categories;
+  if (profile) {
+    // profile pools return categories via the counts map
+    categories = [...pools.counts.entries()]
+      .map(([id, slot]) => ({ id, count: slot.count, points: slot.points }))
+      .sort((a, b) => b.points - a.points || b.count - a.count);
+  } else {
+    ({ categories } = pools);
+  }
+
   return {
     engine: "lazynext-ai-slop-checker",
     version: engine.version,
     root,
     files: scanned,
-    summary: {
-      filesScanned: scanned.length,
-      filesWithHits,
-      filesSkipped,
-      totalMatches: withHits.reduce((n, e) => n + e.matches, 0),
-      totalPoints,
-      score: clamped,
-      verdict,
-      verdictBands: [
-        { max: 9, label: "clean" },
-        { max: 29, label: "light" },
-        { max: 59, label: "moderate" },
-        { max: Infinity, label: "heavy" },
-      ],
-    },
+    summary,
     topFiles,
     categories,
   };

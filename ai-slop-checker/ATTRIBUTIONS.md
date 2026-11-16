@@ -190,10 +190,15 @@ Where: `.cursor/rules/slop-guard.mdc`, `skill/SKILL.md`, `skill/CLAUDE.md`,
 
 - `data/slop-patterns.js` — corpus categories/patterns
 - `src/scanner.js`, `src/rewriter.js` — engine
+- `src/render-checks.js` — rendered-tier checks (impeccable/hallmark
+  rendered-floor concepts; our own pure-function architecture)
 - `skill/SKILL.md`, `skill/CLAUDE.md`, `.cursor/rules/slop-guard.mdc`,
   `skill/references/visual-tells.md` — skill distro
+- `docs/design-review-guide.md` — human-facing review guide (mode
+  vocabulary, craft floor, refusal scaffolds, theme catalog)
 - `README.md`, `web/index.html`, this file — docs & credits
-- `test/scanner.test.js`, `test/api.test.js` — fixtures/tests
+- `test/scanner.test.js`, `test/api.test.js`, `test/render-checks.test.js`
+  — fixtures/tests
 
 ## Phase 3 note (v1.2.0, 2026-11-16)
 
@@ -216,6 +221,42 @@ work added **no new absorbed content** from the five source projects:
   derived from any source project's files.
 
 No new accounts, keys, signups, or deployments were made in phase 3.
+
+## Phase 4 note (v1.3.0, 2026-11-16)
+
+The rendered-tier, profiles, i18n, design-guide, and PWA work added **no
+new absorbed content** from the five source projects — everything is
+Lazynext's own expression of the ideas already credited above:
+
+- `src/render-checks.js`, `src/collect-render.js` — the rendered-tier
+  checks are our own pure-function architecture over a serialized computed
+  snapshot. The *concepts* (flat-type kickers, gradient text, tracked-caps,
+  glued arrows, the 1280×800 fold rule, ~80 words a screen, uniform grids,
+  contrast floor) are the impeccable/hallmark ideas already mapped in the
+  sections above; every threshold, message, fix, and the snapshot contract
+  itself were designed and written by us. No source code was ported.
+- `data/profiles.js` — pure scoring work; no source-project material.
+- `data/rules.hi.js`, `data/rules.es.js` — **original, Lazynext-written**
+  Hindi and Spanish corpora. The Hindi tells (लेवरेज, सीमलेस,
+  आज के डिजिटल युग में, अद्वितीय, …) and Spanish tells (apalancar,
+  seamless, en el mundo actual, innovador, …) are common-knowledge copy
+  conventions; the lists, every description and fix were written by us
+  from knowledge of the languages, **not** copied from any source
+  repository (kill-ai-slop includes a Russian example only, and nothing
+  was taken from it).
+- `docs/design-review-guide.md` — an original human-facing guide that
+  *names* the impeccable/hallmark vocabulary (craft floor, four modes,
+  refusal scaffolds, theme catalog) and re-expresses it in our own words;
+  the guide credits both projects in its intro. The theme catalog is
+  absorbed as a guide (4 archetypes with our own slop-to-fix lists), never
+  as code.
+- `web/manifest.webmanifest`, `web/sw.js`, `web/register-sw.js`,
+  `web/icons/*.png` — all original Lazynext code and assets (icons
+  `sips`-derived from the existing favicon). The sibling product's PWA
+  shell was used as an *idea* reference only, per the task brief; no files
+  were copied.
+
+No new accounts, keys, signups, or deployments were made in phase 4.
 
 ## License flags for founder review
 

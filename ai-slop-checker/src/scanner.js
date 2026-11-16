@@ -13,14 +13,17 @@
   const api = factory(
     typeof module !== "undefined" && module.exports
       ? require("../data/slop-patterns.js")
-      : root.SlopPatterns
+      : root.SlopPatterns,
+    typeof module !== "undefined" && module.exports
+      ? require("../data/profiles.js")
+      : root.SlopProfiles
   );
   if (typeof module !== "undefined" && module.exports) {
     module.exports = api;
   } else if (typeof window !== "undefined") {
     window.SlopScanner = api;
   }
-})(typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : this, function engine(corpus) {
+})(typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : this, function engine(corpus, profilesModule) {
 
 const ENGINE_NAME = "lazynext-ai-slop-checker";
 
@@ -51,6 +54,22 @@ function compiled(p) {
 }
 
 const EMOJI_RE = /(\p{Extended_Pictographic})/gu;
+
+/**
+ * Apply a severity profile to a finished report (data/profiles.js).
+ * null/undefined/`default` pass the report through untouched; a true
+ * profile refilters matches and re-scores via the shared scorer so the
+ * verdict/clean/categories all honour the profile's threshold.
+ */
+function applyProfile(report, profileOpt) {
+  if (profileOpt === undefined || profileOpt === null) return report;
+  if (!profilesModule) {
+    throw new Error(
+      "a severity profile was requested but data/profiles.js is not loaded — load it before src/scanner.js in the browser"
+    );
+  }
+  return profilesModule.applyProfileReport(report, profileOpt);
+}
 
 /**
  * Extract visible text from an HTML string (no DOM needed).
@@ -147,7 +166,7 @@ function scanText(text, opts = {}) {
     if (matches.length > 2000) break;
   }
 
-  return buildReport(matches, { type: "text", length: text.length });
+  return applyProfile(buildReport(matches, { type: "text", length: text.length }), opts.profile);
 }
 
 /**
@@ -207,7 +226,7 @@ function scanHtml(html, opts = {}) {
   }
 
   const matches = [...textMatches, ...designMatches].sort((a, b) => a.index - b.index);
-  return buildReport(matches, { type: "html", length: html.length });
+  return applyProfile(buildReport(matches, { type: "html", length: html.length }), opts.profile);
 }
 
 /**
@@ -244,7 +263,7 @@ function scanDesign(raw, opts = {}) {
     }
     if (designMatches.length > 500) break;
   }
-  return buildReport(designMatches, { type: "design", length: raw.length });
+  return applyProfile(buildReport(designMatches, { type: "design", length: raw.length }), opts.profile);
 }
 
 /**

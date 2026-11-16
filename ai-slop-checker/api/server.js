@@ -48,7 +48,7 @@ function json(res, code, body) {
 }
 
 function notFound(res) {
-  json(res, 404, { error: "not found", endpoints: ["/", "/health", "/rules", "/scan", "/scan-project", "/mcp", "/a2a", "/.well-known/agent.json", "/widget.js", "/openapi.json", "/llms.txt"] });
+  json(res, 404, { error: "not found", endpoints: ["/", "/health", "/rules", "/scan", "/scan-project", "/render-scan", "/mcp", "/a2a", "/.well-known/agent.json", "/widget.js", "/openapi.json", "/llms.txt"] });
 }
 
 function readBody(req) {
@@ -162,8 +162,19 @@ function serviceDescriptor() {
         body: {
           dir: "path to a directory tree (prose/markup/styles/code) to scan",
           topFiles: "optional integer: how many top files to report (default 10)",
+          profile: 'optional severity profile: "default" | "strict" | "lenient"',
         },
         note: "local filesystem access; not available on the Cloudflare Workers entry",
+      },
+      renderScan: {
+        method: "POST",
+        path: "/render-scan",
+        body: {
+          snapshot: "a computed snapshot object ({ elements: [...] }) — pure rendered-tier checks, no browser",
+          url: "an http(s) URL to collect then check (requires the optional playwright collector)",
+          profile: 'optional severity profile: "default" | "strict" | "lenient"',
+        },
+        note: 'exactly one of snapshot | url. The checks are pure; only {url} needs `npm i -D playwright` (501 when absent)',
       },
       mcp: {
         method: "POST",
@@ -186,6 +197,11 @@ function serviceDescriptor() {
       range: "0 (clean) to 100 (maximal slop)",
       cleanThreshold: 9,
       verdicts: ["clean", "light", "moderate", "heavy"],
+      profiles: [
+        { id: "default", cleanThreshold: 9, note: "all severities count (current behaviour)" },
+        { id: "strict", cleanThreshold: 6, note: "warn-class findings count harder (×1.5), lower clean bar" },
+        { id: "lenient", cleanThreshold: 14, note: "ignores severity-1 (warn-class) findings, higher clean bar" },
+      ],
     },
   };
 }
@@ -205,7 +221,7 @@ async function handleScan(req, res) {
     return json(res, 400, { error: "invalid JSON body" });
   }
 
-  const { text, html, url, rewrite, rules_url } = body;
+  const { text, html, url, rewrite, rules_url, profile } = body;
   const kinds = [text !== undefined, html !== undefined, url !== undefined].filter(Boolean).length;
 
   if (kinds === 0) {
@@ -214,6 +230,7 @@ async function handleScan(req, res) {
   if (kinds > 1) {
     return json(res, 400, { error: "provide exactly one of: text, html, url" });
   }
+  const scanOpts = profile !== undefined && profile !== null ? { profile } : undefined;
 
   // External rules: fetch a JSON custom-rules file (http(s) only, 10s
   // timeout) and deep-merge it via the same loader the CLI uses. JSON is
@@ -269,11 +286,11 @@ async function handleScan(req, res) {
 
     if (text !== undefined) {
       if (typeof text !== "string") return json(res, 400, { error: "text must be a string" });
-      report = engine.scanText(text);
+      report = engine.scanText(text, scanOpts);
       source = { type: "text", length: text.length };
     } else if (html !== undefined) {
       if (typeof html !== "string") return json(res, 400, { error: "html must be a string" });
-      report = engine.scanHtml(html);
+      report = engine.scanHtml(html, scanOpts);
       source = { type: "html", length: html.length };
     } else {
       if (typeof url !== "string" || !/^https?:\/\//i.test(url)) {
@@ -285,7 +302,7 @@ async function handleScan(req, res) {
       } catch (err) {
         return json(res, 502, { error: `could not fetch url: ${err.message}` });
       }
-      report = engine.scanHtml(remote.html);
+      report = engine.scanHtml(remote.html, scanOpts);
       source = { type: "url", url, ...remote };
     }
 
@@ -315,17 +332,71 @@ async function handleScanProject(req, res) {
   } catch {
     return json(res, 400, { error: "invalid JSON body" });
   }
-  const { dir, topFiles } = body;
+  const { dir, topFiles, profile } = body;
   if (typeof dir !== "string" || dir.length === 0) {
     return json(res, 400, { error: "provide a directory path in 'dir'" });
   }
   try {
     const project = scanProject(dir, {
       topFiles: Number.isInteger(topFiles) ? Math.min(Math.max(topFiles, 1), 25) : 10,
+      ...(profile !== undefined && profile !== null ? { profile } : {}),
     });
     return json(res, 200, project);
   } catch (err) {
     return json(res, 400, { error: `could not scan project: ${err.message}` });
+  }
+}
+
+async function handleRenderScan(req, res) {
+  let raw;
+  try {
+    raw = await readBody(req);
+  } catch (err) {
+    return json(res, 413, { error: err.message });
+  }
+  let body;
+  try {
+    body = JSON.parse(raw || "{}");
+  } catch {
+    return json(res, 400, { error: "invalid JSON body" });
+  }
+
+  const { snapshot, url, profile } = body;
+  const hasSnapshot = snapshot !== undefined;
+  const hasUrl = url !== undefined;
+  if (hasSnapshot === hasUrl) {
+    return json(res, 400, { error: "provide exactly one of: snapshot, url" });
+  }
+
+  const { scanRender } = require("../src/render-checks.js");
+  const opts = profile !== undefined && profile !== null ? { profile } : {};
+
+  try {
+    if (hasSnapshot) {
+      if (!snapshot || typeof snapshot !== "object" || !Array.isArray(snapshot.elements)) {
+        return json(res, 400, { error: "snapshot must be an object with an elements array (see src/render-checks.js)" });
+      }
+      const report = scanRender(snapshot, opts);
+      return json(res, 200, { ...report, source: { type: "render-snapshot" } });
+    }
+    // URL: use the optional playwright collector (clear 501 when absent).
+    if (typeof url !== "string" || !/^https?:\/\//i.test(url)) {
+      return json(res, 400, { error: "url must be an http(s) URL" });
+    }
+    let collector;
+    try {
+      collector = require("../src/collect-render.js");
+    } catch {
+      return json(res, 500, { error: "collector module missing" });
+    }
+    if (!collector.isCollectorAvailable()) {
+      return json(res, 501, { error: collector.OPT_IN_MSG });
+    }
+    const collected = await collector.collectRender(url);
+    const report = scanRender(collected, opts);
+    return json(res, 200, { ...report, source: { type: "render-url", url, collected: { elements: collected.elements.length } } });
+  } catch (err) {
+    return json(res, 400, { error: `render scan failed: ${err.message}` });
   }
 }
 
@@ -366,6 +437,13 @@ function enginesForServer() {
     scanProject: (dir, opts) => scanProject(dir, opts),
     rewriteText,
     ruleManifest,
+    renderScan: (snapshotOrUrl, opts) => {
+      const { scanRender } = require("../src/render-checks.js");
+      if (snapshotOrUrl && typeof snapshotOrUrl === "object") return scanRender(snapshotOrUrl, opts);
+      const { collectRender, isCollectorAvailable, OPT_IN_MSG } = require("../src/collect-render.js");
+      if (!isCollectorAvailable()) throw new Error(OPT_IN_MSG);
+      return collectRender(String(snapshotOrUrl)).then((snap) => scanRender(snap, opts));
+    },
     scanUrl: async (urlString) => {
       const remote = await fetchRemote(urlString);
       return { report: scanHtml(remote.html), remote };
@@ -396,6 +474,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/scan-project") {
       return handleScanProject(req, res);
+    }
+    if (req.method === "POST" && pathname === "/render-scan") {
+      return handleRenderScan(req, res);
     }
 
     // ── Agent surfaces ────────────────────────────────────────────────
@@ -481,6 +562,7 @@ if (require.main === module) {
     console.log(`  GET  /rules                  pattern corpus manifest`);
     console.log(`  POST /scan                   { text | html | url | rules_url }`);
     console.log(`  POST /scan-project           { dir, topFiles } (local filesystem)`);
+    console.log(`  POST /render-scan           { snapshot | url } (rendered-tier checks; url needs playwright)`);
     console.log(`  POST /mcp                    JSON-RPC 2.0 (initialize/tools/list/tools/call)`);
     console.log(`  POST /a2a                    JSON-RPC 2.0 (message/send, tasks/send, tasks/get)`);
     console.log(`  GET  /a2a/tasks/:id          replay a task result`);
@@ -491,4 +573,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { server, handleScan, handleScanProject, ruleManifest, serviceDescriptor, fetchRemote, extractText, enginesForServer };
+module.exports = { server, handleScan, handleScanProject, handleRenderScan, ruleManifest, serviceDescriptor, fetchRemote, extractText, enginesForServer };

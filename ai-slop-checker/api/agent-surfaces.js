@@ -41,6 +41,7 @@ const MCP_TOOLS = [
       properties: {
         text: { type: "string", description: "plain text to scan" },
         rewrite: { type: "boolean", description: "include safe auto-rewrites (text only)" },
+        profile: { type: "string", enum: ["default", "strict", "lenient"], description: "severity profile (default | strict | lenient)" },
       },
       required: ["text"],
     },
@@ -51,7 +52,10 @@ const MCP_TOOLS = [
       "Scan HTML markup for AI-slop writing AND visual design tells (gradients, kickers, glassmorphism, stat rows, ...).",
     inputSchema: {
       type: "object",
-      properties: { html: { type: "string", description: "HTML document to scan" } },
+      properties: {
+        html: { type: "string", description: "HTML document to scan" },
+        profile: { type: "string", enum: ["default", "strict", "lenient"], description: "severity profile (default | strict | lenient)" },
+      },
       required: ["html"],
     },
   },
@@ -64,8 +68,22 @@ const MCP_TOOLS = [
       properties: {
         dir: { type: "string", description: "path to a directory" },
         topFiles: { type: "integer", description: "how many top files to report (default 10)" },
+        profile: { type: "string", enum: ["default", "strict", "lenient"], description: "severity profile (default | strict | lenient)" },
       },
       required: ["dir"],
+    },
+  },
+  {
+    name: "scan_render",
+    description:
+      "Run the rendered-tier design checks (r-*): kicker size, gradient text, tracked caps, glued arrows, marquee, hidden reveal, fold budget, screen word budget, section rhythm, fake progress, and WCAG contrast — all pure functions over a computed snapshot ({elements:[...]}, see src/render-checks.js). Pass an object snapshot; no browser needed.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        snapshot: { type: "object", description: "computed snapshot: { viewport?, documentStyle?, elements: [...], screens? }" },
+        url: { type: "string", description: "http(s) URL to collect then check (requires the optional playwright collector)" },
+        profile: { type: "string", enum: ["default", "strict", "lenient"], description: "severity profile (default | strict | lenient)" },
+      },
     },
   },
   {
@@ -83,9 +101,9 @@ const MCP_TOOLS = [
 const AGENT_CARD = {
   name: "Lazynext AI Slop Checker",
   description:
-    "Deterministic scanner for AI writing tells and AI-default visual design tics — text, HTML, and whole-project scans with score, verdict, category breakdown, fixes, and safe rewrites.",
+    "Deterministic scanner for AI writing tells and AI-default visual design tics — text, HTML, whole-project, and rendered-snapshot scans with score, verdict, category breakdown, fixes, and safe rewrites.",
   url: "https://slop-checker.lazynext.com/a2a",
-  version: "1.2.0",
+  version: "1.3.0",
   protocolVersion: "0.3.0",
   preferredTransport: "JSONRPC",
   capabilities: { streaming: false, pushNotifications: false },
@@ -95,6 +113,7 @@ const AGENT_CARD = {
     { id: "scan_text", name: "Scan text", description: "Detect AI-slop writing tells in plain text and get a deterministic score with fixes.", tags: ["slop", "prose", "editor"] },
     { id: "scan_html", name: "Scan HTML", description: "Detect AI-slop writing and visual design tells in HTML markup.", tags: ["slop", "design", "html"] },
     { id: "scan_project", name: "Scan project", description: "Scan a whole directory tree for slop in prose, markup, styles, and code.", tags: ["slop", "project", "codebase"] },
+    { id: "scan_render", name: "Scan rendered snapshot", description: "Run the rendered-tier design checks (r-*) over a computed snapshot — pure functions, no browser.", tags: ["slop", "design", "render", "a11y"] },
     { id: "rewrite_text", name: "Rewrite text", description: "Apply conservative safe rewrites to a text flagged by the scanner.", tags: ["rewrite", "edit"] },
   ],
 };
@@ -204,20 +223,29 @@ async function callTool(name, args, engines) {
       return engines.ruleManifest();
     case "scan_text": {
       if (typeof args.text !== "string") throw new Error("text must be a string");
-      const report = engines.scanText(args.text);
+      const report = engines.scanText(args.text, args.profile !== undefined ? { profile: args.profile } : undefined);
       if (args.rewrite === true) report.rewrite = engines.rewriteText(args.text);
       return report;
     }
     case "scan_html": {
       if (typeof args.html !== "string") throw new Error("html must be a string");
-      return engines.scanHtml(args.html);
+      return engines.scanHtml(args.html, args.profile !== undefined ? { profile: args.profile } : undefined);
     }
     case "scan_project": {
       if (typeof args.dir !== "string" || args.dir.length === 0) throw new Error("dir must be a non-empty path");
       if (!engines.scanProject) throw new Error("project scan needs local filesystem access — not available on this entry");
       return engines.scanProject(args.dir, {
         topFiles: Number.isInteger(args.topFiles) ? Math.min(Math.max(args.topFiles, 1), 25) : 10,
+        ...(args.profile !== undefined ? { profile: args.profile } : {}),
       });
+    }
+    case "scan_render": {
+      if (!engines.renderScan) throw new Error("render scans are not available on this entry");
+      const hasSnapshot = args.snapshot !== undefined;
+      const hasUrl = args.url !== undefined;
+      if (hasSnapshot === hasUrl) throw new Error("scan_render needs exactly one of: snapshot, url");
+      const opts = args.profile !== undefined ? { profile: args.profile } : undefined;
+      return engines.renderScan(hasSnapshot ? args.snapshot : args.url, opts);
     }
     case "rewrite_text": {
       if (typeof args.text !== "string") throw new Error("text must be a string");

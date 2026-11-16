@@ -7,6 +7,106 @@ changes live in the "Unreleased" section until tagged.
 
 Nothing yet.
 
+## v1.3.0 — 2026-11-16 (phase 4: rendered-tier checks, profiles, i18n, PWA)
+
+### Rendered-tier checks (pure functions over computed snapshots)
+- **`src/render-checks.js`** — 11 `r-*` checks that are PURE functions over
+  an immutable computed-snapshot contract (`{ viewport?, documentStyle?,
+  elements: [...] }`, element styles serialized by a browser at collection
+  time). No browser, no DOM, no dependencies: `scanRender(snapshot)` runs
+  anywhere the base engine does, with the same score/verdict/categories
+  shape and per-pattern point caps:
+  `r-kicker-size` (flat-type / shouting kickers), `r-gradient-text` (AI
+  gradient headlines + blue/violet stop pairs), `r-tracked-caps`
+  (all-caps caption tracking outside 0.02–0.35em), `r-glued-arrow`
+  (arrow glyph glued to the last word), `r-marquee` (marquee/ticker
+  animations), `r-hidden-reveal` (static-provable hover reveals +
+  aria-hidden duplication), `r-fold-budget` (the 1280×800 fold: ≤2
+  distinct section headers above it, headers within 40px of the edge),
+  `r-screen-budget` (~80 visible words per screen), `r-section-rhythm`
+  (6+ identical sibling cards / 3+ identical sections),
+  `r-fake-progress` (progressbars with no aria-valuenow and no animation),
+  `r-contrast` (WCAG text contrast over the computed background, 4.5:1 /
+  3:1 thresholds).
+- **Optional collector** — `src/collect-render.js` is the ONLY browser
+  part and is strictly OPTIONAL (never loaded at engine require-time;
+  playwright import wrapped in try/catch). Without `npm i -D playwright`
+  it throws a clear opt-in message. Tests use hand-crafted snapshots, no
+  browser.
+- **Wiring** — `POST /render-scan {snapshot}` on both the Node server and
+  the Workers entry (pure, works everywhere); `{url}` collects first and
+  needs the optional collector (501 with the opt-in message when absent).
+  CLI: `--snapshot file.json` and `--render https://…`. Web checker:
+  a "Design reviews" panel (injected additively from `app.js` so the page
+  shell stays untouched) that pastes a snapshot JSON and runs the checks
+  fully in-browser.
+- **Tests** — `test/render-checks.test.js`: 34 tests, hand-crafted
+  fire/non-fire snapshots for EVERY check, determinism, input validation,
+  and the absent-playwright opt-in path (no browser, no playwright in the
+  package).
+
+### Severity profiles
+- **`data/profiles.js`** — `default` (current behaviour: all severities,
+  clean ≤ 9), `strict` (warn-class counts harder, clean ≤ 6), `lenient`
+  (ignores severity-1 warn-class, clean ≤ 14). The profile selects the
+  threshold + included severities; `applyProfileReport` re-scores
+  non-mutatingly on the same decay curve.
+- Wired through CLI `--profile`, API `scan`/`scan-project`/
+  `render-scan` `profile` fields, MCP `scan_text`/`scan_html`/
+  `scan_project`/`scan_render` tool args, and project-scan pooling.
+  Tests in `test/profiles.test.js` (9 tests incl. CLI + API + render +
+  project paths).
+
+### i18n corpora (external-rules path)
+- **`data/rules.hi.js`** — original Hindi AI-slop-tell corpus (33
+  patterns): loanword English buzzwords in Devanagari (लेवरेज,
+  ऑप्टिमाइज़, सीमलेस, सिनर्जी), epoch openers (आज के डिजिटल युग में),
+  throat-clearing (यह बात ध्यान देने योग्य है), hedge phrases, generic
+  superlatives (अद्वितीय, शानदार, क्रांतिकारी). Appends `hi-copy-tics`.
+- **`data/rules.es.js`** — original Spanish corpus (34 patterns):
+  anglicisms (apalancar, seamless, optimizar), epoch openers (en el
+  mundo actual, en un mundo cada vez más), throat-clearing (es
+  importante destacar, no es ningún secreto que), generic superlatives
+  (innovador, revolucionario, vanguardia). Appends `es-copy-tics`.
+- Both fire on their script samples, score 0 on the English clean demo,
+  merge with `data/rules.ru.js` for 279 + 36 + 33 + 34 with zero
+  duplication, and duplicate-id rejection keeps working after merging.
+  Tests in `test/i18n.test.js` (7 tests).
+
+### Design-review guide
+- **`docs/design-review-guide.md`** — an original, human-facing merge of
+  the impeccable/hallmark vocabulary: the one rule ("slop is the absence
+  of a decision"), tone pairs, the four review modes (polish / critique /
+  audit / refuse) with checklists, the craft floor (contrast, alignment,
+  text hierarchy, spacing, no fake data, no decorative text-effects), the
+  5-question review, refusal scaffolds, and a short theme catalog
+  (founder / dev tool / agency / SaaS dashboard archetypes with their
+  slop-to-fix lists) — a doc-only artifact.
+
+### PWA shell (web checker)
+- `web/manifest.webmanifest` (Lazynext AI Slop Checker, brand colors
+  #0468F8/#04B4FC/#FCFCFC, icons generated from assets/favicon.png via
+  `sips` to 192/512 PNG in `web/icons/`), `web/sw.js` (network-first
+  page, cache-first versioned assets, scope-relative paths so the checker
+  works from any mount path), `web/register-sw.js` (guards registration
+  to http(s) — file:// never registers).
+- `web/index.html` change is purely additive: `<link rel="manifest">` +
+  theme-color meta + a `defer` register script (the web-checker smoke
+  test surface stays intact).
+- Tests in `test/pwa.test.js` (manifest keys + icon PNGs at declared
+  sizes; sw.js parses via `new Function`, fetch/install handlers,
+  scope-relative; register-sw.js guards on `location.protocol`).
+
+### Version + docs
+- 1.2.0 → 1.3.0 in `package.json`, `package-lock.json`,
+  `data/slop-patterns.js` (corpus version), `api/openapi.json`,
+  `api/agent-surfaces.js` (agent card). New package exports:
+  `./profiles`, `./render-checks`, `./collect-render`.
+- README quickstart additions (`--profile`, `--snapshot`, `--render`,
+  PWA), ROADMAP update (rendered tier moved to SHIPPED), ATTRIBUTIONS
+  phase-4 note, `docs/DEPLOYMENT.md` docker tags bumped.
+- Full suite: **222 tests, all green** (was 166).
+
 ## v1.2.0 — 2026-11-16 (phase 3: agent ecosystem, rules i18n, deploy, dogfood)
 
 ### Agent-ecosystem surfaces

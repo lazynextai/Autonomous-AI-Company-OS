@@ -482,6 +482,191 @@ low-hanging fruit. Let's dive in!`;
     clearError();
   }
 
+  // ----------------------------------------------------------------------
+  // Design reviews panel (rendered-tier checks in the browser)
+  // ----------------------------------------------------------------------
+  // The "Design reviews" tab pastes a computed snapshot JSON and runs the
+  // pure r-* checks via window.SlopRenderChecks. The two modules it needs
+  // (data/profiles.js, src/render-checks.js) are loaded ON DEMAND so the
+  // original index.html script list stays untouched — the panel is injected
+  // here entirely, keeping the concurrent web-checker smoke test stable.
+  let renderEngineLoaded = false;
+
+  function loadScriptOnce(src) {
+    return new Promise((resolve, reject) => {
+      const existing = document.querySelector('script[data-lzrender="1"][src="' + src + '"]');
+      if (existing && window.SlopRenderChecks) { resolve(); return; }
+      const s = document.createElement("script");
+      s.src = src;
+      s.dataset.lzrender = "1";
+      s.onload = resolve;
+      s.onerror = () => reject(new Error("could not load " + src));
+      document.head.appendChild(s);
+    });
+  }
+
+  async function loadRenderEngine() {
+    if (window.SlopRenderChecks) { renderEngineLoaded = true; return; }
+    if (renderEngineLoaded) return;
+    // Order matters: profiles.js first (render-checks reads the global).
+    await loadScriptOnce("../data/profiles.js");
+    await loadScriptOnce("../src/render-checks.js");
+    if (!window.SlopRenderChecks) throw new Error("rendered-checks engine did not load");
+    renderEngineLoaded = true;
+  }
+
+  function buildDesignReviewsPanel() {
+    if (document.getElementById("design-reviews")) return;
+    const sec = document.createElement("section");
+    sec.id = "design-reviews";
+    sec.className = "panel design-reviews";
+    sec.innerHTML =
+      "<h2>Design reviews <span class='design-review-chip'>rendered-tier</span></h2>" +
+      "<p class='hint'>Paste a computed snapshot (see <code>src/render-checks.js</code> for the shape: " +
+      "<code>{ elements: [...] }</code> — each element carries tag/role/text/classes/style) and run the " +
+      "11 rendered checks: kicker size, gradient text, tracked caps, glued arrows, scrolling strips, hidden " +
+      "reveals, the 1280×800 fold budget, screen word budget, section rhythm, fake progress, and WCAG contrast.</p>" +
+      "<textarea id=\"snapshot-input\" rows=\"7\" spellcheck=\"false\" " +
+      "placeholder='{\n  \"viewport\": { \"width\": 1280, \"height\": 800 },\n  \"documentStyle\": { \"backgroundColor\": \"#ffffff\" },\n  \"elements\": [ { \"tag\": \"h1\", \"text\": \"...\", \"style\": { \"fontSizePx\": 40, \"color\": \"#6366f1\", \"backgroundImage\": \"linear-gradient(135deg,#6366f1,#a855f7)\", \"backgroundClip\": \"text\", \"rect\": { \"x\": 0, \"y\": 0, \"w\": 400, \"h\": 50, \"viewportY\": 0 } } } ]\n}'></textarea>" +
+      "<div class='actions'><button type='button' id='btn-snapshot-scan' class='btn-primary'>Check design tells</button>" +
+      "<button type='button' id='btn-snapshot-sample' class='btn-quiet'>Load a slop snapshot</button>" +
+      "<span id='render-engine-mode' class='engine-mode'></span></div>" +
+      "<p id='snapshot-error' class='error' hidden></p>" +
+      "<div id='snapshot-results' class='results' hidden>" +
+      "<div class='score-row'><div class='gauge'><svg viewBox='0 0 120 120' role='img' aria-label='Design review score'>" +
+      "<circle class='gauge-track' cx='60' cy='60' r='52' /><circle id='snapshot-gauge-fill' class='gauge-fill' cx='60' cy='60' r='52' /></svg>" +
+      "<div class='gauge-label'><strong id='snapshot-score'>0</strong><span>/100</span><em id='snapshot-verdict'>—</em></div></div>" +
+      "<div class='score-summary'><h3 id='snapshot-heading'>Design review</h3>" +
+      "<p id='snapshot-summary'></p></div></div>" +
+      "<div class='match-list-wrap'><ul id='snapshot-match-list' class='match-list'></ul></div></div>";
+    const footer = document.querySelector("footer.site-footer");
+    if (footer && footer.parentNode) footer.parentNode.insertBefore(sec, footer);
+    else document.querySelector("main")?.appendChild(sec) || document.body.appendChild(sec);
+
+    const input = sec.querySelector("#snapshot-input");
+    const scanBtn = sec.querySelector("#btn-snapshot-scan");
+    const sampleBtn = sec.querySelector("#btn-snapshot-sample");
+    const err = sec.querySelector("#snapshot-error");
+    const results = sec.querySelector("#snapshot-results");
+    const modeEl = sec.querySelector("#render-engine-mode");
+
+    const SNAPSHOT_SAMPLE = JSON.stringify({
+      viewport: { width: 1280, height: 800 },
+      documentStyle: { backgroundColor: "#ffffff" },
+      elements: [
+        { tag: "section", role: "region", text: "Hero", style: { fontSizePx: 14, rect: { x: 0, y: 0, w: 1280, h: 260, viewportY: 0 }, display: "block", visibility: "visible", opacity: 1 } },
+        { tag: "p", text: "The kicker", classes: ["kicker"], style: { fontSizePx: 24, backgroundColor: "#ffffff", color: "#111111", rect: { x: 20, y: 20, w: 400, h: 30, viewportY: 20 }, display: "block", visibility: "visible", opacity: 1 }, parents: [0], depth: 1 },
+        { tag: "p", text: "Body paragraph text that is long enough to measure against the kicker", style: { fontSizePx: 16, backgroundColor: "#ffffff", color: "#111111", rect: { x: 20, y: 60, w: 400, h: 48, viewportY: 60 }, display: "block", visibility: "visible", opacity: 1 }, parents: [0], depth: 1 },
+        { tag: "h1", role: "heading", text: "Transform Your World Today", style: { fontSizePx: 44, backgroundImage: "linear-gradient(135deg,#6366f1,#a855f7)", backgroundClip: "text", color: "transparent", rect: { x: 20, y: 120, w: 560, h: 60, viewportY: 120 }, display: "block", visibility: "visible", opacity: 1 }, parents: [0], depth: 1 },
+        { tag: "p", text: "LEARN MORE\u2192", style: { fontSizePx: 14, textTransform: "uppercase", letterSpacingEm: 0.4, color: "#111111", backgroundColor: "#ffffff", rect: { x: 20, y: 200, w: 140, h: 20, viewportY: 200 }, display: "block", visibility: "visible", opacity: 1 }, parents: [0], depth: 1 },
+        { tag: "p", text: "Gray on white, very low contrast indeed", style: { fontSizePx: 16, fontWeight: 400, color: "#8a8a8a", backgroundColor: "#ffffff", rect: { x: 20, y: 230, w: 420, h: 24, viewportY: 230 }, display: "block", visibility: "visible", opacity: 1 }, parents: [0], depth: 1 },
+      ],
+    }, null, 2);
+
+    sampleBtn.addEventListener("click", () => {
+      input.value = SNAPSHOT_SAMPLE;
+      err.hidden = true;
+    });
+
+    scanBtn.addEventListener("click", async () => {
+      err.hidden = true;
+      const text = input.value.trim();
+      if (!text) { err.textContent = "Paste a snapshot JSON first."; err.hidden = false; return; }
+      let snapshot;
+      try {
+        snapshot = JSON.parse(text);
+      } catch (e) {
+        err.textContent = "Snapshot is not valid JSON: " + e.message;
+        err.hidden = false;
+        return;
+      }
+      if (!snapshot || typeof snapshot !== "object" || !Array.isArray(snapshot.elements)) {
+        err.textContent = "Snapshot must be an object with an elements array (see src/render-checks.js).";
+        err.hidden = false;
+        return;
+      }
+      scanBtn.disabled = true;
+      scanBtn.textContent = "Checking…";
+      modeEl.textContent = "engine: loading…";
+      try {
+        await loadRenderEngine();
+        modeEl.textContent = "engine: in-browser (pure checks)";
+        const report = window.SlopRenderChecks.scanRender(snapshot);
+        renderSnapshotReport(report);
+      } catch (e) {
+        err.textContent = "Design check failed: " + (e && e.message ? e.message : e);
+        err.hidden = false;
+      } finally {
+        scanBtn.disabled = false;
+        scanBtn.textContent = "Check design tells";
+      }
+    });
+
+    function renderSnapshotReport(report) {
+      results.hidden = false;
+      const score = report.score;
+      const color = colorForScore(score);
+      sec.querySelector("#snapshot-score").textContent = String(score);
+      sec.querySelector("#snapshot-verdict").textContent = report.verdict;
+      const circ = 2 * Math.PI * 52;
+      const fill = sec.querySelector("#snapshot-gauge-fill");
+      fill.style.strokeDasharray = String(circ);
+      fill.style.strokeDashoffset = String(circ * (1 - score / 100));
+      fill.style.stroke = color;
+      sec.querySelector("#snapshot-heading").textContent = report.clean ? "Clean" : "Design tells found";
+      sec.querySelector("#snapshot-summary").textContent =
+        `${report.input.elements} element(s) · ${report.matches.length} matching tell(s) · ${report.categories.map((c) => `${c.count}× ${c.name}`).slice(0, 4).join(", ")}`;
+      const list = sec.querySelector("#snapshot-match-list");
+      list.innerHTML = "";
+      if (report.matches.length === 0) {
+        const li = document.createElement("li");
+        li.textContent = "No rendered-tier tells found. Clean design.";
+        list.appendChild(li);
+        return;
+      }
+      for (const m of report.matches.slice(0, 60)) {
+        const li = document.createElement("li");
+        const head = document.createElement("div");
+        head.className = "match-head";
+        const sev = document.createElement("span");
+        sev.className = `sev sev-${m.severity}`;
+        sev.textContent = `S${m.severity}`;
+        head.appendChild(sev);
+        const id = document.createElement("span");
+        id.className = "match-id";
+        id.textContent = m.id;
+        head.appendChild(id);
+        const cat = document.createElement("span");
+        cat.className = "match-category";
+        cat.textContent = m.category;
+        head.appendChild(cat);
+        li.appendChild(head);
+        const snippet = document.createElement("div");
+        snippet.className = "match-snippet";
+        snippet.textContent = m.snippet || "(no text)";
+        li.appendChild(snippet);
+        if (m.detail) {
+          const det = document.createElement("p");
+          det.className = "match-fix";
+          det.textContent = m.detail;
+          li.appendChild(det);
+        }
+        if (m.fix) {
+          const fx = document.createElement("p");
+          fx.className = "match-fix";
+          fx.textContent = "Fix: " + m.fix;
+          li.appendChild(fx);
+        }
+        list.appendChild(li);
+      }
+      if (report.matches.length > 60) {
+        const more = document.createElement("li");
+        more.textContent = `… and ${report.matches.length - 60} more matches.`;
+        list.appendChild(more);
+      }
+    }
+  }
+
   function init() {
     if (!scanner || !rewriter || !projectScanner) {
       showError("Engine failed to load. Serve this page via `node api/server.js` so the engine files resolve.");
@@ -500,6 +685,7 @@ low-hanging fruit. Let's dive in!`;
         clearError();
       });
     }
+    buildDesignReviewsPanel();
     detectApiAvailability().then((ok) => {
       setEngineMode(ok ? "engine: API + in-browser" : "engine: in-browser (offline)");
     });
