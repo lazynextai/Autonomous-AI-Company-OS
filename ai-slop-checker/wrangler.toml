@@ -1,0 +1,23 @@
+# Lazynext AI Slop Checker — Cloudflare Workers config
+#
+# Deployment config for the edge entry (api/worker.js). NOT deployed as part
+# of this deliverable — see docs/DEPLOYMENT.md for the exact steps and the
+# CLOUDFLARE_DEPLOY_TOKEN note. account_id is a placeholder: put the real
+# account id here (or use `npx wrangler login` + leave it out) before any
+# deploy.
+
+name = "lazynext-ai-slop-checker"
+main = "api/worker.js"
+compatibility_date = "2024-11-01"
+
+# Placeholder — replace with the real Cloudflare account id, or remove this
+# line and authenticate via `wrangler login`.
+account_id = "replace-with-your-cloudflare-account-id"
+
+# The local Node server (api/server.js) is the primary entry (port 8787);
+# this Workers entry mirrors the same HTTP contract on the edge.
+workers_dev = true
+
+# Resource hints (no paid features used).
+# [observability]
+# enabled = true

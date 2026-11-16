@@ -1,0 +1,17 @@
+# Lazynext AI Slop Checker
+
+> Deterministic scanner for AI writing tells and AI-default visual design tics.
+> Scans plain text, HTML, and whole project directories; scores 0-100 with
+> verdict, per-category breakdown, per-match fixes, and conservative safe
+> rewrites. Zero dependencies, no LLM, offline, deterministic — same input
+> always gives the same score.
+
+- Product page / web checker: https://slop-checker.lazynext.com/
+- API: https://slop-checker.lazynext.com (POST /scan {text|html|url|rules_url}, POST /scan-project {dir}, GET /rules, GET /health)
+- OpenAPI: https://slop-checker.lazynext.com/openapi.json
+- MCP: https://slop-checker.lazynext.com/mcp (JSON-RPC 2.0 — list_rules, scan_text, scan_html, scan_project, rewrite_text; GET is 405, no SSE)
+- A2A: https://slop-checker.lazynext.com/a2a (JSON-RPC 2.0 — message/send, tasks/send, tasks/get; agent card at https://slop-checker.lazynext.com/.well-known/agent.json; task results replay at GET /a2a/tasks/:id)
+- Rules manifest: https://slop-checker.lazynext.com/rules (JSON; 279 built-in patterns across 27 categories)
+- Widget: https://slop-checker.lazynext.com/widget.js (shadow-DOM embed: <script src=".../widget.js" data-target="#el"></script>)
+- Repository: https://github.com/lazynextai/Autonomous-AI-Company-OS (monorepo: ai-slop-checker/)
+- Built by: Lazynext (UNITED GLOBAL VENTURES PRIVATE LIMITED) — https://lazynext.com

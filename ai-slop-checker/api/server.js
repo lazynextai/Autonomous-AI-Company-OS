@@ -24,12 +24,16 @@ const { URL } = require("node:url");
 const { scanText, scanHtml, extractText } = require("../src/scanner.js");
 const { scanProject } = require("../src/project-scanner.js");
 const { rewriteText } = require("../src/rewriter.js");
+const { loadRules } = require("../src/rules-loader.js");
 const corpus = require("../data/slop-patterns.js");
+const agentSurfaces = require("./agent-surfaces.js");
 
 const PORT = Number(process.env.PORT || 8787);
 const WEB_DIR = path.join(__dirname, "..", "web");
+const PRODUCT_ROOT = path.join(__dirname, "..");
 const URL_TIMEOUT_MS = 10000;
 const MAX_BODY_BYTES = 1_000_000;
+const RULES_URL_TIMEOUT_MS = 10000;
 
 const version = corpus.version;
 
@@ -44,7 +48,7 @@ function json(res, code, body) {
 }
 
 function notFound(res) {
-  json(res, 404, { error: "not found", endpoints: ["/", "/health", "/rules", "/scan", "/scan-project"] });
+  json(res, 404, { error: "not found", endpoints: ["/", "/health", "/rules", "/scan", "/scan-project", "/mcp", "/a2a", "/.well-known/agent.json", "/widget.js", "/openapi.json", "/llms.txt"] });
 }
 
 function readBody(req) {
@@ -64,9 +68,11 @@ function readBody(req) {
 
 /**
  * Fetch a URL with a hard timeout. Returns { text, html } where text is the
- * visible text and html the raw response body.
+ * visible text and html the raw response body. With { jsonOnly: true } the
+ * content-type check requires JSON (used for rules_url) and no HTML
+ * extraction happens.
  */
-async function fetchRemote(urlString) {
+async function fetchRemote(urlString, opts = {}) {
   let parsed;
   try {
     parsed = new URL(urlString);
@@ -84,8 +90,8 @@ async function fetchRemote(urlString) {
       signal: controller.signal,
       headers: {
         // Real UA: Cloudflare and many sites reject bare script UAs.
-        "User-Agent": "LazynextSlopChecker/1.0 (+https://lazynext.com)",
-        Accept: "text/html,application/xhtml+xml",
+        "User-Agent": "LazynextSlopChecker/1.2 (+https://lazynext.com)",
+        Accept: opts.jsonOnly ? "application/json,text/json,text/plain" : "text/html,application/xhtml+xml",
       },
       redirect: "follow",
     });
@@ -93,14 +99,18 @@ async function fetchRemote(urlString) {
       throw new Error(`upstream http ${res.status}`);
     }
     const contentType = res.headers.get("content-type") || "";
-    if (!contentType.includes("html") && !contentType.includes("xml") && !contentType.startsWith("text/")) {
+    if (opts.jsonOnly) {
+      if (!contentType.includes("json") && !contentType.startsWith("text/")) {
+        throw new Error(`unsupported content-type: ${contentType}`);
+      }
+    } else if (!contentType.includes("html") && !contentType.includes("xml") && !contentType.startsWith("text/")) {
       throw new Error(`unsupported content-type: ${contentType}`);
     }
     const html = await res.text();
     if (html.length > 2_000_000) {
       throw new Error("upstream document too large (limit 2MB)");
     }
-    return { html, text: extractText(html), url: urlString };
+    return opts.jsonOnly ? { html, url: urlString } : { html, text: extractText(html), url: urlString };
   } finally {
     clearTimeout(timer);
   }
@@ -155,6 +165,22 @@ function serviceDescriptor() {
         },
         note: "local filesystem access; not available on the Cloudflare Workers entry",
       },
+      mcp: {
+        method: "POST",
+        path: "/mcp",
+        body: "JSON-RPC 2.0: initialize | ping | tools/list | tools/call",
+        note: "tools: list_rules, scan_text, scan_html, scan_project, rewrite_text; GET is 405 (no SSE)",
+      },
+      a2a: {
+        method: "POST",
+        path: "/a2a",
+        body: "JSON-RPC 2.0: message/send | tasks/send | tasks/get",
+        note: "task id == request id; GET /a2a/tasks/:id replays a task",
+      },
+      agentCard: { method: "GET", path: "/.well-known/agent.json" },
+      widget: { method: "GET", path: "/widget.js", note: "shadow-DOM embeddable widget (in-browser engine)" },
+      openapi: { method: "GET", path: "/openapi.json" },
+      llms: { method: "GET", path: "/llms.txt" },
     },
     scoring: {
       range: "0 (clean) to 100 (maximal slop)",
@@ -179,7 +205,7 @@ async function handleScan(req, res) {
     return json(res, 400, { error: "invalid JSON body" });
   }
 
-  const { text, html, url, rewrite } = body;
+  const { text, html, url, rewrite, rules_url } = body;
   const kinds = [text !== undefined, html !== undefined, url !== undefined].filter(Boolean).length;
 
   if (kinds === 0) {
@@ -189,17 +215,65 @@ async function handleScan(req, res) {
     return json(res, 400, { error: "provide exactly one of: text, html, url" });
   }
 
+  // External rules: fetch a JSON custom-rules file (http(s) only, 10s
+  // timeout) and deep-merge it via the same loader the CLI uses. JSON is
+  // the only accepted format over the network — remote JS execution is
+  // deliberately not offered (see docs/DEPLOYMENT.md).
+  let engine = { scanText, scanHtml, scanProject, rewriteText, ruleManifest, version };
+  if (rules_url !== undefined) {
+    if (typeof rules_url !== "string" || !/^https?:\/\//i.test(rules_url)) {
+      return json(res, 400, { error: "rules_url must be an http(s) URL serving a JSON rules file" });
+    }
+    let remote;
+    try {
+      remote = await fetchRemote(rules_url, { jsonOnly: true });
+    } catch (err) {
+      return json(res, 502, { error: `could not fetch rules_url: ${err.message}` });
+    }
+    let payload;
+    try {
+      payload = JSON.parse(remote.html);
+    } catch {
+      return json(res, 400, { error: "rules_url must serve valid JSON (array or {patterns})" });
+    }
+    try {
+      const merged = loadRules(payload);
+      const scanner = require("../src/scanner.js").createEngine(merged);
+      const rewriter = require("../src/rewriter.js").createRewriter(merged, scanner);
+      engine = {
+        ...scanner,
+        rewriteText: rewriter.rewriteText,
+        ruleManifest: () => ({
+        engine: "lazynext-ai-slop-checker",
+        version: merged.version,
+        count: merged.patterns.length,
+        categories: merged.categories.map((c) => ({ id: c.id, name: c.name, desc: c.desc })),
+        rules: merged.patterns.map((p) => ({
+          id: p.id,
+          category: p.category,
+          severity: p.severity,
+          kind: p.kind,
+          match: p.match,
+          desc: p.desc,
+          fix: p.fix,
+        })),
+      }) };
+    } catch (err) {
+      return json(res, 400, { error: `rules_url rules invalid: ${err.message}` });
+    }
+  }
+
   try {
     let report;
     let source = null;
 
     if (text !== undefined) {
       if (typeof text !== "string") return json(res, 400, { error: "text must be a string" });
-      report = scanText(text);
+      report = engine.scanText(text);
       source = { type: "text", length: text.length };
     } else if (html !== undefined) {
       if (typeof html !== "string") return json(res, 400, { error: "html must be a string" });
-      report = scanHtml(html);
+      report = engine.scanHtml(html);
       source = { type: "html", length: html.length };
     } else {
       if (typeof url !== "string" || !/^https?:\/\//i.test(url)) {
@@ -211,14 +285,14 @@ async function handleScan(req, res) {
       } catch (err) {
         return json(res, 502, { error: `could not fetch url: ${err.message}` });
       }
-      report = scanHtml(remote.html);
+      report = engine.scanHtml(remote.html);
       source = { type: "url", url, ...remote };
     }
 
     const payload = { ...report, source };
 
     if (rewrite === true && source.type === "text") {
-      const result = rewriteText(text);
+      const result = engine.rewriteText(text);
       payload.rewrite = result;
     }
 
@@ -265,8 +339,6 @@ function serveFile(res, absFile) {
   });
 }
 
-const PRODUCT_ROOT = path.join(__dirname, "..");
-
 function resolveStatic(pathname) {
   // web/ assets are the primary static root.
   const rel = pathname.replace(/^\/+/, "").replace(/^(\.\.[/\\])+/, "");
@@ -279,6 +351,26 @@ function resolveStatic(pathname) {
     return path.join(PRODUCT_ROOT, rel);
   }
   return null;
+}
+
+/**
+ * The engines object injected into the JSON-RPC handlers. The local server
+ * can offer everything; the Workers entry passes a subset (no scanProject,
+ * no url fetch via this route — it has its own fetchRemote).
+ */
+function enginesForServer() {
+  return {
+    version,
+    scanText,
+    scanHtml,
+    scanProject: (dir, opts) => scanProject(dir, opts),
+    rewriteText,
+    ruleManifest,
+    scanUrl: async (urlString) => {
+      const remote = await fetchRemote(urlString);
+      return { report: scanHtml(remote.html), remote };
+    },
+  };
 }
 
 const server = http.createServer(async (req, res) => {
@@ -305,6 +397,70 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && pathname === "/scan-project") {
       return handleScanProject(req, res);
     }
+
+    // ── Agent surfaces ────────────────────────────────────────────────
+    if (pathname === "/mcp") {
+      if (req.method === "GET" || req.method === "HEAD") {
+        // No SSE stream is offered: GET is 405 per the MCP spec subset.
+        res.writeHead(405, { "Content-Type": "application/json; charset=utf-8", Allow: "POST" });
+        return res.end(JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32600, message: "POST required — this endpoint does not offer SSE" } }));
+      }
+      if (req.method !== "POST") {
+        res.writeHead(405, { "Content-Type": "application/json; charset=utf-8", Allow: "POST" });
+        return res.end(JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32600, message: "POST required" } }));
+      }
+      let raw;
+      try {
+        raw = await readBody(req);
+      } catch (err) {
+        return json(res, 413, { error: err.message });
+      }
+      const out = await agentSurfaces.handleMcpBody(raw, enginesForServer());
+      if (out.body === null) return res.writeHead(202).end();
+      return json(res, out.status, out.body);
+    }
+    if (pathname === "/a2a") {
+      if (req.method === "GET" || req.method === "HEAD") {
+        res.writeHead(405, { "Content-Type": "application/json; charset=utf-8", Allow: "POST" });
+        return res.end(JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32600, message: "POST required" } }));
+      }
+      if (req.method !== "POST") {
+        res.writeHead(405, { "Content-Type": "application/json; charset=utf-8", Allow: "POST" });
+        return res.end(JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32600, message: "POST required" } }));
+      }
+      let raw;
+      try {
+        raw = await readBody(req);
+      } catch (err) {
+        return json(res, 413, { error: err.message });
+      }
+      const out = await agentSurfaces.handleA2aBody(raw, enginesForServer());
+      if (out.body === null) return res.writeHead(202).end();
+      return json(res, out.status, out.body);
+    }
+    const a2aTaskMatch = pathname.match(/^\/a2a\/tasks\/([^/]+)$/);
+    if (req.method === "GET" && a2aTaskMatch) {
+      const out = agentSurfaces.a2aTaskGet(a2aTaskMatch[1]);
+      return json(res, out.status, out.body);
+    }
+    if (req.method === "GET" && pathname === "/.well-known/agent.json") {
+      return json(res, 200, agentSurfaces.AGENT_CARD);
+    }
+    if (req.method === "GET" && pathname === "/widget.js") {
+      res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "public, max-age=3600" });
+      return res.end(agentSurfaces.WIDGET_JS);
+    }
+    if (req.method === "GET" && pathname === "/openapi.json") {
+      const abs = path.join(PRODUCT_ROOT, "api", "openapi.json");
+      if (fs.existsSync(abs)) return serveFile(res, abs);
+      return notFound(res);
+    }
+    if (req.method === "GET" && pathname === "/llms.txt") {
+      const abs = path.join(PRODUCT_ROOT, "llms.txt");
+      if (fs.existsSync(abs)) return serveFile(res, abs);
+      return notFound(res);
+    }
+
     if (req.method === "GET") {
       const abs = resolveStatic(pathname);
       if (abs) return serveFile(res, abs);
@@ -320,12 +476,19 @@ const server = http.createServer(async (req, res) => {
 if (require.main === module) {
   server.listen(PORT, () => {
     console.log(`Lazynext AI Slop Checker API listening on http://localhost:${PORT}`);
-    console.log(`  GET  /              service descriptor (or web checker if web/ exists)`);
-    console.log(`  GET  /health        liveness`);
-    console.log(`  GET  /rules         pattern corpus manifest`);
-    console.log(`  POST /scan          { text | html | url }`);
-    console.log(`  POST /scan-project  { dir, topFiles } (local filesystem)`);
+    console.log(`  GET  /                       service descriptor (or web checker if web/ exists)`);
+    console.log(`  GET  /health                 liveness`);
+    console.log(`  GET  /rules                  pattern corpus manifest`);
+    console.log(`  POST /scan                   { text | html | url | rules_url }`);
+    console.log(`  POST /scan-project           { dir, topFiles } (local filesystem)`);
+    console.log(`  POST /mcp                    JSON-RPC 2.0 (initialize/tools/list/tools/call)`);
+    console.log(`  POST /a2a                    JSON-RPC 2.0 (message/send, tasks/send, tasks/get)`);
+    console.log(`  GET  /a2a/tasks/:id          replay a task result`);
+    console.log(`  GET  /.well-known/agent.json agent card`);
+    console.log(`  GET  /widget.js              embeddable in-browser widget`);
+    console.log(`  GET  /openapi.json           OpenAPI 3.1 contract`);
+    console.log(`  GET  /llms.txt               LLM discovery file`);
   });
 }
 
-module.exports = { server, handleScan, handleScanProject, ruleManifest, serviceDescriptor, fetchRemote, extractText };
+module.exports = { server, handleScan, handleScanProject, ruleManifest, serviceDescriptor, fetchRemote, extractText, enginesForServer };

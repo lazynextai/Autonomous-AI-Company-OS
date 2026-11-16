@@ -19,6 +19,7 @@ const path = require("node:path");
 const { scanText, scanHtml, extractText } = require("../src/scanner.js");
 const { scanProject } = require("../src/project-scanner.js");
 const { rewriteText } = require("../src/rewriter.js");
+const { loadRules } = require("../src/rules-loader.js");
 const corpus = require("../data/slop-patterns.js");
 
 function usage() {
@@ -95,13 +96,46 @@ async function main(argv) {
     return 0;
   }
 
+  // --rules alone dumps the manifest; --rules <path|glob|list> loads
+  // external rules and deep-merges them into the corpus for this scan.
+  let engine = null; // null => built-in corpus
+  let mergedCorpus = null;
   if (args.includes("--rules")) {
-    console.log(JSON.stringify(corpus.patterns.map((p) => ({ id: p.id, category: p.category, severity: p.severity })), null, 2));
-    return 0;
+    const rulesIdx = args.indexOf("--rules");
+    const next = args[rulesIdx + 1];
+    const hasValue = next && !next.startsWith("--");
+    if (!hasValue) {
+      console.log(JSON.stringify(corpus.patterns.map((p) => ({ id: p.id, category: p.category, severity: p.severity })), null, 2));
+      return 0;
+    }
+    try {
+      mergedCorpus = loadRules(next);
+      const scanner = require("../src/scanner.js");
+      const rewriter = require("../src/rewriter.js");
+      const scanEngine = scanner.createEngine(mergedCorpus);
+      const rewriteEngine = rewriter.createRewriter(mergedCorpus, scanEngine);
+      engine = {
+        ...scanEngine,
+        rewriteText: rewriteEngine.rewriteText,
+        createPreview: rewriteEngine.createPreview,
+        suggestionFor: rewriteEngine.suggestionFor,
+      };
+    } catch (err) {
+      console.error(`error loading rules: ${err.message}`);
+      return 1;
+    }
+    // Drop the --rules <value> pair from the args so the text positionals
+    // and other flags parse normally.
+    args.splice(rulesIdx, 2);
   }
 
   const jsonOut = args.includes("--json");
   const rewriteOut = args.includes("--rewrite");
+  const scanText_ = engine ? engine.scanText : scanText;
+  const scanHtml_ = engine ? engine.scanHtml : scanHtml;
+  const scanProject_ = (dir, opts) =>
+    scanProject(dir, { ...opts, ...(engine ? { engine } : {}) });
+  const rewriteText_ = engine ? engine.rewriteText : rewriteText;
 
   const dirIdx = args.indexOf("--dir");
   if (dirIdx !== -1) {
@@ -110,7 +144,7 @@ async function main(argv) {
     const topIdx = args.indexOf("--top");
     if (topIdx !== -1) top = Number.parseInt(args[topIdx + 1], 10) || 10;
     try {
-      const project = scanProject(dir, { topFiles: top });
+      const project = scanProject_(dir, { topFiles: top });
       if (jsonOut) return console.log(JSON.stringify(project, null, 2)), 0;
       console.log(formatProject(project));
       return project.summary.score <= 9 ? 0 : 2;
@@ -126,7 +160,7 @@ async function main(argv) {
   if (fileIdx !== -1) {
     const file = path.resolve(args[fileIdx + 1]);
     const input = fs.readFileSync(file, "utf8");
-    const report = scanText(input);
+    const report = scanText_(input);
     if (jsonOut) return console.log(JSON.stringify(report, null, 2)), 0;
     console.log(format(report));
     return report.clean ? 0 : 2;
@@ -136,7 +170,7 @@ async function main(argv) {
     const { fetchRemote } = require("./server.js");
     try {
       const remote = await fetchRemote(args[urlIdx + 1]);
-      const report = scanHtml(remote.html);
+      const report = scanHtml_(remote.html);
       if (jsonOut) return console.log(JSON.stringify(report, null, 2)), 0;
       console.log(format(report));
       return report.clean ? 0 : 2;
@@ -148,10 +182,10 @@ async function main(argv) {
 
   // Plain text argument
   const text = args.filter((a) => !a.startsWith("--")).join(" ");
-  const report = scanText(text);
+  const report = scanText_(text);
 
   if (rewriteOut) {
-    const result = rewriteText(text);
+    const result = rewriteText_(text);
     if (jsonOut) {
       return console.log(JSON.stringify({ report, rewrite: result }, null, 2)), 0;
     }

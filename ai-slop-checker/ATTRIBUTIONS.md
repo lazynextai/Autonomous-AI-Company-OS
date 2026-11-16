@@ -195,6 +195,28 @@ Where: `.cursor/rules/slop-guard.mdc`, `skill/SKILL.md`, `skill/CLAUDE.md`,
 - `README.md`, `web/index.html`, this file — docs & credits
 - `test/scanner.test.js`, `test/api.test.js` — fixtures/tests
 
+## Phase 3 note (v1.2.0, 2026-11-16)
+
+The agent-ecosystem, rules-extension, deployment-artifact, and web-folder-scan
+work added **no new absorbed content** from the five source projects:
+
+- `data/rules.ru.js` — an **original, Lazynext-written** Russian slop-tell
+  corpus. The Russian copy conventions it flags ("в современном мире", "стоит
+  отметить", "синергия", "эксперты считают", …) are common-knowledge
+  phrases; the list, every description, fix, and category were written by us
+  from knowledge of Russian copy, **not** copied from kill-ai-slop's Russian
+  example or any other source. Short factual phrases are listed as the corpus
+  (same reasoning as the base corpus).
+- `src/rules-loader.js`, `createEngine`/`createRewriter` — pure engine work;
+  no source-project material.
+- `api/agent-surfaces.js`, `api/openapi.json`, `llms.txt`, `bench/run.js`,
+  `docs/DEPLOYMENT.md`, `docs/dogfood-report.md`, `web/` folder scan,
+  `Dockerfile`, `wrangler.toml` — all original Lazynext code and copy.
+- The `Dockerfile`/`wrangler.toml` are generic deployment artifacts, not
+  derived from any source project's files.
+
+No new accounts, keys, signups, or deployments were made in phase 3.
+
 ## License flags for founder review
 
 1. **Our MIT license choice.** This repository's code is original Lazynext

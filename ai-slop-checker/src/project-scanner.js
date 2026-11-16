@@ -28,7 +28,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const { scanText, scanHtml, scanDesign } = require("./scanner.js");
+const BUILTIN_ENGINE = require("./scanner.js");
 
 const SKIP_DIRS = new Set([
   "node_modules",
@@ -119,9 +119,11 @@ function isBinary(buf) {
  * Scan one file with the lens its kind implies. Returns the scan report for
  * prose/markup, or a design-only report for styles/code. Never throws on a
  * single file — errors become a `{ error }` entry so one bad file can't kill
- * a whole tree pass.
+ * a whole tree pass. `engine` defaults to the built-in scanner; pass a
+ * custom engine (scanner.createEngine(loadRules(...))) to scan with
+ * external rules.
  */
-function scanFile(file) {
+function scanFile(file, engine) {
   let buf;
   try {
     const st = fs.statSync(file.full);
@@ -135,10 +137,10 @@ function scanFile(file) {
   const raw = buf.toString("utf8");
 
   try {
-    if (file.kind === "prose") return { file: file.rel, kind: file.kind, report: scanText(raw) };
-    if (file.kind === "markup") return { file: file.rel, kind: file.kind, report: scanHtml(raw) };
+    if (file.kind === "prose") return { file: file.rel, kind: file.kind, report: engine.scanText(raw) };
+    if (file.kind === "markup") return { file: file.rel, kind: file.kind, report: engine.scanHtml(raw) };
     // styles + code: design tells only (raw source; no text extraction)
-    return { file: file.rel, kind: file.kind, report: scanDesign(raw) };
+    return { file: file.rel, kind: file.kind, report: engine.scanDesign(raw) };
   } catch (err) {
     return { file: file.rel, kind: file.kind, error: err.message };
   }
@@ -160,11 +162,12 @@ function scanProject(rootDir, opts = {}) {
   if (!st.isDirectory()) throw new Error(`not a directory: ${rootDir}`);
 
   const maxFiles = Number.isInteger(opts.maxFiles) ? opts.maxFiles : MAX_FILES;
+  const engine = opts.engine || BUILTIN_ENGINE;
   const files = walk(root, maxFiles);
   const scanned = [];
 
   for (const file of files) {
-    const out = scanFile(file);
+    const out = scanFile(file, engine);
     if (out.report) {
       out.score = out.report.score;
       out.points = out.report.totalPoints;
@@ -224,7 +227,7 @@ function scanProject(rootDir, opts = {}) {
 
   return {
     engine: "lazynext-ai-slop-checker",
-    version: require("../data/slop-patterns.js").version,
+    version: engine.version,
     root,
     files: scanned,
     summary: {

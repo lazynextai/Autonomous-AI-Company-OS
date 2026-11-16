@@ -20,7 +20,7 @@
   } else if (typeof window !== "undefined") {
     window.SlopScanner = api;
   }
-})(typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : this, function (corpus) {
+})(typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : this, function engine(corpus) {
 
 const ENGINE_NAME = "lazynext-ai-slop-checker";
 
@@ -303,6 +303,11 @@ const api = {
   patterns: corpus.patterns,
   categories: corpus.categories,
   rules: corpus,
+  // Build a fresh engine over a different corpus (e.g. after loadRules
+  // deep-merges custom rules). The body of this module IS the engine
+  // factory, so calling it again with a merged corpus yields a completely
+  // independent scanner with its own pattern-compile cache.
+  createEngine: engine,
 };
 
 // Browser global for the no-build web checker.

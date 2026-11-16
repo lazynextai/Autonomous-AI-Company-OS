@@ -16,7 +16,7 @@ fill the slot?*
 
 Vibe-coded pages are ugly in a specific way: they pile on every available
 style without settling on a focus. A gradient, a glow, a mascot, emoji, a
-wall of glowing cards — every default switched on at once, until every
+wall of glowing cards, every default switched on at once, until every
 product looks like the same garish template. It reads as "designed" in a
 thumbnail and falls apart the moment anyone looks.
 
@@ -84,7 +84,7 @@ thumbnail and falls apart the moment anyone looks.
 |---|---|---|
 | All-caps card grid | uppercase micro-labels on interchangeable cards | Show the one important thing fully |
 | Invented stat rows | `10k+ developers`, `99.9% uptime`, `24/7` | Real, odd, sourced numbers; one checkable figure beats three round ones |
-| `01 / 02 / 03` markers | giant faint ordinals on unordered marketing sections | Number what is genuinely ordered |
+| `01 / 02 / 03` markers | giant faint ordinals on unordered marketing sections | Number only ordered content |
 | Cards inside cards | bordered+rounded+shadowed card holding another, three deep | One surface per region; group with spacing and hairlines |
 | One gap everywhere | `gap-4` from heading to body to unrelated section | Space by relationship, not by token |
 | Equal-weight grid | `grid-cols-3 items-stretch` with nothing leading | Decide the most important thing and show it fully |
@@ -97,12 +97,12 @@ thumbnail and falls apart the moment anyone looks.
 The model learned the first list, so it now produces *quieter* uniforms that
 still dodge the identity decision:
 
-- **The tasteful terminal** — mono everywhere, near-black background, one
+- **The tasteful terminal**: mono everywhere, near-black background, one
   warm accent, ASCII art. "An AI that read one Vercel blog post."
-- **The editorial dashboard** — giant serif "Good evening" greeting, serif
+- **The editorial dashboard**: giant serif "Good evening" greeting, serif
   numerals in stat cards, cream paper, tracked-caps kickers. A magazine is
   read once; a console is scanned all day.
-- **The stock pairing, politely** — Space Grotesk + Inter with good spacing,
+- **The stock pairing, politely**: Space Grotesk + Inter with good spacing,
   but still the training-data average. The face is the loudest signal of who
   made this.
 

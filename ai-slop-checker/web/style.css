@@ -128,6 +128,9 @@ textarea { resize: vertical; min-height: 140px; font-family: ui-monospace, SFMon
 .error { color: var(--brand-bad); font-weight: 600; margin: 10px 0 0; }
 .hint { font-size: 0.8rem; color: var(--brand-muted); margin: 6px 0 0; }
 
+.folder-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 6px 0 4px; }
+.folder-row button { flex: 0 0 auto; }
+
 /* ---------------------------------- results */
 .results { margin-top: 4px; }
 

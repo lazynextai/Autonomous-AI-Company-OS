@@ -1,0 +1,509 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Lazynext AI Slop Checker API",
+    "version": "1.2.0",
+    "description": "Deterministic scanner for AI writing tells and AI-default visual design tics. Scans plain text, HTML, URLs (10s timeout), and whole project directories; also exposes MCP (JSON-RPC 2.0) and A2A surfaces, a discovery card, an embeddable widget, and an external-rules extension mechanism (`rules_url`). Zero dependencies, no LLM, same input always gives the same score.",
+    "contact": { "name": "Lazynext (UNITED GLOBAL VENTURES PRIVATE LIMITED)", "email": "support@lazynext.com" },
+    "license": { "name": "MIT" }
+  },
+  "servers": [
+    { "url": "http://localhost:8787", "description": "Local plain-Node API server (node api/server.js)" },
+    { "url": "https://slop-checker.lazynext.com", "description": "Deployed Cloudflare Workers entry (when bound)" }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Service descriptor (or the web checker page)",
+        "description": "Returns the JSON service descriptor when no web/ directory exists; otherwise serves the branded web checker at /. The descriptor lists every endpoint below.",
+        "responses": {
+          "200": {
+            "description": "Service descriptor JSON (or text/html web checker)",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ServiceDescriptor" } },
+              "text/html": { "schema": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "/index.html": {
+      "get": {
+        "summary": "Web checker page (alias of /)",
+        "description": "Serves the same branded web checker page as / when web/ exists; otherwise 404.",
+        "responses": {
+          "200": { "description": "Web checker HTML (text/html)", "content": { "text/html": { "schema": { "type": "string" } } } },
+          "404": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Liveness probe",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["ok", "engine"],
+                  "properties": {
+                    "ok": { "type": "boolean", "const": true },
+                    "engine": { "type": "string", "const": "lazynext-ai-slop-checker" },
+                    "version": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rules": {
+      "get": {
+        "summary": "Pattern corpus manifest",
+        "description": "Full pattern manifest: engine version, pattern count, categories, and every rule with id/category/severity/kind/match/desc/fix.",
+        "responses": {
+          "200": {
+            "description": "Rules manifest",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/RulesManifest" } }
+            }
+          }
+        }
+      }
+    },
+    "/scan": {
+      "post": {
+        "summary": "Scan text, HTML, or a URL for AI slop",
+        "description": "Provide exactly one of text | html | url. Optionally pass rules_url (http(s), 10s timeout) pointing at a JSON custom-rules file to deep-merge external rules for this scan; and rewrite:true (text only) for safe auto-rewrites.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ScanRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Scan report",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ScanReport" } }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "413": { "description": "Request body over the 1MB limit", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "502": { "description": "Could not fetch the target URL or rules_url", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Internal scan failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/scan-project": {
+      "post": {
+        "summary": "Scan a local directory tree (prose/markup/styles/code)",
+        "description": "Local filesystem access only — walks the tree, infers each file's lens, and returns a pooled report with per-file entries, top offending files, and a category breakdown.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["dir"],
+                "properties": {
+                  "dir": { "type": "string", "description": "path to a directory" },
+                  "topFiles": { "type": "integer", "minimum": 1, "maximum": 25, "description": "how many top files to report (default 10)" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Pooled project report", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProjectReport" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "413": { "description": "Request body over the 1MB limit", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "summary": "MCP endpoint (JSON-RPC 2.0)",
+        "description": "Model Context Protocol subset: initialize, ping, tools/list, tools/call. Tools: list_rules, scan_text, scan_html, scan_project, rewrite_text. No SSE — GET is 405. Batch arrays are accepted.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JsonRpcEnvelope" } } }
+        },
+        "responses": {
+          "200": { "description": "JSON-RPC response envelope", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JsonRpcEnvelope" } } } },
+          "202": { "description": "Notification accepted (no id), empty body" },
+          "405": { "description": "GET is not allowed — no SSE stream is offered" },
+          "400": { "description": "Invalid JSON-RPC 2.0 request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JsonRpcEnvelope" } } } },
+          "413": { "description": "Request body over the 1MB limit", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/a2a": {
+      "post": {
+        "summary": "A2A endpoint (lightweight JSON-RPC 2.0)",
+        "description": "Agent-to-agent subset: message/send, tasks/send, tasks/get. The task id IS the JSON-RPC request id; results are replayed from an in-memory recent store for up to 30 minutes. GET is 405.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/JsonRpcEnvelope" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "JSON-RPC response envelope (task status completed)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JsonRpcEnvelope" } } } },
+          "202": { "description": "Notification accepted (no id)" },
+          "405": { "description": "GET is not allowed" },
+          "400": { "description": "Invalid JSON-RPC 2.0 request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JsonRpcEnvelope" } } } },
+          "413": { "description": "Request body over the 1MB limit", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/a2a/tasks/{id}": {
+      "get": {
+        "summary": "Replay a completed A2A task result",
+        "description": "REST shortcut for tasks/get: replays the task view for the given task id (which equals the JSON-RPC request id of the send). 404 when unknown or expired.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "task id (== the JSON-RPC request id from message/send or tasks/send)" }
+        ],
+        "responses": {
+          "200": { "description": "Task view with the stored report artifact", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/A2aTaskView" } } } },
+          "404": { "description": "Task unknown or expired", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/.well-known/agent.json": {
+      "get": {
+        "summary": "Agent discovery card",
+        "description": "A2A-style agent card: name, description, url, protocolVersion, capabilities, skills.",
+        "responses": {
+          "200": { "description": "Agent card", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AgentCard" } } } }
+        }
+      }
+    },
+    "/widget.js": {
+      "get": {
+        "summary": "Embeddable shadow-DOM widget script",
+        "description": "A tiny script other sites can embed (<script src=\".../widget.js\" data-target=\"#el\"></script>) that mounts a textarea-to-scan box. The engine loads in the browser from the widget's own origin; no external dependencies.",
+        "responses": {
+          "200": { "description": "JavaScript (text/javascript)", "content": { "text/javascript": { "schema": { "type": "string" } } } }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "summary": "This OpenAPI contract",
+        "responses": {
+          "200": { "description": "OpenAPI 3.1 document", "content": { "application/json": { "schema": { "type": "object" } } } }
+        }
+      }
+    },
+    "/llms.txt": {
+      "get": {
+        "summary": "LLM discovery file",
+        "description": "Plain-text llms.txt: product description plus pointers to README, openapi.json, /rules, MCP, and the web checker.",
+        "responses": {
+          "200": { "description": "text/plain llms.txt", "content": { "text/plain": { "schema": { "type": "string" } } } }
+        }
+      }
+    }
+  },
+  "components": {
+    "responses": {
+      "BadRequest": {
+        "description": "Bad request (missing/invalid input, duplicate pattern id via rules_url)",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": { "error": { "type": "string" }, "endpoints": { "type": "array", "items": { "type": "string" } } }
+      },
+      "ServiceDescriptor": {
+        "type": "object",
+        "required": ["name", "description", "version", "endpoints"],
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "version": { "type": "string" },
+          "company": { "type": "string" },
+          "contact": { "type": "string" },
+          "endpoints": {
+            "type": "object",
+            "additionalProperties": { "type": "object" }
+          },
+          "scoring": { "type": "object" }
+        }
+      },
+      "RulesManifest": {
+        "type": "object",
+        "required": ["engine", "version", "count", "categories", "rules"],
+        "properties": {
+          "engine": { "type": "string" },
+          "version": { "type": "string" },
+          "count": { "type": "integer" },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "name"],
+              "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "desc": { "type": "string" } }
+            }
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "category", "severity", "kind", "match"],
+              "properties": {
+                "id": { "type": "string" },
+                "category": { "type": "string" },
+                "severity": { "type": "integer", "enum": [1, 2, 3] },
+                "kind": { "type": "string", "enum": ["word", "phrase", "regex"] },
+                "match": { "type": "string" },
+                "desc": { "type": "string" },
+                "fix": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "ScanRequest": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string", "description": "plain text to scan" },
+          "html": { "type": "string", "description": "HTML document to scan" },
+          "url": { "type": "string", "format": "uri", "description": "http(s) URL to fetch and scan (10s timeout)" },
+          "rewrite": { "type": "boolean", "description": "include safe auto-rewrites (text input only)" },
+          "rules_url": { "type": "string", "format": "uri", "description": "http(s) URL to a JSON custom-rules file to deep-merge for this scan (10s timeout)" }
+        },
+        "description": "Exactly one of text | html | url must be present; rules_url and rewrite are optional.",
+        "oneOf": [
+          { "required": ["text"] },
+          { "required": ["html"] },
+          { "required": ["url"] }
+        ]
+      },
+      "ScanReport": {
+        "type": "object",
+        "required": ["engine", "version", "input", "score", "verdict", "clean", "totalPoints", "matches", "categories"],
+        "properties": {
+          "engine": { "type": "string" },
+          "version": { "type": "string" },
+          "input": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["text", "html"] },
+              "length": { "type": "integer" }
+            }
+          },
+          "source": {
+            "type": "object",
+            "description": "input provenance: { type: text|html|url, length?, url?, html?, text? }",
+            "properties": {
+              "type": { "type": "string", "enum": ["text", "html", "url"] },
+              "length": { "type": "integer" },
+              "url": { "type": "string" }
+            }
+          },
+          "score": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "verdict": { "type": "string", "enum": ["clean", "light", "moderate", "heavy"] },
+          "clean": { "type": "boolean" },
+          "totalPoints": { "type": "integer" },
+          "matches": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "category", "severity", "kind", "index", "snippet", "fix"],
+              "properties": {
+                "id": { "type": "string" },
+                "category": { "type": "string" },
+                "severity": { "type": "integer" },
+                "kind": { "type": "string" },
+                "index": { "type": "integer" },
+                "snippet": { "type": "string" },
+                "context": { "type": "string" },
+                "detail": { "type": "string" },
+                "fix": { "type": "string" },
+                "rewrite": { "type": "string" }
+              }
+            }
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "name", "count", "points"],
+              "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "count": { "type": "integer" }, "points": { "type": "integer" } }
+            }
+          },
+          "rewrite": {
+            "type": "object",
+            "description": "present when rewrite:true was sent with text input",
+            "properties": {
+              "text": { "type": "string" },
+              "changed": { "type": "boolean" },
+              "changes": { "type": "array", "items": { "type": "object" } }
+            }
+          }
+        }
+      },
+      "ProjectReport": {
+        "type": "object",
+        "required": ["engine", "version", "root", "files", "summary", "topFiles", "categories"],
+        "properties": {
+          "engine": { "type": "string" },
+          "version": { "type": "string" },
+          "root": { "type": "string" },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["file", "kind"],
+              "properties": {
+                "file": { "type": "string" },
+                "kind": { "type": "string", "enum": ["prose", "markup", "styles", "code"] },
+                "skipped": { "type": "string" },
+                "error": { "type": "string" },
+                "score": { "type": "integer" },
+                "points": { "type": "integer" },
+                "matches": { "type": "integer" },
+                "verdict": { "type": "string" },
+                "report": { "$ref": "#/components/schemas/ScanReport" }
+              }
+            }
+          },
+          "summary": {
+            "type": "object",
+            "required": ["filesScanned", "filesWithHits", "filesSkipped", "totalMatches", "totalPoints", "score", "verdict"],
+            "properties": {
+              "filesScanned": { "type": "integer" },
+              "filesWithHits": { "type": "integer" },
+              "filesSkipped": { "type": "integer" },
+              "totalMatches": { "type": "integer" },
+              "totalPoints": { "type": "integer" },
+              "score": { "type": "integer" },
+              "verdict": { "type": "string" }
+            }
+          },
+          "topFiles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["file", "kind", "score", "points", "matches", "verdict"],
+              "properties": {
+                "file": { "type": "string" },
+                "kind": { "type": "string" },
+                "score": { "type": "integer" },
+                "points": { "type": "integer" },
+                "matches": { "type": "integer" },
+                "verdict": { "type": "string" }
+              }
+            }
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "count", "points"],
+              "properties": { "id": { "type": "string" }, "count": { "type": "integer" }, "points": { "type": "integer" } }
+            }
+          }
+        }
+      },
+      "JsonRpcError": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {
+          "code": { "type": "integer" },
+          "message": { "type": "string" },
+          "data": {}
+        }
+      },
+      "JsonRpcEnvelope": {
+        "type": "object",
+        "required": ["jsonrpc"],
+        "properties": {
+          "jsonrpc": { "const": "2.0" },
+          "id": { "oneOf": [{ "type": "string" }, { "type": "integer" }, { "type": "null" }] },
+          "method": { "type": "string" },
+          "params": { "type": "object" },
+          "result": {},
+          "error": { "$ref": "#/components/schemas/JsonRpcError" }
+        },
+        "description": "A JSON-RPC 2.0 request or response envelope. Requests carry method + params + id; responses carry result (or error) + id."
+      },
+      "A2aTaskView": {
+        "type": "object",
+        "required": ["task"],
+        "properties": {
+          "task": {
+            "type": "object",
+            "required": ["id", "status", "artifacts"],
+            "properties": {
+              "id": { "type": "string" },
+              "status": {
+                "type": "object",
+                "properties": {
+                  "state": { "type": "string", "const": "completed" },
+                  "timestamp": { "type": "string", "format": "date-time" }
+                }
+              },
+              "artifacts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["name", "parts"],
+                  "properties": {
+                    "name": { "type": "string" },
+                    "parts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["type", "data"],
+                        "properties": { "type": { "type": "string" }, "data": {} }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "AgentCard": {
+        "type": "object",
+        "required": ["name", "description", "url", "version", "protocolVersion", "capabilities", "skills"],
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "version": { "type": "string" },
+          "protocolVersion": { "type": "string" },
+          "preferredTransport": { "type": "string" },
+          "capabilities": {
+            "type": "object",
+            "properties": { "streaming": { "type": "boolean" }, "pushNotifications": { "type": "boolean" } }
+          },
+          "defaultInputModes": { "type": "array", "items": { "type": "string" } },
+          "defaultOutputModes": { "type": "array", "items": { "type": "string" } },
+          "skills": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "name", "description"],
+              "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "description": { "type": "string" }, "tags": { "type": "array", "items": { "type": "string" } } }
+            }
+          }
+        }
+      }
+    }
+  }
+}

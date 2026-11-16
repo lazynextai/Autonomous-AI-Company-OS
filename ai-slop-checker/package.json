@@ -1,6 +1,6 @@
 {
   "name": "@lazynext/ai-slop-checker",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Lazynext AI Slop Checker — deterministic scanner for AI writing tells and AI-default visual design tics. Merge of the ideas behind no-ai-slop, stop-slop, impeccable, hallmark and kill-ai-slop.",
   "license": "MIT",
   "private": true,
@@ -9,8 +9,13 @@
   "exports": {
     ".": "./src/scanner.js",
     "./patterns": "./data/slop-patterns.js",
+    "./rules": "./src/rules-loader.js",
     "./rewriter": "./src/rewriter.js",
-    "./api": "./api/server.js"
+    "./project-scanner": "./src/project-scanner.js",
+    "./project-scanner-browser": "./src/project-scanner-browser.js",
+    "./api": "./api/server.js",
+    "./worker": "./api/worker.js",
+    "./agent-surfaces": "./api/agent-surfaces.js"
   },
   "engines": {
     "node": ">=20"

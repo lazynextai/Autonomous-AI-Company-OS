@@ -22,7 +22,7 @@
   } else if (typeof window !== "undefined") {
     window.SlopRewriter = api;
   }
-})(typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : this, function (corpus, _scanner) {
+})(typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : this, function rewriter(corpus, _scanner) {
 
 // Word substitutions that are always safe in normal prose
 // (key lowercase -> replacement). Only whole-word matches are replaced.
@@ -229,6 +229,11 @@ const api = {
   suggestionFor,
   wordSubstitutions: WORD_SUBSTITUTIONS,
   phraseRemovals: PHRASE_REMOVALS,
+  // Build a fresh rewriter over a different corpus + scanner (e.g. after
+  // loadRules deep-merges custom rules). The body of this module IS the
+  // rewriter factory, so calling it again with a merged corpus yields an
+  // independent rewriter consistent with a custom-engine scan.
+  createRewriter: rewriter,
 };
 
 // Browser global for the no-build web checker.

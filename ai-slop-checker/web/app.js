@@ -11,16 +11,22 @@
 (function () {
   const scanner = window.SlopScanner;
   const rewriter = window.SlopRewriter;
+  const projectScanner = window.SlopProjectBrowser;
 
   const els = {
     tabText: document.getElementById("tab-text"),
     tabUrl: document.getElementById("tab-url"),
+    tabFolder: document.getElementById("tab-folder"),
     paneText: document.getElementById("pane-text"),
     paneUrl: document.getElementById("pane-url"),
+    paneFolder: document.getElementById("pane-folder"),
     inputText: document.getElementById("input-text"),
     inputUrl: document.getElementById("input-url"),
     btnScan: document.getElementById("btn-scan"),
     btnSample: document.getElementById("btn-sample"),
+    btnPickFolder: document.getElementById("btn-pick-folder"),
+    folderFiles: document.getElementById("folder-files"),
+    folderStatus: document.getElementById("folder-status"),
     engineMode: document.getElementById("engine-mode"),
     engineVersion: document.getElementById("engine-version"),
     scanError: document.getElementById("scan-error"),
@@ -61,13 +67,14 @@ low-hanging fruit. Let's dive in!`;
   }
 
   function setupTabs() {
-    const tabs = [els.tabText, els.tabUrl];
+    const tabs = [els.tabText, els.tabUrl, els.tabFolder];
     for (const tab of tabs) {
       tab.addEventListener("click", () => {
         tabs.forEach((t) => t.setAttribute("aria-selected", String(t === tab)));
         const pane = document.getElementById(tab.getAttribute("aria-controls"));
         els.paneText.hidden = tab !== els.tabText;
         els.paneUrl.hidden = tab !== els.tabUrl;
+        els.paneFolder.hidden = tab !== els.tabFolder;
       });
     }
   }
@@ -235,12 +242,182 @@ low-hanging fruit. Let's dive in!`;
     return { report, input: html };
   }
 
+  // ── Folder / project scan ────────────────────────────────────────────
+  // Picked files are held in memory (never uploaded). File System Access
+  // API (showDirectoryPicker) when available; multiple <input type=file>
+  // as the fallback. The browser-safe project scanner pools them with the
+  // same prose/markup/styles/code lenses as the CLI --dir mode.
+  let pickedProject = null; // { root, files: [{name, rel, file}] }
+
+  async function readTextFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error(`could not read ${file.name}`));
+      reader.readAsText(file);
+    });
+  }
+
+  async function handleDirectory(handle, prefix) {
+    const out = [];
+    const entries = handle.entries ? handle.entries() : [];
+    for await (const [, entry] of entries) {
+      const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+      if (entry.kind === "directory") {
+        out.push(...(await handleDirectory(entry, rel)));
+      } else if (entry.kind === "file") {
+        const file = await entry.getFile();
+        out.push({ name: entry.name, rel, file });
+      }
+    }
+    return out;
+  }
+
+  async function pickFolder() {
+    const picked = [];
+    if (window.showDirectoryPicker) {
+      try {
+        const handle = await window.showDirectoryPicker();
+        setFolderStatus("Reading folder…");
+        const entries = await handleDirectory(handle, "");
+        for (const e of entries) picked.push(e);
+        return { root: handle.name || "folder", files: picked };
+      } catch (err) {
+        if (err && err.name === "AbortError") return null; // user cancelled
+        // Fall through to the file input (some environments reject the API).
+      }
+    }
+    // Fallback: multiple file selection.
+    setFolderStatus("Select the text/code files to scan…");
+    const files = await new Promise((resolve) => {
+      const input = els.folderFiles;
+      input.value = "";
+      input.click();
+      input.addEventListener(
+        "change",
+        () => resolve(Array.from(input.files || [])),
+        { once: true }
+      );
+    });
+    for (const f of files) picked.push({ name: f.name, rel: f.webkitRelativePath || f.name, file: f });
+    if (picked.length === 0) return null;
+    return { root: "selection", files: picked };
+  }
+
+  function setFolderStatus(text) {
+    if (els.folderStatus) els.folderStatus.textContent = text;
+  }
+
+  async function loadProjectFiles(picked) {
+    const items = [];
+    for (const e of picked.files) {
+      const text = await readTextFile(e.file).catch(() => "");
+      if (text !== "") items.push({ name: e.name, rel: e.rel, text });
+    }
+    return items;
+  }
+
+  function renderProjectReport(project) {
+    els.results.hidden = false;
+    const s = project.summary;
+    els.scoreValue.textContent = String(s.score);
+    els.verdictValue.textContent = s.verdict;
+    const circumference = 2 * Math.PI * 52;
+    els.gaugeFill.style.strokeDasharray = String(circumference);
+    els.gaugeFill.style.strokeDashoffset = String(circumference * (1 - s.score / 100));
+    els.gaugeFill.style.stroke = colorForScore(s.score);
+    els.verdictHeading.textContent =
+      s.score <= 9 ? "Clean" : s.verdict === "light" ? "Light slop" : s.verdict === "moderate" ? "Moderate slop" : "Heavy slop";
+    els.summaryText.textContent =
+      `${s.filesScanned} file(s) scanned, ${s.filesWithHits} with hits; ${s.totalMatches} tell(s); score ${s.score}/100`;
+
+    // Categories (pooled)
+    els.categoryList.innerHTML = "";
+    for (const c of project.categories) {
+      const li = document.createElement("li");
+      const mk = (tag, cls, text) => {
+        const el = document.createElement(tag);
+        if (cls) el.className = cls;
+        el.textContent = text;
+        return el;
+      };
+      const name = mk("span", "cat-name", c.id);
+      const count = mk("span", "cat-count", `${c.count} · ${c.points} pts`);
+      const bar = document.createElement("div");
+      bar.className = "cat-bar";
+      const fill = document.createElement("i");
+      const maxPoints = Math.max(...project.categories.map((x) => x.points), 1);
+      fill.style.width = `${Math.round((c.points / maxPoints) * 100)}%`;
+      bar.appendChild(fill);
+      li.appendChild(name);
+      li.appendChild(count);
+      li.appendChild(bar);
+      els.categoryList.appendChild(li);
+    }
+
+    // Top files
+    els.matchList.innerHTML = "";
+    if (project.topFiles.length === 0) {
+      const li = document.createElement("li");
+      li.textContent = "No files above the clean floor. Good work.";
+      els.matchList.appendChild(li);
+    }
+    for (const f of project.topFiles) {
+      const li = document.createElement("li");
+      const head = document.createElement("div");
+      head.className = "match-head";
+      const sev = document.createElement("span");
+      sev.className = `sev sev-${f.points >= 12 ? 3 : f.points >= 6 ? 2 : 1}`;
+      sev.textContent = `${f.score}/100`;
+      head.appendChild(sev);
+      const id = document.createElement("span");
+      id.className = "match-id";
+      id.textContent = `${f.file} (${f.kind})`;
+      head.appendChild(id);
+      const cat = document.createElement("span");
+      cat.className = "match-category";
+      cat.textContent = `${f.matches} match(es)`;
+      head.appendChild(cat);
+      li.appendChild(head);
+      const snippet = document.createElement("div");
+      snippet.className = "match-snippet";
+      snippet.textContent = `verdict: ${f.verdict}`;
+      li.appendChild(snippet);
+      els.matchList.appendChild(li);
+    }
+    els.rewriteBefore.textContent = "";
+    els.rewriteAfter.textContent = "";
+    els.rewriteNote.textContent = "Project scans report pooled per-file findings; the rewrite preview applies to single texts.";
+  }
+
+  async function scanFolderLocal() {
+    const picked = pickedProject || (await pickFolder());
+    if (!picked || !picked.files || picked.files.length === 0) return null;
+    pickedProject = picked;
+    setFolderStatus(`Scanning ${picked.files.length} file(s)…`);
+    const items = await loadProjectFiles(picked);
+    if (items.length === 0) {
+      showError("No text/code files were picked (or every file was unreadable).");
+      return null;
+    }
+    const project = projectScanner.scanProjectBrowser(items, { root: picked.root });
+    setEngineMode(`engine: in-browser (project: ${picked.root}, ${project.summary.filesScanned} files)`);
+    return project;
+  }
+
   function run() {
-    const activePaneId = els.tabText.getAttribute("aria-selected") === "true" ? "text" : "url";
+    const activePaneId =
+      els.tabText.getAttribute("aria-selected") === "true" ? "text"
+        : els.tabUrl.getAttribute("aria-selected") === "true" ? "url"
+          : "folder";
     clearError();
     els.btnScan.disabled = true;
     els.btnScan.textContent = "Scanning…";
-
+    const finishProject = (project) => {
+      els.btnScan.disabled = false;
+      els.btnScan.textContent = "Scan for slop";
+      renderProjectReport(project);
+    };
     const finish = (result) => {
       els.btnScan.disabled = false;
       els.btnScan.textContent = "Scan for slop";
@@ -254,6 +431,12 @@ low-hanging fruit. Let's dive in!`;
 
     (async () => {
       const apiAvailable = await detectApiAvailability().catch(() => false);
+
+      if (activePaneId === "folder") {
+        const project = await scanFolderLocal();
+        if (!project) return fail("Choose a folder or select files first.");
+        return finishProject(project);
+      }
 
       if (activePaneId === "text") {
         const local = await scanLocal();
@@ -300,7 +483,7 @@ low-hanging fruit. Let's dive in!`;
   }
 
   function init() {
-    if (!scanner || !rewriter) {
+    if (!scanner || !rewriter || !projectScanner) {
       showError("Engine failed to load. Serve this page via `node api/server.js` so the engine files resolve.");
       return;
     }
@@ -308,6 +491,15 @@ low-hanging fruit. Let's dive in!`;
     setupTabs();
     els.btnScan.addEventListener("click", run);
     els.btnSample.addEventListener("click", loadSample);
+    if (els.btnPickFolder) {
+      els.btnPickFolder.addEventListener("click", async () => {
+        const picked = await pickFolder();
+        if (!picked) return;
+        pickedProject = picked;
+        setFolderStatus(`${picked.files.length} file(s) picked — press “Scan for slop”.`);
+        clearError();
+      });
+    }
     detectApiAvailability().then((ok) => {
       setEngineMode(ok ? "engine: API + in-browser" : "engine: in-browser (offline)");
     });
