@@ -211,6 +211,43 @@ function scanHtml(html, opts = {}) {
 }
 
 /**
+ * Scan raw source text (CSS, JS class strings, component markup) for
+ * design-* tells only. Used by the project scanner for styles/code files
+ * where the writing-tell patterns would drown in identifiers.
+ */
+function scanDesign(raw, opts = {}) {
+  if (typeof raw !== "string") throw new TypeError("scanDesign expects a string");
+  const designMatches = [];
+  for (const pattern of corpus.patterns) {
+    if (IS_TEXT_PATTERN(pattern)) continue; // design-* only
+    const re = compiled(pattern);
+    re.lastIndex = 0;
+    let m;
+    while ((m = re.exec(raw)) !== null) {
+      const matched = m[0];
+      if (matched.length === 0) {
+        re.lastIndex += 1;
+        continue;
+      }
+      designMatches.push({
+        id: pattern.id,
+        category: pattern.category,
+        severity: pattern.severity,
+        kind: pattern.kind,
+        index: m.index,
+        snippet: matched.trim().slice(0, 80),
+        context: contextAround(raw, m.index),
+        fix: pattern.fix,
+        rewrite: pattern.rewrite,
+      });
+      if (designMatches.length > 500) break;
+    }
+    if (designMatches.length > 500) break;
+  }
+  return buildReport(designMatches, { type: "design", length: raw.length });
+}
+
+/**
  * Build the final report from matches.
  */
 function buildReport(matches, input) {
@@ -260,6 +297,7 @@ const api = {
   version: corpus.version,
   scanText,
   scanHtml,
+  scanDesign,
   extractText,
   countEmoji,
   patterns: corpus.patterns,

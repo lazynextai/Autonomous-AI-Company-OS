@@ -25,6 +25,17 @@ what was absorbed from each project and where it landed.
 
 ## What was absorbed from each project
 
+> **Completeness pass (2026-11-16, `v1.1.0`)** — a second audit re-read every
+> file in all five source repos and closed the material gaps: the
+> superficial-analysis / meta-commentary / vague-declarative / false-agency /
+> passive-voice writing categories (no-ai-slop + stop-slop), ~45 more
+> writing patterns (stop-slop phrase/structures lists, kill-ai-slop copy
+> voice), ~20 more design heuristics (kill-ai-slop tells 03/04/05/09/11/13/
+> 14/20/24/34/35 + impeccable detector rules + hallmark sloplint signals),
+> and the **project-scan mode** (`src/project-scanner.js` + `--dir` + API
+> route), which is kill-ai-slop's scanner-as-code workflow re-expressed for
+> this engine. What follows is the full credit mapping.
+
 ### 1. [pbakaus/impeccable](https://github.com/pbakaus/impeccable) — Apache-2.0
 "The design vocabulary for your coding agent."
 
@@ -158,10 +169,19 @@ Where: `.cursor/rules/slop-guard.mdc`, `skill/SKILL.md`, `skill/CLAUDE.md`,
   heavy tooling, product features we reimplemented differently (deterministic
   JS engine, our own CLI/API) or intentionally did not build (live browser
   overlay, native-platform audits).
+- **Impeccable's rendered/computed-style detector depth** (kicker
+  font-size ceilings, em-dash density over rendered text with CJK-aware dash
+  counting, nested-radius math) — needs a rendering pass; our heuristics are
+  markup-level leads by design.
 - **Hallmark's 50-theme catalog, photo library, and image generation** —
   a creative-direction feature, out of scope for a deterministic checker.
+- **Hallmark's rendered-tier gates** (fold at 1280×800, 80-word screen
+  budget, section gap at 1440, dead-band/heights) — needs a browser; the
+  `--render` tier of sloplint is a design-direction tool we consciously
+  didn't port to a deterministic scanner.
 - **Kill-ai-slop's standalone scanner CLI** — reimplemented as our own
-  zero-dep CLI with the same report/triage spirit.
+  zero-dep CLI with the same report/triage spirit, and now with a native
+  project-scan mode (`--dir`).
 - **No source code from any project was copied verbatim.** Anything
   resembling a sentence from a source README/skill file in our docs is an
   independent paraphrase of a factual idea.

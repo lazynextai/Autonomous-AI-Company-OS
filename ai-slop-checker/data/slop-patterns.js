@@ -101,6 +101,31 @@ const PATTERN_CATEGORIES = [
     desc: "An em-dash habit makes every sentence hit the same beat. In AI copy, it is a default rhythm crutch.",
   },
   {
+    id: "superficial-analysis",
+    name: "Superficial analysis",
+    desc: "Trailing -ing clauses that pretend to explain meaning: 'highlighting the team's commitment', 'underscoring the importance'. The clause names a feeling instead of a mechanism.",
+  },
+  {
+    id: "meta-commentary",
+    name: "Meta-commentary",
+    desc: "Text that talks about the text instead of being it: interpretive asides ('the key point is'), self-reference ('as you can see', 'the rest of this essay'), and performative emphasis ('let that sink in', 'make no mistake').",
+  },
+  {
+    id: "vague-declarative",
+    name: "Vague declaratives",
+    desc: "Sentences that announce importance or depth without naming the specific thing: 'the stakes are high', 'the reasons are structural'. Kill these or replace them with the specific thing.",
+  },
+  {
+    id: "false-agency",
+    name: "False agency",
+    desc: "Inanimate things doing human verbs ('the decision emerges', 'the data tells us', 'the market rewards') — AI's way of hiding the actor — plus narrator-from-a-distance ('nobody designed this', 'people tend to').",
+  },
+  {
+    id: "passive-voice",
+    name: "Passive voice",
+    desc: "Named passive constructions that hide who did what: 'it is believed that', 'mistakes were made', 'the decision was reached'. Find the actor and make them the subject.",
+  },
+  {
     id: "design-color",
     name: "Design: color tells",
     desc: "The default palette moves of generated UI: indigo-violet gradients, gradient-crushed text, glow halos.",
@@ -167,6 +192,12 @@ const SLOP_PATTERNS = [
   { id: "w-dynamic", category: "word-ban", severity: 1, kind: "word", match: "dynamic", desc: "A filler adjective that claims energy without evidence.", fix: "Cut or be specific.", rewrite: "" },
   { id: "w-innovative", category: "word-ban", severity: 1, kind: "word", match: "innovative", desc: "Self-describing novelty; if it were innovative you could show it.", fix: "Show what's different.", rewrite: "new" },
   { id: "w-revolution", category: "word-ban", severity: 3, kind: "regex", match: "revolutioni[sz](e|ing|ed|es)", desc: "The strongest possible claim, applied to products that landed this week.", fix: "Describe the actual change in workflow.", rewrite: "transforms" },
+  { id: "w-this-is-huge", category: "word-ban", severity: 3, kind: "phrase", match: "this is huge", desc: "The excitement particle of AI copy — a verdict with no measurement.", fix: "Say what is big and by how much.", rewrite: "" },
+  { id: "w-unleash", category: "word-ban", severity: 2, kind: "word", match: "unleash", desc: "'Unleash the full potential' — release-animal metaphors for features.", fix: "State the capability.", rewrite: "release" },
+  { id: "w-next-generation", category: "word-ban", severity: 2, kind: "phrase", match: "next-generation", desc: "A promise of novelty by position in time.", fix: "Describe the actual difference.", rewrite: "new" },
+  { id: "w-industry-leading", category: "word-ban", severity: 2, kind: "phrase", match: "industry-leading", desc: "Claims a rank with no ranked list.", fix: "Name the benchmark.", rewrite: "" },
+  { id: "w-future-proof", category: "word-ban", severity: 2, kind: "phrase", match: "future-proof", desc: "Promises immunity to change no product has.", fix: "Describe the compatibility you actually offer.", rewrite: "" },
+  { id: "w-enterprise-grade", category: "word-ban", severity: 2, kind: "phrase", match: "enterprise-grade", desc: "A magic adjective that claims seriousness without a feature.", fix: "Name the features: SSO, audit logs, retention.", rewrite: "" },
 
   // ------------------------------------------------------------------
   // filler-phrases
@@ -186,6 +217,10 @@ const SLOP_PATTERNS = [
   { id: "f-in-terms-of", category: "filler-phrases", severity: 2, kind: "phrase", match: "in terms of", desc: "A wobble that defers the noun it should have been.", fix: "Rewrite to the direct noun.", rewrite: "" },
   { id: "f-with-regard", category: "filler-phrases", severity: 2, kind: "phrase", match: "with regard to", desc: "Biz-formal padding for 'about'.", fix: "Use 'about'.", rewrite: "about" },
   { id: "f-in-order-to", category: "filler-phrases", severity: 1, kind: "phrase", match: "in order to", desc: "Extra words for a plain 'to'.", fix: "Use 'to'.", rewrite: "to" },
+  { id: "f-in-a-world-where", category: "filler-phrases", severity: 2, kind: "phrase", match: "in a world where", desc: "Storybook setting: 'In a world where…' delays the point.", fix: "Delete; start with the point.", rewrite: "" },
+  { id: "f-deeply", category: "filler-phrases", severity: 1, kind: "word", match: "deeply", desc: "An intensifier that usually just raises the volume.", fix: "Delete or be specific.", rewrite: "" },
+  { id: "f-vastly", category: "filler-phrases", severity: 1, kind: "word", match: "vastly", desc: "A magnitude-puffing adverb; 'vastly different' papers over the difference.", fix: "Give the actual difference.", rewrite: "" },
+  { id: "f-more-than-just", category: "filler-phrases", severity: 1, kind: "phrase", match: "more than just", desc: "The 'it's more than just X' pump used to add weight.", fix: "State what it is.", rewrite: "" },
   { id: "f-going-forward", category: "filler-phrases", severity: 2, kind: "phrase", match: "going forward", desc: "Calendar-speak that means 'from now on' — a rank AI/email tell.", fix: "Use 'from now on' or a date.", rewrite: "from now on" },
   { id: "f-lets-dive", category: "filler-phrases", severity: 2, kind: "phrase", match: "let's dive in", desc: "The AI open-the-body transition.", fix: "Start the next section; you don't need the handshake.", rewrite: "" },
   { id: "f-dive-into", category: "filler-phrases", severity: 2, kind: "phrase", match: "dive into", desc: "'We dive into' is the go-to for section announcements.", fix: "Write the section.", rewrite: "cover" },
@@ -210,6 +245,12 @@ const SLOP_PATTERNS = [
   { id: "b-touch-base", category: "business-jargon", severity: 2, kind: "phrase", match: "touch base", desc: "Corp-speak for 'talk'.", fix: "'Let's talk', 'let me check in'.", rewrite: "check in" },
   { id: "b-mission-critical", category: "business-jargon", severity: 2, kind: "phrase", match: "mission-critical", desc: "Makes every feature a missile.", fix: "Say what breaks when it fails.", rewrite: "" },
   { id: "b-low-hanging", category: "business-jargon", severity: 2, kind: "phrase", match: "low-hanging fruit", desc: "A fruit metaphor for easy wins; models pick it daily.", fix: "'Quick wins'.", rewrite: "quick wins" },
+  { id: "b-take-a-step-back", category: "business-jargon", severity: 2, kind: "phrase", match: "take a step back", desc: "A gesture-phrase for 'reconsider' that adds nothing.", fix: "'Reconsider', 'look again'.", rewrite: "reconsider" },
+  { id: "b-on-the-same-page", category: "business-jargon", severity: 2, kind: "phrase", match: "on the same page", desc: "Team-speak for 'aligned' that survives on ritual.", fix: "'Aligned', 'agreed'.", rewrite: "aligned" },
+  { id: "b-table-stakes", category: "business-jargon", severity: 2, kind: "phrase", match: "table stakes", desc: "Poker-speak for 'required minimum' that AI sprinkles on features.", fix: "Name the actual requirement.", rewrite: "baseline" },
+  { id: "b-value-prop", category: "business-jargon", severity: 2, kind: "phrase", match: "value proposition", desc: "The packaged phrase for 'why this is worth it'; AI panel text leans on it.", fix: "State the benefit directly.", rewrite: "benefit" },
+  { id: "b-journey-mapping", category: "business-jargon", severity: 2, kind: "phrase", match: "customer journey", desc: "Marketing-process speak that models attach to any launch.", fix: "Describe the actual steps a user takes.", rewrite: "experience" },
+  { id: "b-unlock-value", category: "business-jargon", severity: 2, kind: "phrase", match: "unlock value", desc: "Consulting-speak: value is not behind a lock.", fix: "Describe the value.", rewrite: "gain value" },
 
   // ------------------------------------------------------------------
   // throat-clearing
@@ -224,6 +265,11 @@ const SLOP_PATTERNS = [
   { id: "t-as-we-see", category: "throat-clearing", severity: 2, kind: "phrase", match: "as we'll see", desc: "Promises forward drama.", fix: "Delete it.", rewrite: "" },
   { id: "t-in-this-article", category: "throat-clearing", severity: 2, kind: "phrase", match: "in this article", desc: "Metacommentary about the article inside the article.", fix: "Delete; the reader knows where they are.", rewrite: "" },
   { id: "t-here-are-the-things", category: "throat-clearing", severity: 1, kind: "phrase", match: "here are the", desc: "List announcement that AI uses to introduce bullet rails.", fix: "Just start the list.", rewrite: "" },
+  { id: "t-heres-why", category: "throat-clearing", severity: 1, kind: "phrase", match: "here's why", desc: "'Here's why' books a heading slot for a reason the heading should carry.", fix: "Make the heading the reason.", rewrite: "" },
+  { id: "t-heres-the-problem", category: "throat-clearing", severity: 2, kind: "phrase", match: "here's the problem though", desc: "Sets up an objection before the point.", fix: "State the problem.", rewrite: "" },
+  { id: "t-can-we-talk", category: "throat-clearing", severity: 2, kind: "phrase", match: "can we talk about", desc: "A hesitation rap before the topic.", fix: "Talk about it.", rewrite: "" },
+  { id: "t-ill-say-it-again", category: "throat-clearing", severity: 2, kind: "phrase", match: "i'll say it again", desc: "Pre-announces insistence.", fix: "Say it once, clearly.", rewrite: "" },
+  { id: "t-here-are-three", category: "throat-clearing", severity: 1, kind: "regex", match: "here(?:'| a)re (?:the )?(?:three|4|five|6|seven|8|9|few|several|some) (?:reasons|ways|things|tips|steps)", desc: "The enumerated-list handout opener.", fix: "Just list them.", rewrite: "" },
 
   // ------------------------------------------------------------------
   // faux-insight
@@ -242,6 +288,12 @@ const SLOP_PATTERNS = [
   { id: "bc-not-but", category: "binary-contrast", severity: 2, kind: "regex", match: "\\bnot (just )?[a-z][^.!?]{2,40}?\\.\\s*(it'?s|it is|this is|that is) [a-z]", desc: "The 'not X — it's Y' reversal, the most famous AI-rhythm tell.", fix: "State Y directly and drop the negation runway.", rewrite: "" },
   { id: "bc-isnt-it-is", category: "binary-contrast", severity: 2, kind: "regex", match: "\\b(?:isn'?t|is not|wasn'?t|was not) [a-z][^.!?]{2,40}?\\.\\s*(?:it'?s|it is|it was|this is|the .{1,20} was|the .{1,20} is) ", desc: "The negation-then-assertion crutch.", fix: "State the second half as a plain positive sentence.", rewrite: "" },
   { id: "bc-the-question", category: "binary-contrast", severity: 2, kind: "regex", match: "the question (?:isn'?t|is not) [^.!?]{2,40}?\\.\\s*it'?s ", desc: "Rhetorical misdirection: pose a question only to flip it.", fix: "Answer the real question directly.", rewrite: "" },
+  { id: "bc-not-because", category: "binary-contrast", severity: 2, kind: "regex", match: "not because [^.!?]{2,40}?\\.\\s*(?:because|but) ", desc: "'Not because X. Because Y.' — the telegraphed reversal.", fix: "State Y directly; drop the negation runway.", rewrite: "" },
+  { id: "bc-stops-starts", category: "binary-contrast", severity: 2, kind: "regex", match: "stops being [^.!?]{2,40} and starts being ", desc: "The false transformation arc: 'stops being X and starts being Y'.", fix: "State what changed plainly.", rewrite: "" },
+  { id: "bc-doesnt-mean", category: "binary-contrast", severity: 2, kind: "regex", match: "doesn'?t (?:just )?mean [^.!?]{2,40}?,? but actually ", desc: "The negation-then-assertion crutch: 'doesn't mean X, but actually Y'.", fix: "State Y directly.", rewrite: "" },
+  { id: "bc-not-just-but-also", category: "binary-contrast", severity: 1, kind: "regex", match: "not just [^.!?]{2,40}? but also ", desc: "The additive hedge: 'not just X but also Y'.", fix: "State Y; cut the additive runway.", rewrite: "" },
+  { id: "bc-not-x-but-y", category: "binary-contrast", severity: 1, kind: "regex", match: "\\bnot [a-z][^.!?]{2,30}?\\.\\s*but [a-z]", desc: "The mechanical two-part contrast: 'Not X. But Y.'", fix: "State the second half as a plain positive sentence.", rewrite: "" },
+  { id: "bc-mechanical-noun", category: "binary-contrast", severity: 1, kind: "regex", match: "\\b(?:a|an) [a-z]+(?:s|es)? (?:isn'?t|is not) [^.!?]{2,30}?\\.\\s*[a-z]+ (?:is|are) ", desc: "Noun-flip contrasts: 'A tool isn't X. A tool is Y.'", fix: "State Y directly.", rewrite: "" },
 
   // ------------------------------------------------------------------
   // colon-reveal
@@ -306,6 +358,8 @@ const SLOP_PATTERNS = [
   { id: "r-think-about-it", category: "rhetorical-setup", severity: 2, kind: "phrase", match: "think about it", desc: "A condescending prompt to reflect.", fix: "Delete it.", rewrite: "" },
   { id: "r-plot-twist", category: "rhetorical-setup", severity: 2, kind: "phrase", match: "plot twist", desc: "Narrative-theater labeling.", fix: "Delete it.", rewrite: "" },
   { id: "r-here-what-i-mean", category: "rhetorical-setup", severity: 2, kind: "phrase", match: "here's what i mean", desc: "A preview that schedules an explanation.", fix: "Explain now.", rewrite: "" },
+  { id: "r-and-thats-okay", category: "rhetorical-setup", severity: 1, kind: "regex", match: "and that'?s ok(?:ay)?\\.", desc: "The permission-granting closer: 'And that's okay.'", fix: "Delete it; no permission needed.", rewrite: "" },
+  { id: "r-nothing-to-see", category: "rhetorical-setup", severity: 2, kind: "regex", match: "there'?s nothing (?:wrong with|special about|magical about|new about)", desc: "False modesty setup before the reveal.", fix: "State the fact.", rewrite: "" },
 
   // ------------------------------------------------------------------
   // negative-listing
@@ -319,6 +373,7 @@ const SLOP_PATTERNS = [
   { id: "df-thats-it", category: "dramatic-fragment", severity: 2, kind: "regex", match: "that'?s it\\.\\s*that'?s\\s*the ", desc: "The performative-simplicity mic drop.", fix: "Rewrite as a complete statement.", rewrite: "" },
   { id: "df-and-and", category: "dramatic-fragment", severity: 2, kind: "regex", match: "\\.\\s*and [A-Z][a-z]{2,15}\\.\\s*and [A-Z]", desc: "The staccato 'X. And Y. And Z.' stack.", fix: "Join into complete sentences.", rewrite: "" },
   { id: "df-everything-is", category: "dramatic-fragment", severity: 2, kind: "regex", match: "^[A-Z][a-z]{2,20}\\.\\s+(?:That|This|It)'?s (?:the|a) ", desc: "A lone fragment announcing a thing, followed by a claim.", fix: "Complete the sentence.", rewrite: "" },
+  { id: "df-unlocks-something", category: "dramatic-fragment", severity: 2, kind: "regex", match: "this unlocks something\\.\\s*[A-Z][a-z]+\\s*\\.", desc: "The artificial revelation: 'This unlocks something. Magic.'", fix: "Complete the sentence.", rewrite: "" },
 
   // ------------------------------------------------------------------
   // summary-recap
@@ -327,11 +382,90 @@ const SLOP_PATTERNS = [
   { id: "s-ultimately", category: "summary-recap", severity: 1, kind: "word", match: "ultimately", desc: "A smooth word into a recap.", fix: "Cut when it leads a recap.", rewrite: "" },
   { id: "s-to-sum-up", category: "summary-recap", severity: 2, kind: "phrase", match: "to sum up", desc: "Restates the article inside the article.", fix: "Delete it.", rewrite: "" },
   { id: "s-all-in-all", category: "summary-recap", severity: 1, kind: "phrase", match: "all in all", desc: "A wrap-up coin.", fix: "Delete it.", rewrite: "" },
+  { id: "s-in-wrapping-up", category: "summary-recap", severity: 2, kind: "phrase", match: "in wrapping up", desc: "Schedules the ending instead of ending.", fix: "Delete; end on the last point.", rewrite: "" },
+  { id: "s-to-recap", category: "summary-recap", severity: 2, kind: "phrase", match: "to recap", desc: "Recaps the piece inside the piece.", fix: "Delete it.", rewrite: "" },
+  { id: "s-as-mentioned", category: "summary-recap", severity: 1, kind: "phrase", match: "as mentioned", desc: "Refers back to the article the reader just read.", fix: "Delete it.", rewrite: "" },
 
   // ------------------------------------------------------------------
   // em-dash
   // ------------------------------------------------------------------
   { id: "e-em-dash", category: "em-dash", severity: 1, kind: "regex", match: "[\\u2014\\u2012\\u2013]\\s*[\\u2014\\u2012\\u2013]", desc: "A cluster of dashes is the AI sentence-fragment factory: every clause hits one beat.", fix: "Use commas or periods; let sentences vary.", rewrite: ", " },
+
+  // ------------------------------------------------------------------
+  // superficial-analysis — trailing -ing clauses that pretend to explain
+  // ------------------------------------------------------------------
+  { id: "sa-highlighting", category: "superficial-analysis", severity: 2, kind: "regex", match: "\\bhighlighting (?:the|our|its|a) (?:team'?s|company'?s|brand'?s|project'?s|dedication|commitment|importance|significance|growth|leadership|innovation|vision|impact)\\b", desc: "A trailing '-ing' clause that names a feeling ('highlighting the team's commitment') instead of a mechanism.", fix: "Say what the change does for the user; let the fact carry the praise.", rewrite: "" },
+  { id: "sa-underscoring", category: "superficial-analysis", severity: 2, kind: "regex", match: "\\bunderscoring (?:the|our|its|a) (?:importance|significance|commitment|dedication|need|shift|progress)\\b", desc: "'Underscoring X' waves at a significance the sentence never demonstrates.", fix: "Show the fact; delete the clause.", rewrite: "" },
+  { id: "sa-reflecting", category: "superficial-analysis", severity: 2, kind: "regex", match: "\\breflecting (?:the|our|its|a) (?:commitment|dedication|growth|shift|vision|values|priorities|focus)\\b", desc: "'Reflecting our commitment' claims a mirror when the sentence should be the thing itself.", fix: "State what was done; delete the reflection.", rewrite: "" },
+  { id: "sa-showcasing", category: "superficial-analysis", severity: 2, kind: "regex", match: "\\bshowcasing (?:the|our|its|a) (?:capabilit|power|potential|versatility|strength|innovation|commitment)\\w*", desc: "'Showcasing X' tells the reader what to admire instead of showing it.", fix: "Describe the capability concretely.", rewrite: "" },
+  { id: "sa-hailing", category: "superficial-analysis", severity: 2, kind: "regex", match: "\\bhailing (?:it as|the|a) (?:milestone|landmark|triumph|success)\\b", desc: "'Hailing the milestone' announces the writer's verdict on a fact.", fix: "State the fact; let readers judge.", rewrite: "" },
+  { id: "sa-testament", category: "superficial-analysis", severity: 2, kind: "regex", match: "a testament to (?:the|our|its|their) (?:dedication|commitment|ingenuity|vision|resilience|craft)\\b", desc: "'A testament to X' — the puffery gesture that labels importance instead of showing work.", fix: "Describe the work.", rewrite: "" },
+
+  // ------------------------------------------------------------------
+  // meta-commentary & metadiscourse
+  // ------------------------------------------------------------------
+  { id: "mc-key-point", category: "meta-commentary", severity: 2, kind: "phrase", match: "the key point is", desc: "Interpretive metadiscourse: steps outside the subject to announce what matters.", fix: "Delete; let the key point be the sentence.", rewrite: "" },
+  { id: "mc-as-you-can-see", category: "meta-commentary", severity: 2, kind: "phrase", match: "as you can see", desc: "Directs the reader's attention instead of letting the content hold it.", fix: "Delete it.", rewrite: "" },
+  { id: "mc-distinction-matters", category: "meta-commentary", severity: 2, kind: "phrase", match: "this distinction matters", desc: "The aside that tells you what to weight, mid-prose.", fix: "Show the consequence, or delete.", rewrite: "" },
+  { id: "mc-in-other-words", category: "meta-commentary", severity: 1, kind: "phrase", match: "in other words", desc: "A redundant gloss when the point was already made; keep only for real clarifications.", fix: "Cut when it restates; keep when it actually clarifies.", rewrite: "" },
+  { id: "mc-bottom-line", category: "meta-commentary", severity: 2, kind: "phrase", match: "the bottom line is", desc: "Announces the conclusion instead of delivering it.", fix: "Write the conclusion.", rewrite: "" },
+  { id: "mc-to-put-simply", category: "meta-commentary", severity: 2, kind: "phrase", match: "to put it simply", desc: "A meta-opener that promises simplification.", fix: "Delete; be simple.", rewrite: "" },
+  { id: "mc-short-version", category: "meta-commentary", severity: 2, kind: "phrase", match: "the short version is", desc: "Pre-announces a summary the prose should just be.", fix: "Delete it.", rewrite: "" },
+  { id: "mc-let-me-be-direct", category: "meta-commentary", severity: 2, kind: "phrase", match: "let me be direct", desc: "Solemn pre-announcement of directness.", fix: "Be direct.", rewrite: "" },
+  { id: "mc-hint", category: "meta-commentary", severity: 2, kind: "regex", match: "\\bhint:\\s*[A-Za-z]", desc: "Self-annotating the text ('Hint: ...') is a meta-aside AI adds to sound helpful.", fix: "Say the thing; the hint is the content.", rewrite: "" },
+  { id: "mc-spoiler", category: "meta-commentary", severity: 2, kind: "regex", match: "\\bspoiler(?: alert)?:\\s*", desc: "Labels a revelation as a spoiler before delivering it.", fix: "State it plainly.", rewrite: "" },
+  { id: "mc-you-know-this", category: "meta-commentary", severity: 2, kind: "phrase", match: "you already know this", desc: "Assumes shared knowledge to excuse skipping content.", fix: "State it or cut it.", rewrite: "" },
+  { id: "mc-another-post", category: "meta-commentary", severity: 2, kind: "phrase", match: "but that's another post", desc: "Defers content the reader came for.", fix: "Write it, link it, or cut the promise.", rewrite: "" },
+  { id: "mc-feature-not-bug", category: "meta-commentary", severity: 2, kind: "regex", match: "\\b[a-z]+ is a feature,? not a bug\\b", desc: "'X is a feature, not a bug' — a meme-as-analysis move AI leans on.", fix: "Explain the actual tradeoff.", rewrite: "" },
+  { id: "mc-dressed-up", category: "meta-commentary", severity: 2, kind: "phrase", match: "dressed up as", desc: "Meta-commentary that accuses a thing of pretending ('complexity dressed up as depth').", fix: "State what it is.", rewrite: "" },
+  { id: "mc-rest-of-essay", category: "meta-commentary", severity: 2, kind: "regex", match: "the rest of this (?:essay|post|article|guide)", desc: "Announces the essay's own structure inside the essay.", fix: "Delete; let the essay move.", rewrite: "" },
+  { id: "mc-in-this-section", category: "meta-commentary", severity: 2, kind: "regex", match: "in this (?:section|post|article|guide),? we.?ll", desc: "Metacommentary about the section the reader is already in.", fix: "Write the section.", rewrite: "" },
+
+  // ------------------------------------------------------------------
+  // emphasis crutches + performative emphasis
+  // ------------------------------------------------------------------
+  { id: "ec-let-that-sink", category: "meta-commentary", severity: 2, kind: "phrase", match: "let that sink in", desc: "A command to be impressed. Emphasis by demand.", fix: "Delete it; if the fact is strong, it sits on its own.", rewrite: "" },
+  { id: "ec-make-no-mistake", category: "meta-commentary", severity: 2, kind: "phrase", match: "make no mistake", desc: "Solemn performative emphasis.", fix: "Delete it.", rewrite: "" },
+  { id: "ec-matters-because", category: "meta-commentary", severity: 2, kind: "phrase", match: "this matters because", desc: "Tells you the stakes are coming instead of showing them.", fix: "State the consequence.", rewrite: "" },
+  { id: "ec-here-why-matters", category: "meta-commentary", severity: 2, kind: "phrase", match: "here's why that matters", desc: "The announcement of an explanation.", fix: "Explain.", rewrite: "" },
+  { id: "ec-full-stop", category: "meta-commentary", severity: 2, kind: "regex", match: "\\bFull stop[\\.!]?", desc: "'Full stop.' as a verdict-ender — emphasis by punctuation.", fix: "Delete it; end on the fact.", rewrite: "" },
+  { id: "ec-period", category: "meta-commentary", severity: 2, kind: "regex", match: "(?:^|[.!?]\\s+)Period\\.?", desc: "A capitalized 'Period.' ending a thought: performative finality.", fix: "Delete it.", rewrite: "" },
+  { id: "ec-creeps-in", category: "meta-commentary", severity: 1, kind: "phrase", match: "creeps in", desc: "Performative emphasis: 'doubt creeps in' personifies a feeling for drama.", fix: "Say who felt what, plainly.", rewrite: "" },
+  { id: "ec-i-promise", category: "meta-commentary", severity: 1, kind: "phrase", match: "i promise you", desc: "Manufactured intimacy; promises a truth the sentence should just deliver.", fix: "State it directly.", rewrite: "" },
+
+  // ------------------------------------------------------------------
+  // vague declaratives
+  // ------------------------------------------------------------------
+  { id: "vd-stakes-high", category: "vague-declarative", severity: 2, kind: "phrase", match: "the stakes are high", desc: "Announces importance without naming the specific thing at risk.", fix: "Name what breaks and for whom.", rewrite: "" },
+  { id: "vd-implications-are", category: "vague-declarative", severity: 2, kind: "phrase", match: "the implications are significant", desc: "Signals significance without one concrete implication.", fix: "Name an implication.", rewrite: "" },
+  { id: "vd-consequences-are-real", category: "vague-declarative", severity: 2, kind: "regex", match: "the consequences are (?:real|significant|far-reaching)", desc: "Announces consequences without naming them.", fix: "Name a consequence.", rewrite: "" },
+  { id: "vd-reasons-structural", category: "vague-declarative", severity: 2, kind: "phrase", match: "the reasons are structural", desc: "'Structural' as a mystery word: the specific reason never arrives.", fix: "Name the structure.", rewrite: "" },
+  { id: "vd-deepest-problem", category: "vague-declarative", severity: 2, kind: "phrase", match: "this is the deepest problem", desc: "Claims depth by assertion.", fix: "Show the problem.", rewrite: "" },
+  { id: "vd-no-easy-answers", category: "vague-declarative", severity: 1, kind: "phrase", match: "there are no easy answers", desc: "A hedge that summarises without committing.", fix: "Give the hard answer.", rewrite: "" },
+
+  // ------------------------------------------------------------------
+  // false agency (inanimate actors + narrator-from-a-distance)
+  // ------------------------------------------------------------------
+  { id: "fa-data-tells", category: "false-agency", severity: 2, kind: "regex", match: "the data tells us\\b", desc: "Data sits there; someone reads it and draws a conclusion.", fix: "Name the person and the conclusion.", rewrite: "" },
+  { id: "fa-decision-emerges", category: "false-agency", severity: 2, kind: "regex", match: "the decision (?:emerges|emerged)\\b", desc: "Decisions don't emerge. Someone decides.", fix: "Name who decided.", rewrite: "" },
+  { id: "fa-market-rewards", category: "false-agency", severity: 2, kind: "regex", match: "the market rewards\\b", desc: "Markets don't reward. Buyers pay for things.", fix: "Name the buyers or the mechanism.", rewrite: "" },
+  { id: "fa-culture-shifts", category: "false-agency", severity: 1, kind: "regex", match: "the culture (?:shifts|shifted)\\b", desc: "Cultures don't shift on their own; people change behavior.", fix: "Name the people and the change.", rewrite: "" },
+  { id: "fa-conversation-moves", category: "false-agency", severity: 1, kind: "regex", match: "the conversation (?:moves|moved) toward", desc: "Conversations don't move; someone steers.", fix: "Name who steered.", rewrite: "" },
+  { id: "fa-complaint-becomes", category: "false-agency", severity: 1, kind: "phrase", match: "a complaint becomes a fix", desc: "The complaint did nothing; someone fixed it.", fix: "Say who fixed it.", rewrite: "" },
+  { id: "fa-lives-or-dies", category: "false-agency", severity: 1, kind: "phrase", match: "lives or dies", desc: "'The bet lives or dies' — bets don't have lifespans; someone ships or kills.", fix: "Name the actor.", rewrite: "" },
+  { id: "fa-nobody-designed", category: "false-agency", severity: 2, kind: "phrase", match: "nobody designed this", desc: "Narrator-from-a-distance: a disembodied observation from above the scene.", fix: "Put the reader in the room.", rewrite: "" },
+  { id: "fa-people-tend", category: "false-agency", severity: 1, kind: "phrase", match: "people tend to", desc: "Armchair sociology: a floating generalization about 'people'.", fix: "Say who, when, and what you saw.", rewrite: "" },
+  { id: "fa-this-is-why", category: "false-agency", severity: 1, kind: "regex", match: "this is why (?:most|many|teams|companies|people)\\b", desc: "A lecturer opener that explains from above.", fix: "Put the reader in the situation.", rewrite: "" },
+
+  // ------------------------------------------------------------------
+  // passive voice — named constructions that hide the actor
+  // ------------------------------------------------------------------
+  { id: "pv-it-is-believed", category: "passive-voice", severity: 2, kind: "phrase", match: "it is believed that", desc: "Hides who believes.", fix: "Name the believer.", rewrite: "" },
+  { id: "pv-mistakes-were-made", category: "passive-voice", severity: 2, kind: "phrase", match: "mistakes were made", desc: "The classic evasion: who made them?", fix: "Name who made them.", rewrite: "" },
+  { id: "pv-decision-was-reached", category: "passive-voice", severity: 2, kind: "phrase", match: "the decision was reached", desc: "Hides who decided.", fix: "Name who reached it.", rewrite: "" },
+  { id: "pv-was-created-to", category: "passive-voice", severity: 1, kind: "regex", match: "\\bwas created (?:in order )?to\\b", desc: "'X was created to…' — who created it?", fix: "Name the maker as the subject.", rewrite: "" },
+  { id: "pv-it-was-decided", category: "passive-voice", severity: 2, kind: "phrase", match: "it was decided", desc: "Decisions attributed to nobody.", fix: "Name who decided.", rewrite: "" },
+  { id: "pv-has-been-determined", category: "passive-voice", severity: 2, kind: "phrase", match: "it has been determined that", desc: "An unknown authority concluded.", fix: "Name who determined it.", rewrite: "" },
 
   // ------------------------------------------------------------------
   // design-color — machine-checkable over HTML/CSS
@@ -340,6 +474,11 @@ const SLOP_PATTERNS = [
   { id: "d-gradient-text", category: "design-color", severity: 2, kind: "regex", match: "(bg-clip-text\\s+text-transparent|-webkit-background-clip:\\s*text|background-clip:\\s*text)", desc: "Gradient-crushed headline text: decoration eating the message.", fix: "Solid color; build hierarchy with size and weight.", rewrite: "" },
   { id: "d-purple-glow", category: "design-color", severity: 2, kind: "regex", match: "(shadow-(?:indigo|violet|purple)-[0-9]+\\/[0-9]+|box-shadow:[^;]*(#6366f1|#8b5cf6|#a855f7))", desc: "Colored glow shadows used as fake dark-mode accents.", fix: "Keep shadows colorless; a tinted glow is not depth.", rewrite: "" },
   { id: "d-atmosphere-gradient", category: "design-color", severity: 2, kind: "regex", match: "(radial-gradient\\s*\\(|bg-\\[radial-gradient|repeating-(?:linear|radial)-gradient)", desc: "Page-wide radial glow or repeating striped gradients used as atmosphere.", fix: "One flat background; depth from hairlines and restrained shadows.", rewrite: "" },
+  { id: "d-warm-palette", category: "design-color", severity: 2, kind: "regex", match: "\\b(?:amber|orange|stone)-(?:50|100|200|300)\\b|(?:bg-\\[)?#(?:fdf6ec|fef3e2|faf3e8|fff7ed|fdf4e3)", desc: "The warm 'cozy' wash: amber/stone/orange tones on soft beige everywhere — the model's laziest reading of 'warm and friendly'.", fix: "Neutral base + one restrained warm accent; warmth comes from words.", rewrite: "" },
+  { id: "d-semantic-palette", category: "design-color", severity: 2, kind: "regex", match: "bg-(?:blue|indigo)-50|bg-amber-50|bg-(?:green|emerald)-50|bg-red-50", desc: "The default semantic rainbow: info in blue, tip in amber, success in green, error in red — the framework's stock -50 backgrounds with -600 text, related to nothing.", fix: "Grow states from one palette; colour only the differences that matter.", rewrite: "" },
+  { id: "d-one-hue-status", category: "design-color", severity: 2, kind: "regex", match: "border-(red|amber|yellow|green|blue)-[0-9]+[^\"']{0,80}text-\\1-[0-9]+[^\"']{0,80}bg-\\1-[0-9]+\\/[0-9]+", desc: "The one-hue status box: border, text, and a /10 background all the same hue — one loud colour at three opacities.", fix: "Carry the state in words and weight first; one muted accent on a neutral surface.", rewrite: "" },
+  { id: "d-glow-halo", category: "design-color", severity: 2, kind: "regex", match: "(glow|halo|aurora|mesh|orb)[^\"']{0,30}(shadow|blur|filter)|shadow\\s*:\\s*0\\s+0\\s+[0-9]+px[^;}]*rgba?\\([0-9]{1,3},", desc: "Floating blurred orbs, aurora blobs, or a zero-offset coloured glow shadow — atmosphere standing in for depth.", fix: "Elevation by lightness; shadows carry offset and blur.", rewrite: "" },
+  { id: "d-rainbow-gradient", category: "design-color", severity: 2, kind: "regex", match: "linear-gradient\\((?:[0-9]+deg\\s*,\\s*)?(?:#[0-9a-fA-F]{3,8})\\s*,\\s*(?:#[0-9a-fA-F]{3,8})\\s*,\\s*(?:#[0-9a-fA-F]{3,8}|rgba?\\([^)]*\\))", desc: "A multi-stop rainbow gradient (three or more hue stops) on sections that don't need one.", fix: "One hue ramp or none; let structure carry the hierarchy.", rewrite: "" },
 
   // ------------------------------------------------------------------
   // design-type
@@ -349,6 +488,10 @@ const SLOP_PATTERNS = [
   { id: "d-kicker", category: "design-type", severity: 2, kind: "regex", match: "(uppercase\\s*[^\"']*tracking-(?:wide|wider|widest)|tracking-(?:wide|wider|widest)[^\"']*uppercase|text-transform:\\s*uppercase[^}]{0,80}letter-spacing:\\s*0?[.][0-9]+em)", desc: "The tracked-caps micro-label above every heading, restating the heading.", fix: "Delete kickers that restate headings; let scale introduce sections.", rewrite: "" },
   { id: "d-flat-type", category: "design-type", severity: 2, kind: "regex", match: "<h[12][^>]*class=\"[^\"]*text-(sm|base|lg)", desc: "Headings barely bigger than body — a flat type hierarchy.", fix: "A scale with real contrast (1.25x and up) between sizes.", rewrite: "" },
   { id: "d-inter-font", category: "design-type", severity: 1, kind: "regex", match: "(fonts\\.googleapis\\.com/css2\\?family=(Inter|Space\\+Grotesk|Manrope|Plus\\+Jakarta)|font-family\\s*:[^;}]*[\"']?(Inter|Space Grotesk|Manrope)[\"']?)", desc: "The same five default faces every generated page draws from.", fix: "Choose a face like a logo; be able to say why this one.", rewrite: "" },
+  { id: "d-decorative-strike", category: "design-type", severity: 2, kind: "regex", match: "\\bline-through\\b|<(?:s|strike|mark|u)[' >]|text-decoration:\\s*(?:line-through|underline)", desc: "Strikes, underlines, and highlights used as decorative emphasis, not for edits, links, or real annotation.", fix: "Weight, size, and line breaks carry emphasis; keep strike for real edits, underline for links.", rewrite: "" },
+  { id: "d-display-headline", category: "design-type", severity: 2, kind: "regex", match: "text-(?:5|6|7|8|9)xl\\b[^\"']{0,40}font-(?:extrabold|black)|font-(?:extrabold|black)[^\"']{0,40}text-(?:5|6|7|8|9)xl\\b|font-size:\\s*(?:[5-9][0-9]px|[4-9]rem)", desc: "The full-sentence display headline: a whole pitch set at display size with crushed tracking, wrapping three or four lines.", fix: "Compress to a few words at display size; put the rest in a normal subline.", rewrite: "" },
+  { id: "d-crushed-tracking", category: "design-type", severity: 1, kind: "regex", match: "letter-spacing:\\s*-0?0?\\.0[5-9](?:em)?|tracking-tighter?\\b", desc: "Negative letter-spacing past the point letterforms keep their shapes — crushed tracking as a style cue.", fix: "Tighten only as far as the face was designed to go.", rewrite: "" },
+  { id: "d-editorial-dashboard", category: "design-type", severity: 2, kind: "regex", match: ">\\s*Good (?:morning|afternoon|evening),|font-family:\\s*[^;]*(?:fraunces|canela|tiempos|didot|freight|reckless|newsreader)|oldstyle-nums|font-variant-numeric:\\s*oldstyle", desc: "The editorial dashboard costume: a giant serif greeting, serif numerals, cream paper, tracked-caps kickers — a magazine pasted onto a console.", fix: "Type follows the job: sans + tabular numerals for scanned surfaces; serif only where the surface is genuinely editorial.", rewrite: "" },
 
   // ------------------------------------------------------------------
   // design-copy
@@ -360,6 +503,11 @@ const SLOP_PATTERNS = [
   { id: "d-effortless", category: "design-copy", severity: 2, kind: "word", match: "effortless", desc: "Promises frictionless experience without showing how.", fix: "Describe the flow.", rewrite: "" },
   { id: "d-unlock-the-power", category: "design-copy", severity: 2, kind: "phrase", match: "unlock the power", desc: "Key-turning copy for capability claims.", fix: "State what becomes possible.", rewrite: "" },
   { id: "d-emoji-everywhere", category: "design-copy", severity: 2, kind: "regex", flags: "gu", match: "(<h[1-6][^>]*>[^<]{0,40}[\\u{1F300}-\\u{1FAFF}\\u2600-\\u27BF]|<button[^>]*>[^<]{0,40}[\\u{1F300}-\\u{1FAFF}\\u2600-\\u27BF])", desc: "An emoji on every heading and button, borrowed warmth.", fix: "Cut decorative emoji; keep one only where it carries real status.", rewrite: "" },
+  { id: "d-highlighted-keywords", category: "design-copy", severity: 2, kind: "regex", match: "<mark[' >]|text-(?:primary|indigo|purple|violet|emerald|blue)-[0-9]+[^\"']{0,40}font-(?:semibold|bold)\\b|font-(?:semibold|bold)\\b[^\"']{0,40}text-(?:primary|indigo|purple|violet|emerald|blue)-[0-9]+", desc: "Highlighted keywords: colored or bolded words scattered mid-paragraph like a highlighter ran over it.", fix: "Let sentence structure carry emphasis; at most one accent per paragraph.", rewrite: "" },
+  { id: "d-theater", category: "design-copy", severity: 2, kind: "regex", match: "\\b(?:growth|security|process|privacy|productivity|compliance|feature|innovation|performance) theater\\b", desc: "'X theater' — dismissing anything as theater is a recurring generated-copy tic.", fix: "Say plainly what the thing does or doesn't do.", rewrite: "" },
+  { id: "d-middle-dots", category: "design-copy", severity: 1, kind: "regex", match: "[\\s·•][·•][\\s·•]?[^<>\"']{0,30}[\\s·•][·•]", desc: "Meta strings joined with middle dots: 'A · B · C' — the punctuation of generated pages.", fix: "Line breaks, columns, or hairlines; one dot in a byline at most.", rewrite: "" },
+  { id: "d-glued-arrow", category: "design-copy", severity: 1, kind: "regex", match: ">[^<>\"']{2,40}(?:\\u2192|->|\\u203a|\\u00bb|\\u27f6)\\s*<", desc: "An arrow glued to link or button text ('Learn more →') — go-to punctuation for generated CTAs.", fix: "A verb as the label; the link already says it goes somewhere.", rewrite: "" },
+  { id: "d-built-for-cta", category: "design-copy", severity: 1, kind: "regex", match: "built for the modern|in today'?s (?:digital age|landscape|environment)|the future of [a-z]+ is", desc: "The hero boilerplate: 'Built for the modern team', 'In today's landscape', 'The future of X is…'.", fix: "Say what the product does, in its own nouns.", rewrite: "" },
 
   // ------------------------------------------------------------------
   // design-component
@@ -375,12 +523,18 @@ const SLOP_PATTERNS = [
   { id: "d-bordered-ring", category: "design-component", severity: 1, kind: "regex", match: "border-2\\s+border-(?:indigo|purple|violet|blue|pink|green)-[0-9]+", desc: "A thick accent ring around a rounded card to make one tier 'pop'.", fix: "Carry the emphasis another way; let borders be hairlines.", rewrite: "" },
   { id: "d-avatar-grid", category: "design-component", severity: 2, kind: "regex", match: "(avatar|faces|team-grid|testimonial-grid)[^\"']{0,40}(grid|row)", desc: "The generic avatar grid standing in for social proof.", fix: "Real named people with real roles, or none.", rewrite: "" },
   { id: "d-powered-by-ai", category: "design-component", severity: 2, kind: "regex", match: "powered by (ai|gpt|anthropic|claude|openai|llm)\\b", desc: "The 'powered by AI' badge — a tech-laundry label with no user benefit attached.", fix: "Say what the feature does for the user, not which model powers it.", rewrite: "" },
+  { id: "d-ghost-card", category: "design-component", severity: 1, kind: "regex", match: "\\bborder\\b[^\"']{0,40}shadow-(?:xl|2xl)\\b|shadow-(?:xl|2xl)\\b[^\"']{0,40}\\bborder\\b", desc: "The ghost card: a hairline border AND a wide diffuse shadow on the same card — two separators doing one job.", fix: "Commit to an edge or an elevation; usually the hairline wins.", rewrite: "" },
+  { id: "d-drawn-icon", category: "design-component", severity: 2, kind: "regex", match: "(?:mascot|blob)[\\w-]*\\.svg|<svg[^>]{0,120}(?:circle|ellipse|path)[^>]{0,200}(?:circle|ellipse)[^>]*>", desc: "AI-drawn icon art: a blob-with-dot-eyes or a creature assembled from primitive shapes, shipped as the mark.", fix: "Get real, high-quality, crisp, on-brand artwork.", rewrite: "" },
+  { id: "d-giant-icon", category: "design-component", severity: 1, kind: "regex", match: "\\b[wh]-(?:20|24|28|32)\\b[^\"']{0,40}<svg|<svg[^>]*(?:width|height)=\"(?:9[6-9]|[1-9][0-9]{2})\"", desc: "A giant decorative line icon parked in a card as filler.", fix: "A clear label + one sentence beats a row of glyphs.", rewrite: "" },
+  { id: "d-tasteful-terminal", category: "design-component", severity: 2, kind: "regex", match: "font-mono\\b|font-family:\\s*[^;]*(?:jetbrains|fira code|ibm plex mono|geist mono)|[\\u2554\\u2557\\u255A\\u255D\\u2551\\u2550\\u2593\\u2591\\u2592]|\\$ [a-z]", desc: "The tasteful terminal: mono everywhere, near-black, one warm accent, ASCII art — 'an AI that read one Vercel blog post'.", fix: "Keep monospace for code; use terminal metaphors only where they serve the product.", rewrite: "" },
 
   // ------------------------------------------------------------------
   // design-motion
   // ------------------------------------------------------------------
   { id: "d-springy-hover", category: "design-motion", severity: 2, kind: "regex", match: "hover:(?:scale-1(?:0[5-9]|1[0-9])|\\-?translate-y-[0-9]+)\\b|transition-all\\b|transition:\\s*all\\b", desc: "Cards that grow and bounce on hover; transition-all animating everything.", fix: "Transition only the properties that carry the state change, 120-200ms.", rewrite: "" },
   { id: "d-wobble-spinner", category: "design-motion", severity: 2, kind: "regex", match: "translate\\(-50%, ?-50%\\)[\\s\\S]{0,200}@keyframes", desc: "A spinner whose rotation center is clobbered by a translate — it wobbles.", fix: "Centre the artwork in its own box; keep centering out of the animated transform.", rewrite: "" },
+  { id: "d-marquee", category: "design-motion", severity: 1, kind: "regex", match: "marquee|animate-marquee|@keyframes\\s+marquee|ticker", desc: "A scrolling marquee/ticker strip — the generated page's way to look busy.", fix: "Static content or a real data feed; let the reader scroll at their own pace.", rewrite: "" },
+  { id: "d-hidden-reveal", category: "design-motion", severity: 1, kind: "regex", match: "\\.(?:reveal|animate|fade|appear|in-view|observe)[^{]{0,80}opacity:\\s*0[;}]", desc: "Content hidden at rest by a reveal class depending on JavaScript — the page ships blank when a script fails.", fix: "Visible by default; scope the hidden state under a .js class the script adds.", rewrite: "" },
 
   // ------------------------------------------------------------------
   // design-layout
@@ -391,6 +545,10 @@ const SLOP_PATTERNS = [
   { id: "d-caps-card-grid", category: "design-layout", severity: 2, kind: "regex", match: "text-transform:\\s*uppercase[^;}]{0,80}letter-spacing|uppercase[\\s\\S]{0,60}tracking-(?:wide|wider)|grid-cols-3[^>]{0,200}>", desc: "ALL-CAPS micro-labels producing interchangeable cards.", fix: "Show the most important thing fully; hierarchy over grid uniformity.", rewrite: "" },
   { id: "d-one-gap", category: "design-layout", severity: 1, kind: "regex", match: "(?:space-y-4|gap-4)(?:[^>]{0,60}?){0,3}(?:space-y-4|gap-4)", desc: "One spacing value stamped everywhere — nothing belongs to anything.", fix: "Space by relationship: tight inside groups, generous between.", rewrite: "" },
   { id: "d-bento", category: "design-layout", severity: 1, kind: "regex", match: "\\bbento\\b", desc: "The bento-grid as the default section shape.", fix: "Choose a section shape from the job, not the template.", rewrite: "" },
+  { id: "d-codex-grid", category: "design-layout", severity: 1, kind: "regex", match: "bg-\\[linear-gradient\\([^\\]]*1px[^\\]]*\\]|background-image:\\s*linear-gradient\\([^;]{0,80}(?:1px|0\\.5px)", desc: "The hairline grid background: fine 1px lines making a blueprint grid behind content.", fix: "Let the grid be the content; a decorative grid with nothing under it is a costume.", rewrite: "" },
+  { id: "d-hard-shadow", category: "design-layout", severity: 1, kind: "regex", match: "box-shadow:\\s*(?:-?[0-9]+(?:px|rem)\\s+){2}0\\b|shadow-\\[[^\\]]*[0-9]+px_[0-9]+px_0\\]", desc: "The hard offset shadow: a zero-blur block shadow (4px 4px 0) — the neobrutalist costume.", fix: "A real elevation scale: tight blur, small offset, low opacity — or no shadow at all.", rewrite: "" },
+  { id: "d-border-dies-corner", category: "design-layout", severity: 1, kind: "regex", match: "rounded-(?:lg|xl|2xl|3xl)[^\"']{0,60}overflow-(?:hidden|clip)|overflow-(?:hidden|clip)[^\"']{0,60}rounded-(?:lg|xl|2xl|3xl)", desc: "A radius and a border on different boxes: a clipping wrapper whose child carries a border — the square stroke ring gets erased at every corner.", fix: "Put border and border-radius on the same element so the stroke wraps the arc.", rewrite: "" },
+  { id: "d-grid-uniform-cards", category: "design-layout", severity: 1, kind: "regex", match: "grid-cols-(?:2|3|4)\\b[^\"']{0,80}items-stretch|grid-cols-(?:2|3|4)\\b[\\s\\S]{0,200}rounded-(?:lg|xl|2xl)", desc: "Equal-weight card grids with no hierarchy — every item boxed the same, nothing leading.", fix: "Decide the single most important thing and show it fully.", rewrite: "" },
 ];
 
 // ---------------------------------------------------------------------
@@ -415,7 +573,7 @@ function patternToRegExp(pattern) {
 }
 
 return {
-    version: "1.0.0",
+    version: "1.1.0",
     categories: PATTERN_CATEGORIES,
     patterns: SLOP_PATTERNS,
     categoryById: CATEGORY_BY_ID,

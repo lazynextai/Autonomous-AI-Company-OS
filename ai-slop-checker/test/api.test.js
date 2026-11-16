@@ -8,6 +8,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const { server, ruleManifest, serviceDescriptor } = require("../api/server.js");
+const corpus = require("../data/slop-patterns.js");
 
 let port;
 let base;
@@ -50,8 +51,9 @@ test("GET /health returns ok", async () => {
 test("GET /rules returns the corpus manifest", async () => {
   const { status, body } = await get("/rules");
   assert.equal(status, 200);
-  assert.equal(body.version, "1.0.0");
-  assert.equal(body.count, 170);
+  assert.equal(body.version, corpus.version);
+  assert.equal(body.count, corpus.patterns.length);
+  assert.equal(body.categories.length, corpus.categories.length);
   assert.ok(Array.isArray(body.categories));
   assert.ok(Array.isArray(body.rules));
   const sample = body.rules.find((r) => r.id === "w-delve");
@@ -126,9 +128,44 @@ test("unknown route returns 404", async () => {
   assert.equal(status, 404);
 });
 
+test("POST /scan-project scans a directory tree", async () => {
+  const fs = require("node:fs");
+  const os = require("node:os");
+  const path = require("node:path");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "slop-api-proj-"));
+  fs.writeFileSync(path.join(dir, "README.md"), "In today's fast-paced world, we must leverage this robust solution.");
+  fs.mkdirSync(path.join(dir, "src"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "src", "app.js"), "var x = 1;");
+  try {
+    const { status, body } = await post("/scan-project", { dir });
+    assert.equal(status, 200);
+    assert.equal(body.engine, "lazynext-ai-slop-checker");
+    assert.ok(Array.isArray(body.files));
+    assert.ok(body.summary.filesScanned >= 1);
+    assert.ok(Array.isArray(body.topFiles));
+    assert.ok(body.summary.score > 0, "README with slop must score above 0");
+    const readme = body.topFiles.find((f) => f.file === "README.md");
+    assert.ok(readme, "README.md should be among the top files");
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("POST /scan-project with a bad path returns 400", async () => {
+  const { status, body } = await post("/scan-project", { dir: "/definitely/not/a/real/dir" });
+  assert.equal(status, 400);
+  assert.ok(body.error && body.error.includes("could not scan project"));
+});
+
+test("POST /scan-project without a dir returns 400", async () => {
+  const { status } = await post("/scan-project", {});
+  assert.equal(status, 400);
+});
+
 test("ruleManifest and serviceDescriptor are self-consistent", () => {
   const manifest = ruleManifest();
   const descriptor = serviceDescriptor();
   assert.equal(manifest.version, descriptor.version);
-  assert.equal(manifest.count, 170);
+  assert.equal(manifest.count, corpus.patterns.length);
+  assert.equal(manifest.categories.length, corpus.categories.length);
 });

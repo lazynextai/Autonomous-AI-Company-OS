@@ -110,8 +110,8 @@ test("corpus: every pattern has required fields and unique ids", () => {
     assert.ok(typeof p.desc === "string" && p.desc.length > 10, `missing desc on ${p.id}`);
     assert.ok(typeof p.fix === "string" && p.fix.length > 5, `missing fix on ${p.id}`);
   }
-  assert.ok(corpus.patterns.length >= 100, `expected a large corpus, got ${corpus.patterns.length}`);
-  assert.equal(corpus.categories.length, 22, "expected 22 categories");
+  assert.ok(corpus.patterns.length >= 200, `expected a large corpus, got ${corpus.patterns.length}`);
+  assert.ok(corpus.categories.length >= 27, `expected at least 27 categories, got ${corpus.categories.length}`);
 });
 
 test("corpus: all pattern regexes compile", () => {
@@ -242,6 +242,60 @@ test("scanText: colon reveal fires", () => {
 test("scanText: faux-insight fires", () => {
   const report = scanText("What nobody tells you is that distribution is the moat.");
   assert.ok(report.matches.some((m) => m.category === "faux-insight"));
+});
+
+test("scanText: superficial-analysis fires on trailing -ing clauses", () => {
+  const report = scanText("The launch adds file search, highlighting the team's commitment to better workflows.");
+  assert.ok(report.matches.some((m) => m.category === "superficial-analysis"));
+  assert.ok(report.matches.some((m) => m.id === "sa-highlighting"));
+  const reflecting = scanText("We hired two engineers, reflecting our focus on reliability.");
+  assert.ok(reflecting.matches.some((m) => m.category === "superficial-analysis"));
+});
+
+test("scanText: meta-commentary fires on metadiscourse", () => {
+  const report = scanText("The key point is that this distinction matters. As you can see. Let that sink in.");
+  assert.ok(report.matches.some((m) => m.category === "meta-commentary"));
+  assert.ok(report.matches.some((m) => m.id === "mc-key-point"));
+  assert.ok(report.matches.some((m) => m.id === "mc-distinction-matters"));
+  assert.ok(report.matches.some((m) => m.id === "mc-as-you-can-see"));
+  assert.ok(report.matches.some((m) => m.id === "ec-let-that-sink"));
+});
+
+test("scanText: vague declaratives fire on the specific phrases", () => {
+  const report = scanText("The stakes are high. The implications are significant. The reasons are structural.");
+  assert.ok(report.matches.some((m) => m.id === "vd-stakes-high"));
+  assert.ok(report.matches.some((m) => m.id === "vd-implications-are"));
+  assert.ok(report.matches.some((m) => m.id === "vd-reasons-structural"));
+});
+
+test("scanText: false agency fires on inanimate actors", () => {
+  const report = scanText("The data tells us the decision emerges. The market rewards speed.");
+  assert.ok(report.matches.some((m) => m.id === "fa-data-tells"));
+  assert.ok(report.matches.some((m) => m.id === "fa-decision-emerges"));
+  assert.ok(report.matches.some((m) => m.id === "fa-market-rewards"));
+});
+
+test("scanText: passive voice fires on named constructions", () => {
+  const report = scanText("It is believed that mistakes were made and the decision was reached.");
+  assert.ok(report.matches.some((m) => m.id === "pv-it-is-believed"));
+  assert.ok(report.matches.some((m) => m.id === "pv-mistakes-were-made"));
+  assert.ok(report.matches.some((m) => m.id === "pv-decision-was-reached"));
+});
+
+test("scanText: stop-slop structure patterns fire", () => {
+  // False transformation arc
+  assert.ok(scanText("It stops being a tool and starts being a teammate.").matches.some((m) => m.id === "bc-stops-starts"));
+  // Not-because reversal
+  assert.ok(scanText("Not because the model is bad. Because the eval is.").matches.some((m) => m.id === "bc-not-because"));
+  // Permission-granting closer
+  assert.ok(scanText("We got lost twice. And that's okay.").matches.some((m) => m.id === "r-and-thats-okay"));
+  // This unlocks something
+  assert.ok(scanText("This unlocks something. Magic.").matches.some((m) => m.id === "df-unlocks-something"));
+  // Emphasis crutch
+  assert.ok(scanText("Make no mistake: nothing ships this week.").matches.some((m) => m.id === "ec-make-no-mistake"));
+  // Boolean: clean prose stays clean (no false fire)
+  const clean = scanText("The bakery opens at six. Maya sets the loaves on the counter.");
+  assert.equal(clean.matches.length, 0);
 });
 
 // ---------------------------------------------------------------------------

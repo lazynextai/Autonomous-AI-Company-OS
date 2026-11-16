@@ -16,18 +16,27 @@ open-source anti-slop projects into one original codebase.
 
 ## What it does
 
-- **Scans text** for 16 categories of writing tells: banned AI vocabulary
+- **Scans text** for 22 categories of writing tells: banned AI vocabulary
   (`delve`, `tapestry`, `game-changer`, …), empty filler phrases
   ("it's worth noting", "in today's fast-paced world", …), throat-clearing,
   faux-insight setups, binary contrasts ("It's not X. It's Y."), colon
   reveals, importance puffery, weasel attribution, empty adverbs, rhetorical
-  setups, negative listings, dramatic fragments, summary-recap endings, and
-  em-dash clusters.
-- **Scans HTML** for 6 categories of visual/design tells: indigo-violet
-  gradients, gradient headline text, kickers over every heading, flat type
-  hierarchies, glassmorphism, glowing status dots, border-left callouts,
-  badge/pill spam, invented stat rows, 01/02/03 section markers, springy
-  hovers, "Powered by AI" badges, and more — as heuristics over markup and CSS.
+  setups, negative listings, dramatic fragments, summary-recap endings,
+  em-dash clusters, superficial-analysis -ing clauses, meta-commentary,
+  vague declaratives, false agency, and passive voice.
+- **Scans HTML** for 12 categories of visual/design tells: indigo-violet
+  gradients, gradient headline text, warm "cozy" palettes, the default
+  semantic rainbow, one-hue status boxes, kickers over every heading, flat
+  type hierarchies, display-size headlines, glassmorphism, glowing status
+  dots, border-left callouts, badge/pill spam, invented stat rows, 01/02/03
+  section markers, springy hovers, ghost cards, "Powered by AI" badges,
+  tasteful-terminal and editorial-dashboard costumes, marquees, and more —
+  as heuristics over markup and CSS.
+- **Scans whole projects** (`--dir`): walks a directory tree, infers each
+  file's lens (prose → text tells; markup → HTML; styles/code → design
+  tells), and rolls per-file reports into one pooled summary with top
+  offending files and a category breakdown. This is the scan→triage→
+  report→fix workflow for an entire codebase.
 - **Scores 0–100** deterministically (same input, same score — no LLM, no
   network, no randomness), with per-category breakdowns, per-match
   before/after fix suggestions, and a `clean` verdict for low scores.
@@ -45,7 +54,7 @@ dependencies).
 npm install        # no-op today: declares no dependencies (package-lock generation only)
 
 # Tests
-npm test           # = node --test   (47 tests)
+npm test           # = node --test   (71 tests)
 
 # CLI
 node api/cli.js "We must leverage this robust cutting-edge solution."
@@ -54,6 +63,9 @@ node api/cli.js --file demo/clean.txt
 node api/cli.js --url https://example.com
 node api/cli.js --json "machine readable report"
 node api/cli.js --rules
+node api/cli.js --dir path/to/project        # whole-project scan
+node api/cli.js --dir path/to/project --top 20
+node api/cli.js --dir path/to/project --json
 
 # API server (also serves the web checker at http://localhost:8787)
 node api/server.js
@@ -62,6 +74,14 @@ PORT=3000 node api/server.js
 # Web checker (in-browser engine, no server needed): open web/index.html,
 # or visit http://localhost:8787 with the API running.
 ```
+
+Project scans infer each file's lens — `.md`/`.txt` are prose-scanned,
+`.html`/`.jsx`/`.tsx`/`.vue`/`.svelte`/`.astro` are HTML-scanned, and
+`.css`/`.scss`/`.js`/`.ts`/`.json`/`.py` and friends get a design-only pass
+over the raw source (class strings and style attrs), so a `flex justify-center
+bg-gradient-to-r from-indigo-500 to-purple-500` in a `.tsx` file is caught
+without drowning in code identifiers. `node_modules`, `.git`, `dist`, `build`,
+lockfiles, and binaries are skipped.
 
 ## The report shape
 
@@ -115,8 +135,9 @@ const { text, changes } = rewriteText("We should utilize this tool and leverage 
 |---|---|---|---|
 | `/` | GET | — | JSON service descriptor (or the web checker when `web/` exists) |
 | `/health` | GET | — | liveness probe |
-| `/rules` | GET | — | full pattern corpus manifest (170 rules, list-rules style) |
+| `/rules` | GET | — | full pattern corpus manifest (279 rules, list-rules style) |
 | `/scan` | POST | `{text}` · `{html}` · `{url}` | scan report; `{rewrite:true}` for text adds safe rewrites |
+| `/scan-project` | POST | `{dir}` · `{topFiles?}` | scan a directory tree; pooled report (local filesystem only) |
 
 `{url}` scans fetch the target with a 10-second timeout (AbortSignal) and a
 branded User-Agent; unreachable/unsupported targets return a clear `502`.
@@ -143,9 +164,10 @@ field guide for visual AI tells.
 ```
 ai-slop-checker/
 ├── data/
-│   └── slop-patterns.js      # 170-rule corpus, 22 categories (UMD: Node + browser)
+│   └── slop-patterns.js      # 279-rule corpus, 27 categories (UMD: Node + browser)
 ├── src/
-│   ├── scanner.js            # scanText / scanHtml / extractText — deterministic engine (UMD)
+│   ├── scanner.js            # scanText / scanHtml / scanDesign / extractText (UMD)
+│   ├── project-scanner.js    # scanProject — whole-directory scan (--dir)
 │   └── rewriter.js           # conservative before/after rewrites (UMD)
 ├── api/
 │   ├── server.js             # plain-Node HTTP API + static web checker host
@@ -163,10 +185,12 @@ ai-slop-checker/
 ├── test/
 │   ├── scanner.test.js       # text/HTML scanning, clean-prose control, scoring
 │   ├── rewriter.test.js      # rewrite correctness, determinism, safety
+│   ├── project-scanner.test.js # directory scan, lenses, aggregation, CLI --dir
 │   └── api.test.js           # HTTP contract tests
 ├── demo/
 │   ├── slop.txt              # a deliberately sloppy sample
 │   ├── clean.txt             # a clean control sample
+│   ├── fixture-project/      # a sloppy tree for project-scan demos + tests
 │   └── web-checker-scan.png  # verified screenshot of the web checker running
 ├── assets/
 │   ├── lazynext-logo.jpg     # brand anchor (copied from the Lazynext brand kit)
@@ -181,10 +205,17 @@ ai-slop-checker/
 ## Architecture
 
 - **Engine** (`src/scanner.js`) compiles corpus patterns once (cached), scans
-  text for non-design patterns and raw HTML for design patterns, dedupes
-  naturally (html text-tells are detected on extracted visible text only),
-  and builds a deterministic report. Em-dash clusters aggregate to one match;
-  the pattern-level scoring cap prevents single-pattern saturation.
+  text for non-design patterns, raw HTML for design patterns, and raw source
+  (`.css`/`.js`/`.ts` class strings) via `scanDesign` for the project
+  scanner's styles/code lens. Dedupes naturally (html text-tells are detected
+  on extracted visible text only), and builds a deterministic report. Em-dash
+  clusters aggregate to one match; the pattern-level scoring cap prevents
+  single-pattern saturation.
+- **Project scanner** (`src/project-scanner.js`) walks a directory tree,
+  classes each file by extension (prose / markup / styles / code), skips
+  `node_modules`, `.git`, `dist`, lockfiles, and binaries, and pools every
+  file's point-capped matches into one project-level score and category
+  breakdown. Zero dependencies, never edits files.
 - **Corpus** (`data/slop-patterns.js`) is plain data — every rule has an id,
   category, severity, match, a human description and a fix. `GET /rules`
   serializes it directly, so the API can never drift from the engine.
@@ -202,7 +233,9 @@ ai-slop-checker/
 - **Weighted severity profiles** — per-domain presets (marketing copy,
   technical docs, UI copy) that adjust severities without changing the corpus.
 - **Rendered-page checks** — fetch + render (Playwright/Browser Rendering) for
-  computed-style tells (contrast, spacing) that text heuristics can't reach.
+  computed-style tells (contrast, spacing), the hallmark rendered-tier gates
+  (fold, screen budget, section rhythm), and impeccable's kicker font-size
+  ceilings — things markup heuristics can't reach.
 - **CI gate** — a `slop-check` GitHub Action exit-code gate for prose/docs PRs.
 - **i18n corpus** — non-English tells (the Russian-copy example in kill-ai-slop
   shows the shape; English patterns don't fire on other languages).

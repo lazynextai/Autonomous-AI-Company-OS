@@ -22,6 +22,7 @@ const path = require("node:path");
 const { URL } = require("node:url");
 
 const { scanText, scanHtml, extractText } = require("../src/scanner.js");
+const { scanProject } = require("../src/project-scanner.js");
 const { rewriteText } = require("../src/rewriter.js");
 const corpus = require("../data/slop-patterns.js");
 
@@ -43,7 +44,7 @@ function json(res, code, body) {
 }
 
 function notFound(res) {
-  json(res, 404, { error: "not found", endpoints: ["/", "/health", "/rules", "/scan"] });
+  json(res, 404, { error: "not found", endpoints: ["/", "/health", "/rules", "/scan", "/scan-project"] });
 }
 
 function readBody(req) {
@@ -145,6 +146,15 @@ function serviceDescriptor() {
           rewrite: "optional boolean: include auto-rewrite suggestions",
         },
       },
+      projectScan: {
+        method: "POST",
+        path: "/scan-project",
+        body: {
+          dir: "path to a directory tree (prose/markup/styles/code) to scan",
+          topFiles: "optional integer: how many top files to report (default 10)",
+        },
+        note: "local filesystem access; not available on the Cloudflare Workers entry",
+      },
     },
     scoring: {
       range: "0 (clean) to 100 (maximal slop)",
@@ -218,6 +228,33 @@ async function handleScan(req, res) {
   }
 }
 
+async function handleScanProject(req, res) {
+  let raw;
+  try {
+    raw = await readBody(req);
+  } catch (err) {
+    return json(res, 413, { error: err.message });
+  }
+  let body;
+  try {
+    body = JSON.parse(raw || "{}");
+  } catch {
+    return json(res, 400, { error: "invalid JSON body" });
+  }
+  const { dir, topFiles } = body;
+  if (typeof dir !== "string" || dir.length === 0) {
+    return json(res, 400, { error: "provide a directory path in 'dir'" });
+  }
+  try {
+    const project = scanProject(dir, {
+      topFiles: Number.isInteger(topFiles) ? Math.min(Math.max(topFiles, 1), 25) : 10,
+    });
+    return json(res, 200, project);
+  } catch (err) {
+    return json(res, 400, { error: `could not scan project: ${err.message}` });
+  }
+}
+
 function serveFile(res, absFile) {
   fs.readFile(absFile, (err, data) => {
     if (err) return notFound(res);
@@ -265,6 +302,9 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && pathname === "/scan") {
       return handleScan(req, res);
     }
+    if (req.method === "POST" && pathname === "/scan-project") {
+      return handleScanProject(req, res);
+    }
     if (req.method === "GET") {
       const abs = resolveStatic(pathname);
       if (abs) return serveFile(res, abs);
@@ -280,11 +320,12 @@ const server = http.createServer(async (req, res) => {
 if (require.main === module) {
   server.listen(PORT, () => {
     console.log(`Lazynext AI Slop Checker API listening on http://localhost:${PORT}`);
-    console.log(`  GET  /        service descriptor (or web checker if web/ exists)`);
-    console.log(`  GET  /health  liveness`);
-    console.log(`  GET  /rules   pattern corpus manifest`);
-    console.log(`  POST /scan    { text | html | url }`);
+    console.log(`  GET  /              service descriptor (or web checker if web/ exists)`);
+    console.log(`  GET  /health        liveness`);
+    console.log(`  GET  /rules         pattern corpus manifest`);
+    console.log(`  POST /scan          { text | html | url }`);
+    console.log(`  POST /scan-project  { dir, topFiles } (local filesystem)`);
   });
 }
 
-module.exports = { server, handleScan, ruleManifest, serviceDescriptor, fetchRemote, extractText };
+module.exports = { server, handleScan, handleScanProject, ruleManifest, serviceDescriptor, fetchRemote, extractText };

@@ -61,6 +61,7 @@ function serviceDescriptor() {
       health: { method: "GET", path: "/health" },
       rules: { method: "GET", path: "/rules" },
       scan: { method: "POST", path: "/scan", body: { text: "string", html: "string", url: "http(s) URL", rewrite: "boolean (text only)" } },
+      projectScan: { method: "POST", path: "/scan-project", note: "local filesystem only — not available on Workers; use the local Node server" },
     },
   };
 }
@@ -137,6 +138,9 @@ module.exports = {
     if (req.method === "GET" && pathname === "/health") return json({ ok: true, engine: "lazynext-ai-slop-checker", version });
     if (req.method === "GET" && pathname === "/rules") return json(ruleManifest());
     if (req.method === "POST" && pathname === "/scan") return handleScan(req);
+    if (req.method === "POST" && pathname === "/scan-project") {
+      return json({ error: "project scan needs local filesystem access — run the local Node server (node api/server.js) instead" }, 400);
+    }
     return json({ error: "not found", endpoints: ["/", "/health", "/rules", "/scan"] }, 404);
   },
 };
