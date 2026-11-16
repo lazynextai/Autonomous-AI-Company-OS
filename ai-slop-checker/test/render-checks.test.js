@@ -450,6 +450,51 @@ test("scanRender: validates its input", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Hostile-snapshot robustness (fuzz regression guards)
+// ---------------------------------------------------------------------------
+
+test("scanRender: hostile style values are sanitized, never throw", () => {
+  // String px values, object backgroundImage, string rects, non-finite
+  // numbers — the checks must be robust to ANY serializable input.
+  const hostile = {
+    viewport: { width: "1280", height: [] },
+    documentStyle: { backgroundColor: 42 },
+    elements: [
+      { tag: "p", text: "Learn more\u2192", style: { fontSizePx: "16", fontWeight: NaN, rect: { x: "0", y: {}, w: 120, h: 20, viewportY: 0 } } },
+      { tag: "h2", text: "Welcome", style: { backgroundImage: { url: "x" }, backgroundClip: null, rect: null } },
+      null,
+      "not-an-element",
+    ],
+  };
+  assert.doesNotThrow(() => scanRender(hostile));
+  const r = scanRender(hostile);
+  assert.equal(typeof r.score, "number");
+  assert.ok(r.score >= 0 && r.score <= 100);
+});
+
+test("scanRender: out-of-bounds screen indices are dropped, never crash", () => {
+  // A raw screens array whose every index is invalid (or non-integer) must
+  // be filtered by the sanitizer — regression guard for the case where the
+  // fallback to snapshot.screens reintroduced raw indices and
+  // checkScreenBudget crashed on elements[999999] === undefined.
+  assert.doesNotThrow(() => scanRender({ elements: [], screens: [[999999]] }));
+  assert.doesNotThrow(() => scanRender({ elements: [{ tag: "h1", text: "x", style: {} }], screens: [["1", 999999]] }));
+  assert.doesNotThrow(() => scanRender({ elements: [], screens: [[]] }));
+  const r = scanRender({ elements: [], screens: [[999999]] });
+  assert.equal(r.score, 0);
+});
+
+test("scanRender: valid screens still work after sanitization", () => {
+  const elements = [
+    { tag: "h1", text: "word ".repeat(100), style: { fontSizePx: 32, rect: { x: 0, y: 0, w: 800, h: 40, viewportY: 10 } } },
+    { tag: "p", text: "brief", style: { fontSizePx: 16, rect: { x: 0, y: 60, w: 400, h: 24, viewportY: 60 } } },
+  ];
+  // One screen holding the wordy h1 → screen budget fires (>80 words).
+  const r = scanRender({ elements, screens: [[0, 1]] });
+  assert.ok(r.matches.some((m) => m.id === "r-screen-budget"));
+});
+
+// ---------------------------------------------------------------------------
 // Optional playwright path — opt-in only, skipped when absent
 // ---------------------------------------------------------------------------
 

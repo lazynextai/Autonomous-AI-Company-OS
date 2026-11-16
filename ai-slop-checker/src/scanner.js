@@ -88,9 +88,21 @@ function extractText(html) {
     .replace(/&gt;/gi, ">")
     .replace(/&quot;/gi, '"')
     .replace(/&#39;|&apos;/gi, "'")
-    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
-    .replace(/&#([0-9]+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10)));
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => decodeEntity(h, 16))
+    .replace(/&#([0-9]+);/g, (_, d) => decodeEntity(d, 10));
   return s.replace(/\s+/g, " ").trim();
+}
+
+// Decode a numeric character reference safely: code points above U+10FFFF
+// (or otherwise out of range) are replaced with U+FFFD instead of letting
+// String.fromCodePoint throw a RangeError on hostile/malformed markup
+// (e.g. "&#1114112;" — a crafted numeric entity crashes a naive decoder).
+// Hex references (&#x1F600;) must decode base 16 — a shared base-10 parse
+// would turn "1F600" into U+0001 and silently corrupt every hex entity.
+function decodeEntity(digits, radix) {
+  const cp = Number.parseInt(digits, radix);
+  if (cp >= 0 && cp <= 0x10ffff) return String.fromCodePoint(cp);
+  return "\uFFFD";
 }
 
 function contextAround(text, index, radius = 60) {

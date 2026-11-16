@@ -312,6 +312,30 @@ test("extractText: strips tags and scripts, keeps visible copy", () => {
   assert.ok(!text.includes("<"));
 });
 
+test("extractText: decodes numeric character references with the correct radix", () => {
+  // Decimal references.
+  assert.equal(extractText("<p>&#65;&#66;&#67;</p>"), "ABC");
+  assert.equal(extractText("<p>&#128512;</p>"), "😀"); // U+1F600
+  // Hex references must decode base 16, not base 10 — "1F600" parsed as
+  // decimal would produce U+0001 (regression guard).
+  assert.equal(extractText("<p>&#x41;&#x42;&#x43;</p>"), "ABC");
+  assert.equal(extractText("<p>&#x1F600;</p>"), "😀"); // U+1F600
+  assert.equal(extractText("<p>&#x21;</p>"), "!");
+  // Mixed decimal + hex in one document.
+  assert.equal(extractText("<p>&#x48;&#105;</p>"), "Hi");
+});
+
+test("extractText: out-of-range code points become U+FFFD, never throw", () => {
+  // 1114112 = U+110000, one past the maximum code point — String.fromCodePoint
+  // throws RangeError on it; the decoder must substitute U+FFFD instead.
+  assert.equal(extractText("<p>&#1114112;</p>"), "\uFFFD");
+  assert.equal(extractText("<p>&#99999999;</p>"), "\uFFFD");
+  assert.equal(extractText("<p>&#x110000;</p>"), "\uFFFD");
+  // The largest valid code point still decodes.
+  assert.equal(extractText("<p>&#1114111;</p>"), "\u{10FFFF}");
+  assert.equal(extractText("<p>&#x10FFFF;</p>"), "\u{10FFFF}");
+});
+
 test("countEmoji: counts emoji code points", () => {
   assert.equal(countEmoji("no emoji here"), 0);
   assert.equal(countEmoji("a 🚀 b ✨ c ⚡"), 3);

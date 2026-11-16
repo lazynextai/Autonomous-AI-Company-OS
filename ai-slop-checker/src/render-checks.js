@@ -88,6 +88,104 @@ const RENDER_CATEGORIES = {
   "render-a11y": { name: "Rendered a11y", desc: "Computed contrast floor: WCAG contrast for rendered text over its real background." },
 };
 
+// ---------------------------------------------------------------------------
+// Snapshot sanitization
+// ---------------------------------------------------------------------------
+// The checks read style fields with arithmetic (.toFixed, /, comparisons),
+// so a hostile snapshot (string px values, object backgroundImage, string
+// rects) can crash them. The contract says style values are numbers, but the
+// pure checks must be robust to ANY serializable input: sanitize each
+// element's typed fields deterministically (invalid numeric fields -> null,
+// invalid string fields -> "", non-finite rects -> null) so every check is
+// safe. Conforming snapshots take the zero-copy fast path (original array
+// is returned unchanged), so the normal path is untouched.
+
+function finiteNum(v) {
+  return typeof v === "number" && Number.isFinite(v);
+}
+
+const NUM_STYLE_FIELDS = ["fontSizePx", "lineHeightPx", "topPx", "bottomPx", "letterSpacingEm", "fontWeight", "opacity"];
+const STR_STYLE_FIELDS = ["color", "backgroundColor", "backgroundImage", "backgroundClip", "position", "display", "visibility", "textTransform", "animation"];
+
+function sanitizeElement(el, idx) {
+  if (!el || typeof el !== "object") {
+    return { tag: "", role: "", text: "", classes: [], ariaHidden: false, ariaValuenow: null, style: {}, parents: [], depth: 0 };
+  }
+  let dirty = 0;
+  const out = { ...el };
+  if (typeof out.tag !== "string") { out.tag = ""; dirty++; }
+  if (typeof out.role !== "string") { out.role = ""; dirty++; }
+  if (typeof out.text !== "string") { out.text = ""; dirty++; }
+  if (!Array.isArray(out.classes)) { out.classes = []; dirty++; }
+  if (!Array.isArray(out.parents)) { out.parents = []; dirty++; }
+  if (out.depth !== undefined && !finiteNum(out.depth)) { out.depth = null; dirty++; }
+  if (out.ariaHidden !== undefined && typeof out.ariaHidden !== "boolean") { out.ariaHidden = Boolean(out.ariaHidden); dirty++; }
+  // ariaValuenow passes through any type — the checks only compare != null.
+  const s = el.style && typeof el.style === "object" ? el.style : {};
+  if (s !== el.style) { dirty++; }
+  const ns = { ...s };
+  for (const f of NUM_STYLE_FIELDS) {
+    if (ns[f] !== undefined && !finiteNum(ns[f])) { ns[f] = null; dirty++; }
+  }
+  for (const f of STR_STYLE_FIELDS) {
+    if (ns[f] !== undefined && typeof ns[f] !== "string") { ns[f] = ""; dirty++; }
+  }
+  if (ns.rect !== undefined) {
+    const r = ns.rect;
+    const ok =
+      r && typeof r === "object" &&
+      finiteNum(r.x) && finiteNum(r.y) && finiteNum(r.w) && finiteNum(r.h) && finiteNum(r.viewportY);
+    if (!ok) { ns.rect = null; dirty++; }
+  }
+  if (dirty === 0) return el; // fast path: original element, zero-copy
+  out.style = ns;
+  return out;
+}
+
+/** Sanitize a snapshot for the checks. Returns { elements, viewport, screens, documentStyle }. */
+function sanitizeSnapshot(snapshot) {
+  const src = snapshot || {};
+  const rawElements = Array.isArray(src.elements) ? src.elements : [];
+  let changed = false;
+  const elements = new Array(rawElements.length);
+  for (let i = 0; i < rawElements.length; i++) {
+    const el = sanitizeElement(rawElements[i], i);
+    if (el !== rawElements[i]) changed = true;
+    elements[i] = el;
+  }
+  const vp = src.viewport && typeof src.viewport === "object" ? src.viewport : {};
+  const viewport = {
+    width: finiteNum(vp.width) ? vp.width : DEFAULT_VIEWPORT.width,
+    height: finiteNum(vp.height) ? vp.height : DEFAULT_VIEWPORT.height,
+  };
+  let screens = null;
+  if (Array.isArray(src.screens) && src.screens.length) {
+    const out = [];
+    for (const g of src.screens) {
+      if (!Array.isArray(g)) continue;
+      const filtered = [];
+      for (const idx of g) {
+        if (Number.isInteger(idx) && idx >= 0 && idx < elements.length) filtered.push(idx);
+      }
+      if (filtered.length) out.push(filtered);
+    }
+    screens = out.length ? out : null;
+  }
+  let documentStyle = null;
+  const ds = src.documentStyle && typeof src.documentStyle === "object" ? src.documentStyle : null;
+  if (ds && typeof ds.backgroundColor === "string") {
+    documentStyle = { backgroundColor: ds.backgroundColor };
+  }
+  return changed || (screens !== (Array.isArray(src.screens) && src.screens.length ? src.screens : null))
+    ? { elements, viewport, screens, documentStyle }
+    : {
+        elements,
+        viewport,
+        screens: Array.isArray(src.screens) && src.screens.length ? src.screens : null,
+        documentStyle,
+      };
+}
+
 const RENDER_CHECKS = [
   { id: "r-kicker-size", category: "render-type", severity: 2, name: "Kicker / eyebrow size", desc: "Kickers read as body text (Flat Type) when they sit at 0.8-1.6x the section body size, or shout past 1.6x." },
   { id: "r-gradient-text", category: "render-color", severity: 2, name: "Gradient text", desc: "The classic AI gradient headline: text clipped to a purple-blue gradient, or a text element carrying the default blue/violet stop pairs." },
@@ -769,11 +867,16 @@ function sortMatches(matches) {
 function scanRender(snapshot, opts = {}) {
   if (!snapshot || typeof snapshot !== "object") throw new TypeError("scanRender expects a snapshot object");
   if (!Array.isArray(snapshot.elements)) throw new TypeError("snapshot.elements must be an array");
-  const elements = snapshot.elements.slice(0, MAX_ELEMENTS);
+  const cleaned = sanitizeSnapshot(snapshot);
+  const elements = cleaned.elements.slice(0, MAX_ELEMENTS);
   const runOpts = {
-    viewport: { width: 1280, height: 800, ...(snapshot.viewport || {}) },
-    screens: snapshot.screens,
-    documentStyle: snapshot.documentStyle,
+    viewport: cleaned.viewport,
+    // cleaned.screens is ALREADY null when the raw value was empty/invalid —
+    // never fall back to snapshot.screens here: a raw non-empty screens
+    // array whose every index is out of bounds (e.g. [[999999]]) would be
+    // reintroduced and crash checkScreenBudget (elements[idx] === undefined).
+    screens: cleaned.screens,
+    documentStyle: cleaned.documentStyle,
   };
   const rawMatches = [];
   for (const fn of CHECK_FNS) fn(elements, runOpts, rawMatches);
