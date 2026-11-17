@@ -35,6 +35,7 @@ CHECKS = {
     "penpot": "https://penpot.lazynext.com",
     "a11y-checker-domain": "https://checker.lazynext.com/health",
     "a11y-api-domain": "https://api.lazynext.com/health",
+    "slop-checker": "https://slop-checker.lazynext.com/health",
 }
 # Warm Cloudflare containers (sleepAfter 30m) without treating a cold 503 as a
 # health failure — WordPress HTML GET races a 20s warming page, so a fail
