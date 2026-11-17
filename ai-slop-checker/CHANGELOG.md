@@ -77,6 +77,32 @@ changes live in the "Unreleased" section until tagged.
 - Test count: 319 → **345** (node --test); e2e 22 → **26** checks
   (port 8793).
 
+### Live-service additions (deployed 2026-11-17)
+- **`scripts/live-check.js`** — zero-dep live-service guard (`npm run live`,
+  `npm run live:all`). Validates the DEPLOYED Worker over real HTTP and
+  exits non-zero on any failure: service surface (`GET /health` ok:true,
+  `GET /rules` 279 rules / 27 categories, `GET /openapi.json` openapi 3.1.0,
+  `GET /.well-known/agent.json`, `GET /llms.txt` non-empty, `GET /` 200,
+  `GET /web/index.html` `<!doctype html`, `GET /data/slop-patterns.js` 200,
+  `HEAD /health` HEAD-parity), the scan contract (`POST /scan {text}` → 200,
+  score > 0, `w-leverage` fired), the MCP handshake (`POST /mcp initialize`
+  → 200 jsonrpc 2.0), the live SSRF guard (`POST /scan {url
+  http://169.254.169.254/…}` and `{url http://127.0.0.1:9/}` → ≥400 blocked),
+  the asset gate (`/test/…` and `/docs/…` → 404; allowed
+  `/src/project-scanner-browser.js` → 200), and sibling-host isolation
+  (`--hosts` → 2xx/301/302). Retries transient failures (≤3 attempts,
+  short backoff; a worker-answered code is never re-sent), prints a
+  per-check table + summary, `--quiet` prints only the summary + failures.
+- **`docs/DEPLOYMENT.md`** — "Deploy-time gotchas (learned 2026-11-17)"
+  addendum: workerd error 10021 + ESM wrapper for the CJS core, explicit
+  `[assets] binding = "ASSETS"`, fresh-`Request` fix for the assets-runtime
+  307 on `/web/index.html`, and the workers/domains binding PUT + 401/403
+  fallback.
+- **`test/live-check.test.js`** — unit tests for the pure parts only
+  (spec completeness, `parseArgs`, per-spec verify classification,
+  host-status classification, table/summary formatting); no network.
+- Test count: 358 → **383** (node --test); e2e unchanged 26/26.
+
 ## v1.4.0 — 2026-11-16 (phase 5: hardening & release readiness)
 
 ### Fuzz robustness
