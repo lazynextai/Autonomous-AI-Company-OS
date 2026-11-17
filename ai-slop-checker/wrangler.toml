@@ -27,6 +27,7 @@ workers_dev = true
 # env.ASSETS is the binding name the route map calls.
 [assets]
 directory = "./"
+binding = "ASSETS"
 run_worker_first = true
 
 # Resource hints (no paid features used).

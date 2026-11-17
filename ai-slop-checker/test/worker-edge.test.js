@@ -108,6 +108,17 @@ test("edge: static map answers HEAD (house HEAD-parity)", async () => {
   assert.ok(log.length === 1 && log[0].endsWith("/web/app.js"));
 });
 
+test("edge: read-only API surfaces answer HEAD (house HEAD-parity)", async () => {
+  // /health, /rules, /openapi.json, /llms.txt, agent card, widget (no ASSETS
+  // needed — embedded/constant fallback path) must not 404 on HEAD. The
+  // HEAD status is what matters; workerd/curl -I report it without a body.
+  for (const p of ["/health", "/rules", "/openapi.json", "/llms.txt", "/.well-known/agent.json", "/widget.js"]) {
+    const req = new Request(base + p, { method: "HEAD" });
+    const res = await worker.fetch(req, {}, {});
+    assert.equal(res.status, 200, `HEAD ${p} should be 200`);
+  }
+});
+
 test("edge: / without ASSETS keeps the JSON descriptor (no 404 on the API root)", async () => {
   const res = await call("/");
   assert.equal(res.status, 200);

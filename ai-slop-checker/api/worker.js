@@ -55,6 +55,11 @@ function json(body, status = 200, headers = {}) {
   });
 }
 
+/** Read-only surfaces answer GET and HEAD (house HEAD-parity convention). */
+function readOnly(req) {
+  return req.method === "GET" || req.method === "HEAD";
+}
+
 function ruleManifest() {
   return {
     engine: "lazynext-ai-slop-checker",
@@ -102,20 +107,17 @@ function serviceDescriptor() {
 /**
  * Serve a static file from the [assets] binding. Returns null when the
  * binding is absent (unit tests / local), so callers fall back.
- * 1:1 paths pass the ORIGINAL request through (method/headers/query kept);
- * remapped paths (e.g. /app.js -> /web/app.js) build a same-origin Request
- * with the same method + headers. GET and HEAD are both supported by the
- * assets runtime (HEAD-parity house convention).
+ * Always builds a fresh Request for the asset path (the assets runtime
+ * canonicalizes some paths, e.g. /web/index.html -> 307 /web/, and a
+ * fresh Request lets fetch follow the redirect to the final 200). GET and
+ * HEAD are both supported by the assets runtime (HEAD-parity house
+ * convention).
  */
 function serveAsset(req, env, assetPath) {
   if (!env || !env.ASSETS || typeof env.ASSETS.fetch !== "function") return null;
   try {
-    const reqPath = new URL(req.url).pathname;
-    if (reqPath !== assetPath) {
-      const target = new URL(assetPath, req.url).toString();
-      return env.ASSETS.fetch(new Request(target, { method: req.method, headers: req.headers }));
-    }
-    return env.ASSETS.fetch(req);
+    const target = new URL(assetPath, req.url).toString();
+    return env.ASSETS.fetch(new Request(target, { method: req.method, headers: req.headers }));
   } catch {
     return null;
   }
@@ -478,15 +480,15 @@ module.exports = {
     const url = new URL(req.url);
     const { pathname } = url;
 
-    if (req.method === "GET" && (pathname === "/" || pathname === "/index.html")) {
+    if (readOnly(req) && (pathname === "/" || pathname === "/index.html")) {
       // Deployed: the branded web checker, same-origin with the API (zero
       // CORS). Without the assets binding (unit tests) keep the descriptor.
       const page = serveAsset(req, env, "/web/index.html");
       if (page) return page;
       return json(serviceDescriptor());
     }
-    if (req.method === "GET" && pathname === "/health") return json({ ok: true, engine: "lazynext-ai-slop-checker", version });
-    if (req.method === "GET" && pathname === "/rules") return json(ruleManifest());
+    if (readOnly(req) && pathname === "/health") return json({ ok: true, engine: "lazynext-ai-slop-checker", version });
+    if (readOnly(req) && pathname === "/rules") return json(ruleManifest());
     if (req.method === "POST" && pathname === "/scan") return handleScan(req);
     if (req.method === "POST" && pathname === "/judge") return handleJudge(req);
     if (req.method === "POST" && pathname === "/scan-project") {
@@ -524,15 +526,15 @@ module.exports = {
       }
     }
     const a2aTaskMatch = pathname.match(/^\/a2a\/tasks\/([^/]+)$/);
-    if (req.method === "GET" && a2aTaskMatch) {
+    if (readOnly(req) && a2aTaskMatch) {
       const out = agentSurfaces.a2aTaskGet(a2aTaskMatch[1]);
       return json(out.body, out.status);
     }
-    if (req.method === "GET" && pathname === "/.well-known/agent.json") return json(agentSurfaces.AGENT_CARD);
-    if (req.method === "GET" && pathname === "/widget.js") {
+    if (readOnly(req) && pathname === "/.well-known/agent.json") return json(agentSurfaces.AGENT_CARD);
+    if (readOnly(req) && pathname === "/widget.js") {
       return new Response(agentSurfaces.WIDGET_JS, { headers: { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "public, max-age=3600" } });
     }
-    if (req.method === "GET" && pathname === "/llms.txt") {
+    if (readOnly(req) && pathname === "/llms.txt") {
       // Assets binding first (byte-exact files, no drift), embedded constant
       // fallback for env-less contexts (unit tests). No node:fs — the edge
       // has no filesystem.
@@ -540,7 +542,7 @@ module.exports = {
       if (fromAssets) return fromAssets;
       return new Response(LLMS_TXT, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
     }
-    if (req.method === "GET" && pathname === "/openapi.json") {
+    if (readOnly(req) && pathname === "/openapi.json") {
       const fromAssets = serveAsset(req, env, "/api/openapi.json");
       if (fromAssets) return fromAssets;
       return new Response(OPENAPI_JSON, { headers: { "Content-Type": "application/json; charset=utf-8" } });
