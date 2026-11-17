@@ -344,10 +344,6 @@ async function runFromText(text, engines) {
   return { report: engines.scanText(trimmed), sourceNote: "text" };
 }
 
-function rememberRecentTask(id, report) {
-  rememberTask(id, taskView(id, report));
-}
-
 async function handleA2aMessage(msg, engines) {
   const err = validateRpc(msg);
   if (err) return { status: 400, body: rpcErr(msg && msg.id, -32600, err) };
@@ -365,8 +361,15 @@ async function handleA2aMessage(msg, engines) {
       }
       try {
         const { report } = await runFromText(text, engines);
-        rememberRecentTask(msg.id, report);
-        return { status: 200, body: rpcOk(msg.id, { task: taskView(msg.id, report) }) };
+        // One task view per task: the tasks/send response and the tasks/get
+        // replay must be the SAME object. Minting a fresh
+        // `new Date().toISOString()` per call made the replay differ from the
+        // response by one millisecond whenever the clock ticked between the
+        // two calls (observed as an intermediate full-suite run showing
+        // 382 pass / 1 fail on the deepEqual of the two views).
+        const view = taskView(msg.id, report);
+        rememberTask(msg.id, view);
+        return { status: 200, body: rpcOk(msg.id, { task: view }) };
       } catch (scanErr) {
         return { status: 200, body: rpcErr(msg.id, -32000, scanErr.message) };
       }

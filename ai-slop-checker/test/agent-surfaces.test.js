@@ -270,6 +270,45 @@ test("A2A: message/send with text then tasks/get replays the same task", async (
   assert.deepEqual(get.body.result.task, send.body.result.task, "tasks/get replays the identical task view");
 });
 
+test("A2A: tasks/get replay is deterministic across 50 send/fetch cycles (1 ms timestamp guard)", async () => {
+  // Regression guard for a pre-existing flake: taskView() used to mint a
+  // fresh `new Date().toISOString()` per call, so the view returned by the
+  // tasks/send response and the one replayed by tasks/get carried timestamps
+  // minted at different moments and differed whenever the clock ticked
+  // between them (observed: an intermediate full-suite run with
+  // 382 pass / 1 fail on the deepEqual of the two views). The views are now
+  // the SAME object, so the strict comparison below — timestamp included —
+  // must hold on every iteration. If anyone reintroduces a per-call
+  // timestamp (or any other nondeterministic field), this loop fails the
+  // suite.
+  for (let i = 0; i < 50; i++) {
+    const id = `flake-guard-${i}`;
+    const send = await rpcPost("/a2a", {
+      jsonrpc: "2.0",
+      id,
+      method: "message/send",
+      params: { message: { parts: [{ type: "text", text: "We must leverage this robust tool." }] } },
+    });
+    assert.equal(send.status, 200);
+    assert.equal(send.body.result.task.id, id);
+
+    const get = await rpcPost("/a2a", { jsonrpc: "2.0", id: `get-${id}`, method: "tasks/get", params: { id } });
+    assert.equal(get.status, 200);
+
+    // Strict deep equality INCLUDING the timestamp field — this is exactly
+    // the comparison that previously raced the millisecond.
+    assert.deepEqual(get.body.result.task, send.body.result.task, `iteration ${i}: tasks/get replays the identical task view`);
+
+    // Pin the timestamp contract explicitly as well: a valid ISO 8601 UTC
+    // string with millisecond precision on both the response and the replay.
+    for (const view of [send.body.result.task, get.body.result.task]) {
+      const ts = view.status.timestamp;
+      assert.equal(typeof ts, "string", `iteration ${i}: timestamp is a string`);
+      assert.match(ts, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/, `iteration ${i}: timestamp is ISO 8601 UTC with ms`);
+    }
+  }
+});
+
 test("A2A: tasks/send with an HTML message detects design tells", async () => {
   const send = await rpcPost("/a2a", {
     jsonrpc: "2.0",
