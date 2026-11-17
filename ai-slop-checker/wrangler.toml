@@ -1,22 +1,30 @@
 # Lazynext AI Slop Checker — Cloudflare Workers config
 #
-# Deployment config for the edge entry (api/worker.js). NOT deployed as part
-# of this deliverable — see docs/DEPLOYMENT.md for the exact steps and the
-# CLOUDFLARE_DEPLOY_TOKEN note. account_id is a placeholder: put the real
-# account id here (or use `npx wrangler login` + leave it out) before any
-# deploy.
+# Deployment config for the edge entry (api/worker.js). Deployed as
+# lazynext-ai-slop-checker (see docs/DEPLOYMENT.md +
+# docs/DEPLOYMENT-PLAN-2026-11-17.md). account_id is filled from the repo
+# .env at deploy time (CLOUDFLARE_ACCOUNT_ID).
 
 name = "lazynext-ai-slop-checker"
 main = "api/worker.js"
 compatibility_date = "2024-11-01"
+account_id = "85953070bae00da372951a8833bd3459"
 
-# Placeholder — replace with the real Cloudflare account id, or remove this
-# line and authenticate via `wrangler login`.
-account_id = "replace-with-your-cloudflare-account-id"
-
-# The local Node server (api/server.js) is the primary entry (port 8787);
-# this Workers entry mirrors the same HTTP contract on the edge.
+# The local Node server (api/server.js) is the primary local entry (port
+# 8787); this Workers entry mirrors the same HTTP contract on the edge.
 workers_dev = true
+
+# Static assets binding: the whole product tree is uploaded so the worker
+# can serve the branded web checker (web/index.html and its parent-relative
+# engine refs) same-origin with the API — zero CORS. run_worker_first
+# keeps THIS worker in front of every request; api/worker.js gates which
+# paths pass through its curated GET/HEAD route map (/web/* /data/* /src/*
+# /assets/* /icons/* + the exact web-shell files); everything else 404s,
+# so test/ docs/ bench/ scripts/ are uploaded but never served.
+# env.ASSETS is the binding name the route map calls.
+[assets]
+directory = "./"
+run_worker_first = true
 
 # Resource hints (no paid features used).
 # [observability]
