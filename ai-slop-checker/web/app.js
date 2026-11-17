@@ -6,12 +6,52 @@
  * src/rewriter.js, loaded as browser globals) fully in-browser. When this
  * page is served by the Lazynext API (node api/server.js), URL scans are
  * attempted server-side via POST /scan and fall back to a direct fetch.
+ *
+ * State-model note (UX regression lock, v1.4.1): a scan run is
+ * explicit-state — pressing "Scan for slop" FIRST clears the previous
+ * results area (never show a stale report), and a failed scan renders a
+ * DISTINCT error state in the results area (verdict area shows the error,
+ * plus a retry button), never the previous report. The pure state
+ * transitions live in the DOM-free `SlopAppState` helpers exposed on
+ * window/globalThis so test/app.test.js can exercise them in Node
+ * without a browser or DOM library; the DOM glue below consumes them.
  */
 
 (function () {
   const scanner = window.SlopScanner;
   const rewriter = window.SlopRewriter;
   const projectScanner = window.SlopProjectBrowser;
+
+  // ── Pure, DOM-free state transitions (regression-locked by test/app.test.js) ──
+  // The web checker's scan lifecycle is explicit-state: START clears the
+  // previous results area; FAILURE renders a distinct error state in the
+  // results area (never stale results). These helpers describe exactly that
+  // state machine without touching the DOM, so Node can unit-test the
+  // behaviour with no browser and no DOM library.
+  const SlopAppState = {
+    /** The state after a scan START: results hidden, no error. */
+    started() {
+      return { resultsHidden: true, error: null, staleReport: false };
+    },
+    /** The state after a scan FINISH: results shown with a fresh report. */
+    finished(report) {
+      return { resultsHidden: false, error: null, staleReport: false, report: Boolean(report) };
+    },
+    /** The state after a scan FAILURE: error in the results area, never stale. */
+    failed(message) {
+      return {
+        resultsHidden: false,
+        error: String(message || "scan failed"),
+        staleReport: false,
+        heading: "Scan failed",
+        score: "\u2014",
+        verdict: "error",
+        retry: true,
+      };
+    },
+  };
+  if (typeof window !== "undefined") window.SlopAppState = SlopAppState;
+  if (typeof globalThis !== "undefined" && globalThis !== window) globalThis.SlopAppState = SlopAppState;
 
   const els = {
     tabText: document.getElementById("tab-text"),
@@ -66,6 +106,62 @@ low-hanging fruit. Let's dive in!`;
     els.scanError.hidden = true;
   }
 
+  // ── Results-area lifecycle (UX fix, v1.4.1) ───────────────────────────
+  // START clears the previous results area; FAILURE renders a DISTINCT
+  // error state in the results area (verdict area + summary show the
+  // error, with a retry affordance) — the previous report is never left
+  // on screen as if it were the new result.
+  let retryButton = null;
+
+  function clearResultsArea() {
+    const st = SlopAppState.started();
+    els.results.hidden = st.resultsHidden;
+    els.scoreValue.textContent = "\u2014";
+    els.verdictValue.textContent = "\u2014";
+    els.verdictHeading.textContent = "Result";
+    els.summaryText.textContent = "Run a scan to see the verdict.";
+    els.categoryList.innerHTML = "";
+    els.matchList.innerHTML = "";
+    els.rewriteBefore.textContent = "";
+    els.rewriteAfter.textContent = "";
+    els.rewriteNote.textContent = "";
+    hideRetryButton();
+  }
+
+  function hideRetryButton() {
+    if (retryButton && retryButton.parentNode) retryButton.parentNode.removeChild(retryButton);
+    retryButton = null;
+  }
+
+  function ensureRetryButton() {
+    if (retryButton) return retryButton;
+    retryButton = document.createElement("button");
+    retryButton.type = "button";
+    retryButton.className = "btn-primary";
+    retryButton.textContent = "Try again";
+    retryButton.id = "retry-scan";
+    retryButton.addEventListener("click", run);
+    const anchor = els.verdictHeading && els.verdictHeading.parentElement;
+    (anchor || els.results).appendChild(retryButton);
+    return retryButton;
+  }
+
+  function renderError(message) {
+    // Distinct error state in the results area — never stale results.
+    const st = SlopAppState.failed(message);
+    els.results.hidden = st.resultsHidden;
+    els.scoreValue.textContent = st.score;
+    els.verdictValue.textContent = st.verdict;
+    els.verdictHeading.textContent = st.heading;
+    els.summaryText.textContent = st.error;
+    els.categoryList.innerHTML = "";
+    els.matchList.innerHTML = "";
+    els.rewriteBefore.textContent = "";
+    els.rewriteAfter.textContent = "";
+    els.rewriteNote.textContent = "There was an error, not a report — the previous results were cleared.";
+    ensureRetryButton();
+  }
+
   function setupTabs() {
     const tabs = [els.tabText, els.tabUrl, els.tabFolder];
     for (const tab of tabs) {
@@ -113,6 +209,7 @@ low-hanging fruit. Let's dive in!`;
   }
 
   function renderReport(report) {
+    hideRetryButton();
     const score = report.score;
     const verdict = report.verdict;
 
@@ -318,6 +415,7 @@ low-hanging fruit. Let's dive in!`;
   }
 
   function renderProjectReport(project) {
+    hideRetryButton();
     els.results.hidden = false;
     const s = project.summary;
     els.scoreValue.textContent = String(s.score);
@@ -411,6 +509,7 @@ low-hanging fruit. Let's dive in!`;
         : els.tabUrl.getAttribute("aria-selected") === "true" ? "url"
           : "folder";
     clearError();
+    clearResultsArea(); // UX fix: a scan START clears the previous results area
     els.btnScan.disabled = true;
     els.btnScan.textContent = "Scanning…";
     const finishProject = (project) => {
@@ -426,7 +525,11 @@ low-hanging fruit. Let's dive in!`;
     const fail = (message) => {
       els.btnScan.disabled = false;
       els.btnScan.textContent = "Scan for slop";
+      // Keep the inline error line (the URL tab's CORS-aware tip rides on
+      // this message) AND render the distinct error state in the results
+      // area — never stale results.
       showError(message);
+      renderError(message || "Scan failed.");
     };
 
     (async () => {
