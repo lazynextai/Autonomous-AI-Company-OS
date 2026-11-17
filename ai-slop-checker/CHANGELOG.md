@@ -3,6 +3,80 @@
 All notable changes to the Lazynext AI Slop Checker. SemVer; unreleased
 changes live in the "Unreleased" section until tagged.
 
+## v1.4.1 — 2026-11-17 (phase 6: judgement checklist, quality gate, UX fix)
+
+### Judgement checklist (`--judge` / `POST /judge` / MCP `judge`)
+- **`src/judge.js`** — `judgeReport({text?|html?|project?})`: a
+  deterministic, machine-built report that turns "judgement tells" into a
+  checklist. Three parts + a verdict:
+  1. **The 5-question review** (purpose / audience / decision / variety /
+     defaults) — each question ships `hints` + `verdictHint`, plus
+     machine-flagged `signals` where scan evidence bears on it (copy-heavy
+     categories for purpose; `d-flat-type`/`d-display-headline`/`d-kicker`/
+     `d-caps-card-grid` for decision; `d-one-gap`/`d-section-numbers` for
+     variety; any design tell for defaults). The questions are labelled as
+     human steps — the machine never answers them.
+  2. **The craft-floor gate** (contrast / alignment / text-hierarchy /
+     spacing / no-fake-data / no-decorative-effects) — mapped from
+     machine evidence wherever it exists (`d-flat-type`,
+     `d-display-headline`, `d-kicker`, `d-one-gap`, `d-stat-row`,
+     `d-badge-spam`, `d-avatar-grid`, `d-gradient-text`,
+     `d-crushed-tracking`, `d-glued-arrow`); genuinely non-machineable
+     items (contrast, alignment — need computed styles) are emitted as
+     human checkboxes `machine:"unchecked"` with guidance, **never a fake
+     verdict**.
+  3. **Refusal scaffolds** — the three professional sentences
+     ("shape is wrong", "claim outruns the evidence", "floor passes, bar
+     is the problem") from docs/design-review-guide.md §6.
+  4. **Verdict** — `PASS` (no machine objections + floor met), `REVIEW`
+     (copy/design objections), `REFUSE` (a machine-checked floor item
+     failed) — computed **only** from machine-verifiable parts, with the
+     checklist clearly labelled as human steps. Deterministic: same input
+     → same report (`test/judge.test.js` pins byte-identical determinism).
+- **CLI** `--judge` (composes with `--file` / `--url` / `--dir` /
+  positional text; exit 0 = PASS, 2 = REVIEW, 3 = REFUSE).
+- **API** `POST /judge {text|html|project}` (mirrors scan shapes; `project`
+  is local-filesystem only and returns the documented 400 on the Workers
+  entry).
+- **MCP** — `tools/list` now returns **7 tools** (`judge` added;
+  `{text}`/`{html}`/`{dir}`), agent card gains the `judge` skill and bumps
+  to 1.4.1.
+- **OpenAPI** — `/judge` route + `JudgeReport` schema (info.version 1.4.1).
+- **Docs** — docs/usage.md: `--judge` flag matrix, exit codes incl. 3,
+  judge report shape + verdict rules, MCP tool row.
+
+### `npm run check` quality gate
+- **`scripts/check.js`** — runs `check-corpus.js` (base + ru/hi/es), the
+  full `node --test` suite, and `npm run e2e` (pinned port 8793; refuses
+  8792) sequentially, prints a PASS/FAIL summary table with timings, and
+  exits non-zero on any failure. Wired as the `check` npm script.
+
+### Web-checker stale-results UX fix (real-browser smoke-test finding)
+- **`web/app.js`** — a scan START on any tab now **clears the previous
+  results area**; a failed scan renders a **distinct error state** in the
+  results area (verdict area shows "Scan failed" + the message, plus a
+  "Try again" button) instead of leaving the previous report on screen
+  with only an error line below the buttons. The inline error line stays
+  (the URL tab's CORS-aware tip is preserved).
+- **Regression lock** — the pure, DOM-free `SlopAppState` lifecycle
+  helpers (`started` / `finished` / `failed` — exposed on `window`) are
+  exercised by the new `test/app.test.js` (8 tests, node-only, parse-level:
+  new Function parse, vm load shim, state transitions, structural wiring
+  assertions, CORS-tip preservation).
+
+### Version + docs
+- 1.4.0 → 1.4.1 in `package.json` (+ `./judge` export, `check` script),
+  `data/slop-patterns.js` (corpus version), `api/agent-surfaces.js`
+  (agent card), `api/openapi.json` (info.version), `src/render-checks.js`
+  (fallback literal), `llms.txt`, README (report shape, docker tags,
+  browser notes, roadmap), `docs/usage.md`, `docs/DEPLOYMENT.md` (docker
+  tags).
+- **ATTRIBUTIONS** — phase-6 note (judge checklist is original work;
+  the 5-question review / craft floor / refusal scaffolds are our own
+  docs-derived tables).
+- Test count: 319 → **345** (node --test); e2e 22 → **26** checks
+  (port 8793).
+
 ## v1.4.0 — 2026-11-16 (phase 5: hardening & release readiness)
 
 ### Fuzz robustness

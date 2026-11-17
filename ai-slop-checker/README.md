@@ -63,7 +63,11 @@ dependencies).
 npm install        # no-op today: declares no dependencies (package-lock generation only)
 
 # Tests
-npm test           # = node --test   (319 tests)
+npm test           # = node --test   (345 tests)
+
+# Full quality gate: corpus integrity + unit suite + end-to-end matrix
+npm run check      # sequential: check-corpus.js → node --test → e2e on 8793,
+                   # prints a summary table, exits non-zero on any failure
 
 # End-to-end API contract matrix (spawns api/server.js on port 8793)
 npm run e2e        # asserts every route (GET/POST/MCP/A2A), prints a table, exits non-zero on failure
@@ -85,6 +89,14 @@ node api/cli.js --dir path/to/project --json
 node api/cli.js --profile strict "delve deep into this"     # severity profile
 node api/cli.js --profile lenient --dir path/to/project     # profile + project scan
 
+# Judgement checklist (--judge): 5-question review + craft-floor gate +
+# refusal scaffolds + machine PASS/REVIEW/REFUSE verdict
+node api/cli.js --judge --file demo/slop.txt   # REVIEW → exit 2
+node api/cli.js --judge --file demo/clean.txt  # PASS   → exit 0
+node api/cli.js --judge --url https://example.com
+node api/cli.js --judge --dir path/to/project
+node api/cli.js --judge "We must leverage this."
+
 # Rendered-tier checks (pure functions over computed snapshots)
 node api/cli.js --snapshot snapshot.json                    # check a collected/pasted snapshot
 node api/cli.js --render https://example.com                # collect (needs playwright) + check
@@ -103,6 +115,20 @@ curl -s -X POST localhost:8787/render-scan -H 'content-type: application/json' \
 # snapshot JSON — also entirely in the browser. Installable as a PWA when
 # served over http(s) (manifest + service worker; file:// stays untouched).
 ```
+
+### Browser notes
+
+The web checker keeps an explicit scan lifecycle (shipped in v1.4.1 after
+a real-browser smoke test caught the flaw): pressing **Scan for slop** on
+any tab first **clears the previous results area**, so a new scan never
+shows a stale report. If a scan fails — for example a URL that refuses
+cross-origin reads (CORS) — the results area renders a **distinct error
+state** (the verdict area shows `Scan failed` + the message, plus a
+**Try again** button) instead of leaving the previous report on screen
+with only an error line below the buttons. The inline error line under
+the buttons stays (the URL tab's CORS-aware tip is preserved). The pure
+state transitions behind this (`SlopAppState` on `window`) are unit-tested
+in `test/app.test.js` with no browser and no DOM library.
 
 External rules files accept a path, a `.json` file, a glob, or a
 comma-separated list, and deep-merge into the built-in corpus: custom
@@ -126,7 +152,7 @@ lockfiles, and binaries are skipped.
 ```js
 {
   engine: "lazynext-ai-slop-checker",
-  version: "1.4.0",
+  version: "1.4.1",
   input: { type: "text", length: 412 },
   score: 63,                    // 0 (clean) - 100 (max slop)
   verdict: "moderate",          // clean | light | moderate | heavy
@@ -161,6 +187,7 @@ mapped through an exponential decay to a 0–100 scale.
 const { scanText, scanHtml } = require("@lazynext/ai-slop-checker"); // or ./src/scanner.js
 const { rewriteText } = require("./src/rewriter.js");
 const { scanRender } = require("./src/render-checks.js"); // rendered-tier checks (pure)
+const { judgeReport } = require("./src/judge.js"); // judgement checklist (deterministic)
 
 const report = scanText("In today's fast-paced world, we must leverage our robust solution.");
 const htmlReport = scanHtml("<style>.hero{background:linear-gradient(135deg,#6366f1,#a855f7)}</style><h1>Hello</h1>");
@@ -171,6 +198,12 @@ const snapshot = { viewport: { width: 1280, height: 800 }, documentStyle: { back
 const renderReport = scanRender(snapshot); // r-kicker-size, r-contrast, r-fold-budget, ...
 
 const { text, changes } = rewriteText("We should utilize this tool and leverage the API.");
+
+// Judgement checklist over any supported input (deterministic, no LLM):
+const judge = judgeReport({ text: "We must leverage this robust solution." });
+// judge.summary.verdict ∈ { "PASS", "REVIEW", "REFUSE" } — computed ONLY
+// from machine-verifiable parts; the 5-question review + human-checkbox
+// floor items stay human steps (see docs/usage.md "Judge report shape").
 ```
 
 Custom rules, through an engine built over the merged corpus:
@@ -197,9 +230,10 @@ const hiEsMerged = loadRules("data/rules.hi.js,data/rules.es.js"); // Hindi + Sp
 | `/health` | GET | — | liveness probe |
 | `/rules` | GET | — | full pattern corpus manifest (279 rules, list-rules style) |
 | `/scan` | POST | `{text}` · `{html}` · `{url}` · `{rules_url?}` · `{profile?}` | scan report; `{rewrite:true}` for text adds safe rewrites; `rules_url` (http(s) JSON, 10s timeout) deep-merges external rules; `profile` (`"default"|"strict"|"lenient"`) selects the severity threshold |
+| `/judge` | POST | `{text}` · `{html}` · `{project}` | judgement checklist: 5-question review (with machine signals), craft-floor gate, refusal scaffolds, machine `PASS`\|`REVIEW`\|`REFUSE` verdict (`project` = local directory path; not on Workers) |
 | `/scan-project` | POST | `{dir}` · `{topFiles?}` · `{profile?}` | scan a directory tree; pooled report (local filesystem only) |
 | `/render-scan` | POST | `{snapshot}` · `{url}` · `{profile?}` | rendered-tier r-* checks over a computed snapshot (pure, no browser); `{url}` collects first and needs the optional playwright collector (501 when absent) |
-| `/mcp` | POST | JSON-RPC 2.0 | MCP: `initialize`/`ping`/`tools/list`/`tools/call` — tools `list_rules`, `scan_text`, `scan_html`, `scan_project`, `scan_render`, `rewrite_text`; GET is 405 (no SSE) |
+| `/mcp` | POST | JSON-RPC 2.0 | MCP: `initialize`/`ping`/`tools/list`/`tools/call` — tools `list_rules`, `scan_text`, `scan_html`, `scan_project`, `scan_render`, `rewrite_text`, `judge`; GET is 405 (no SSE) |
 | `/a2a` | POST | JSON-RPC 2.0 | lightweight A2A: `message/send`, `tasks/send`, `tasks/get`; task id == request id |
 | `/a2a/tasks/{id}` | GET | — | replay a completed A2A task result (in-memory recent store, 30-min TTL) |
 | `/.well-known/agent.json` | GET | — | agent discovery card |
@@ -254,8 +288,8 @@ and was **not** executed for this deliverable:
 
 ```sh
 cd ai-slop-checker
-docker build -t lazynext/ai-slop-checker:1.4.0 .
-docker run --rm -p 3000:3000 lazynext/ai-slop-checker:1.4.0
+docker build -t lazynext/ai-slop-checker:1.4.1 .
+docker run --rm -p 3000:3000 lazynext/ai-slop-checker:1.4.1
 # or the Worker:
 export CLOUDFLARE_API_TOKEN="$CLOUDFLARE_DEPLOY_TOKEN"   # see docs/DEPLOYMENT.md
 wrangler deploy --name lazynext-ai-slop-checker
@@ -285,6 +319,7 @@ ai-slop-checker/
 │   ├── rules-loader.js       # loadRules — deep-merge external corpora
 │   ├── render-checks.js      # rendered-tier r-* checks — PURE functions over snapshots (UMD)
 │   ├── collect-render.js     # OPTIONAL playwright collector (never loaded by the engine)
+│   ├── judge.js              # judgement checklist: 5 questions, craft floor, refusal scaffolds, PASS|REVIEW|REFUSE
 │   └── rewriter.js           # conservative before/after rewrites (UMD; createRewriter)
 ├── api/
 │   ├── server.js             # plain-Node HTTP API + static web checker host
@@ -311,12 +346,14 @@ ai-slop-checker/
 │   ├── project-scanner.test.js # directory scan, lenses, aggregation, CLI --dir
 │   ├── project-scanner-browser.test.js  # browser lens parity + web asset checks
 │   ├── render-checks.test.js # r-* checks over hand-crafted snapshots (fire + non-fire)
+│   ├── judge.test.js         # judgement checklist: contract, verdict boundary, determinism
+│   ├── app.test.js           # web-app UX regression: Scan-lifecycle state machine (node-only)
 │   ├── profiles.test.js      # default/strict/lenient on the same text (CLI/API/render/project)
 │   ├── i18n.test.js          # hi + es corpora, ru+hi+es merge, dup rejection
 │   ├── pwa.test.js           # manifest keys, icon PNGs, sw.js parse, guarded registration
-│   ├── api.test.js           # HTTP contract tests
+│   ├── api.test.js           # HTTP contract tests (incl. POST /judge)
 │   ├── api-rules-url.test.js # POST /scan rules_url (local fixture server)
-│   ├── agent-surfaces.test.js # MCP handshake + tools, A2A, discovery, widget
+│   ├── agent-surfaces.test.js # MCP handshake + tools (incl. judge), A2A, discovery, widget
 │   ├── rules-loader.test.js  # merge semantics, dup rejection, .ru corpus, CLI --rules
 │   ├── openapi-parity.test.js # spec ⇄ server route parity
 │   └── bench.test.js         # bench + dogfood-stays-fixed regression locks
@@ -423,23 +460,26 @@ Measured on macOS Apple Silicon (arm64) with Node v25.9.0 — real wall-clock
 
 | bench | ms | input | KB/ms | verdict |
 |---|---|---|---|---|
-| `scanText` ~100 KB prose mix | 9.1 | 100.0 KB | 11.04 | heavy |
-| `scanHtml` ~200 KB HTML | 35.3 | 200.8 KB | 5.69 | light |
-| `scanProject` demo/fixture-project/ | 12.3 | — | — | heavy |
-| `rewriteText` ~100 KB prose mix | 57.3 | 100.0 KB | 1.75 | — |
+| `scanText` ~100 KB prose mix | 8.4 | 100.0 KB | 11.93 | heavy |
+| `scanHtml` ~200 KB HTML | 27.0 | 200.8 KB | 7.45 | light |
+| `scanProject` demo/fixture-project/ | 9.2 | — | — | heavy |
+| `rewriteText` ~100 KB prose mix | 16.7 | 100.0 KB | 6.01 | — |
 
-A 100 KB realistic prose document scans in ~9 ms. Re-run anytime with
+A 100 KB realistic prose document scans in ~8 ms. Re-run anytime with
 `node bench/perf.js` (or `--json`) — numbers vary by machine, so record
 your own.
 
 ## Roadmap
 
 See [`ROADMAP.md`](ROADMAP.md) for what is genuinely left (a theme catalog
-as a human guide, judgement tells, non-English built-ins as content, a
+as a human guide, non-English built-ins as content, a
 `.github/`-gated CI, plugin packaging) and why each item is deferred.
 Phase 5 (v1.4.0) shipped fuzz robustness, corpus quality gates, the perf
-bench, the e2e contract matrix, and packaging validation; the real-browser
-render CI harness and the `.github/` CI gate stay devops-gated follow-ups.
+bench, the e2e contract matrix, and packaging validation. Phase 6 (v1.4.1)
+shipped the judgement checklist (`--judge`/`POST /judge`/MCP `judge`), the
+`npm run check` quality gate, and the web-checker stale-results UX fix
+(regression-locked in `test/app.test.js`); the real-browser render CI
+harness and the `.github/` CI gate stay devops-gated follow-ups.
 
 Deferred from this deliverable, consciously: no real-browser CI gate
 (`.github/`-gated and devops-owned per house rules — not created here), no

@@ -281,6 +281,30 @@ No new accounts, keys, signups, or deployments were made in phase 5. The
 npm package was validated with `npm pack --dry-run` only; nothing was
 published.
 
+## Phase 6 note (v1.4.1, 2026-11-17)
+
+The polish phase also added **no new absorbed content** from the five
+source projects — everything is Lazynext's own work:
+
+- `src/judge.js` + `test/judge.test.js` — the judgement checklist. The
+  5-question review, the craft-floor gate, and the refusal scaffolds are
+  re-expressions of **our own** `docs/design-review-guide.md` (which in
+  turn *names* the impeccable/hallmark vocabulary while remaining original
+  prose); the machine mapping (design pattern ids → floor items) is our
+  own evidence model. No source code or copy from any source repo.
+- `web/app.js` + `test/app.test.js` — the stale-results UX fix and the
+  DOM-free `SlopAppState` lifecycle; original work.
+- `scripts/check.js` — the `npm run check` gate; `scripts/e2e.js` judge
+  rows; `api/server.js` + `api/worker.js` + `api/agent-surfaces.js` + CLI
+  + OpenAPI wiring — original engineering, no source material.
+- Docs (usage.md `--judge`, README browser notes, CHANGELOG v1.4.1,
+  ROADMAP phase-6 section) — our own documentation.
+
+No new accounts, keys, signups, or deployments were made in phase 6; the
+npm package is still validated with `npm pack --dry-run` only (nothing
+published); no `.github/` workflows were created (devops-owned per house
+rules).
+
 ## License flags for founder review
 
 1. **Our MIT license choice.** This repository's code is original Lazynext

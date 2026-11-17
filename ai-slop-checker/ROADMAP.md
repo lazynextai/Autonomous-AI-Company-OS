@@ -1,7 +1,31 @@
 # Roadmap — Lazynext AI Slop Checker
 
-What is genuinely left after v1.4.0. Ordered roughly by leverage; nothing
+What is genuinely left after v1.4.1. Ordered roughly by leverage; nothing
 here has a hard date. The engine stays deterministic and dependency-free.
+
+## SHIPPED — Phase 6 polish & judgement checklist (v1.4.1, 2026-11-17)
+
+- **Judgement checklist (`--judge` / `POST /judge` / MCP `judge`)** — the
+  deferred "judgement tells" item shipped as a **deterministic
+  machine-built checklist** (`src/judge.js`): the 5-question review
+  (purpose/audience/decision/variety/defaults) with hints + verdictHint +
+  machine-flagged signals, the craft-floor gate (contrast / alignment /
+  text-hierarchy / spacing / no-fake-data / no-decorative-effects) mapped
+  from scanner evidence with genuinely non-machineable items left as
+  human checkboxes (never fake verdicts), refusal scaffolds, and a
+  PASS | REVIEW | REFUSE verdict computed ONLY from machine-verifiable
+  parts. Wired through the CLI (`--judge --file|--url|--dir|<text>`), the
+  API (`POST /judge {text|html|project}`), and MCP (`judge` tool —
+  tools/list now 7), with OpenAPI and docs. 10 new tests pin the contract,
+  the machine-only verdict boundary, and byte-identical determinism.
+- **`npm run check`** — `scripts/check.js`: sequential quality gate
+  (corpus integrity → `node --test` → e2e on 8793) with a summary table
+  and non-zero exit on any failure.
+- **Web-checker stale-results UX fix** — scan START clears the previous
+  results area; failure renders a distinct error state with a retry
+  affordance (never stale results); the CORS-aware URL tip stays.
+  Regression-locked in `test/app.test.js` (8 node-only tests over the
+  pure `SlopAppState` lifecycle helpers).
 
 ## SHIPPED — Phase 5 hardening & release readiness (v1.4.0, 2026-11-16)
 
@@ -67,10 +91,19 @@ never auto-apply themes.
 Some tells resist regexing without exploding false positives: "this
 sentence could move to any product", "the paragraph is conclusion-shaped",
 "three parallel examples of roughly equal length". The a11y sibling solves
-this class with rendered trace + heuristics; here it would be a
-`--judge` mode combining structural heuristics (sentence-length spread,
-paragraph shape, parallel-clause detectors) with the existing corpus. Kept
-out of the deterministic core until precision beats recall.
+this class with rendered trace + heuristics.
+
+**SHIPPED in v1.4.1 as a deterministic checklist (`--judge` / `POST
+/judge` / MCP `judge`)** — rather than pretend the machine can score soft
+tells, the product now answers the *reviewer's* question: the 5-question
+review (purpose/audience/decision/variety/defaults) with machine-flagged
+signals, the craft-floor gate mapped from real evidence (non-machineable
+items stay human checkboxes), refusal scaffolds, and a machine-computed
+PASS | REVIEW | REFUSE verdict over only the machine-verifiable parts.
+Kept out of the deterministic *score* until structural heuristics reach
+precision that beats recall: a full `judge` that auto-scores sentence
+spread, paragraph shape, and parallel-clause detectors remains future
+work, deliberately outside the score.
 
 ## Non-English built-ins (i18n corpus)
 
@@ -99,8 +132,9 @@ enforcement policy (hard fail vs comment-only). **Deliberately not created
 in v1.3.0:** `.github/` is devops-role-gated per house rules, and the
 real-browser render CI harness (playwright collector against live
 fixtures) would live here too. Founder decision + devops action required
-before either lands. **Still open in v1.4.0** — do NOT create workflows in
-`.github/` from this repo (devops-owned per house rules).
+before either lands. **Still open in v1.4.1** — do NOT create workflows in
+`.github/` from this repo (devops-owned per house rules); the local
+analogue is `npm run check`.
 
 ## Package publishing
 
@@ -130,7 +164,7 @@ deliverable).
 
 - **No deployment executed** — code + docs only (`Dockerfile`,
   `wrangler.toml`, `docs/DEPLOYMENT.md`); deploying is a founder decision.
-  Docker tags bumped to 1.4.0 but nothing was built or pushed.
+  Docker tags bumped to 1.4.1 but nothing was built or pushed.
 - **License confirmation** — the MIT header/naming policy for a
   Lazynext-authored open product has not been confirmed by the founder
   (see the note in ATTRIBUTIONS). Ship shape is ready (LICENSE, package
@@ -140,9 +174,10 @@ deliverable).
   devops-gated. The pure checks are fully tested without a browser
   (34 hand-crafted snapshot tests + the hostile-snapshot fuzz battery).
 - **CI gate (`slop-check` action)** — `.github/` is devops-role-gated per
-  house rules; the action is a thin `--exit-code` wrapper but needs a
-  founder decision on enforcement policy (hard fail vs comment-only)
-  before devops can create it. Do NOT create workflows in this repo.
+  house rules; the action is a thin `--exit-code` wrapper (the local
+  analogue is `npm run check`) but needs a founder decision on enforcement
+  policy (hard fail vs comment-only) before devops can create it. Do NOT
+  create workflows in this repo.
 - **A2A is deliberately lightweight** — task results replay from an
   in-memory store (bounded, 30-min TTL), not persistent KV/files, because
   the plain-Node server has no KV. Production persistence for A2A tasks is a
@@ -154,5 +189,8 @@ deliverable).
   single-POST subset; streaming needs a hosted upgrade.
 - **Theme catalog stays a human guide** — shipped as documentation
   (`docs/design-review-guide.md`), never as machine-applied code.
-- **Judgement tells (soft, non-regex)** — kept out of the deterministic
-  core until precision beats recall (see the Judgement tells section).
+- **Judgement soft-tell heuristics** — a full auto-scored judge (sentence
+  spread, paragraph shape, parallel-clause detectors driving the score)
+  is still out of the deterministic core until precision beats recall;
+  v1.4.1 ships the deterministic *checklist* judge instead (see the
+  Judgement tells section).

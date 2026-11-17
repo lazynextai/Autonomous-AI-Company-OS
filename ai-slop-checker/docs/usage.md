@@ -1,6 +1,6 @@
 # Lazynext AI Slop Checker — usage reference
 
-Complete command-line, API, MCP, and error-code reference for v1.4.0. The
+Complete command-line, API, MCP, and error-code reference for v1.4.1. The
 engine is deterministic and zero-dependency: same input always gives the
 same score.
 
@@ -21,6 +21,7 @@ same score.
 | `--profile <p>` | `default`\|`strict`\|`lenient` | `default` | Severity profile for this scan |
 | `--snapshot <file.json>` | path | — | Rendered-tier checks over a computed snapshot (pure, no browser) |
 | `--render <url>` | http(s) URL | — | Collect a snapshot (needs optional playwright) then run rendered checks |
+| `--judge` | — | — | Run the judgement checklist (5-question review, craft-floor gate, refusal scaffolds, machine PASS/REVIEW/REFUSE verdict). Combines with `--file`, `--url`, `--dir`, or a positional text |
 | `--json` | — | — | Print the machine-readable report (JSON) instead of the table |
 | `--rewrite <text>` | — | — | Also apply conservative safe rewrites to the text |
 | `--rules` | — | — | Dump the corpus shorthand (id/category/severity) and exit 0 |
@@ -30,14 +31,15 @@ same score.
 
 | Code | Meaning |
 |---|---|
-| `0` | Scan ran; report is `clean` (score ≤ threshold) — or `--help`/`--json`/`--rules` dump |
+| `0` | Scan ran; report is `clean` (score ≤ threshold) — or `--help`/`--json`/`--rules` dump. For `--judge`: verdict is **PASS** |
 | `1` | Usage/IO error (bad flag value, unreadable file/dir, broken rules file, parse error) |
-| `2` | Scan ran; report is **NOT clean** (findings above the threshold) |
+| `2` | Scan ran; report is **NOT clean** (findings above the threshold). For `--judge`: verdict is **REVIEW** |
+| `3` | `--judge` only: verdict is **REFUSE** (a machine-checked craft-floor item failed) |
 
 ### Examples
 
 ```sh
-node api/cli.js "We must leverage this."
+    node api/cli.js "We must leverage this."
 node api/cli.js --file demo/slop.txt --json
 node api/cli.js --profile strict "delve deep into this"
 node api/cli.js --rules data/rules.ru.js "В современном мире..."
@@ -45,7 +47,24 @@ node api/cli.js --rules "rules/**/*.js" --dir src
 node api/cli.js --dir path/to/project --top 20 --json
 node api/cli.js --snapshot snapshot.json
 node api/cli.js --render https://example.com --profile lenient
+node api/cli.js --judge --file demo/slop.txt     # judgement checklist
+node api/cli.js --judge --url https://example.com
+node api/cli.js --judge --dir src
+node api/cli.js --judge "We must leverage this." # plain-text judge
 ```
+
+The `--judge` report is deterministic and machine-built: the 5-question
+review (purpose / audience / decision / variety / defaults) ships *hints*
++ *verdictHint* per question plus machine-flagged signals where scan
+evidence bears on them; the craft-floor gate (contrast / alignment /
+text-hierarchy / spacing / no-fake-data / no-decorative-effects) maps
+whichever items have real machine evidence and emits the genuinely
+non-machineable ones (contrast, alignment) as human checkboxes with
+guidance — never a fake machine verdict. Refusal scaffolds follow, then a
+summary verdict computed **only** from the machine-verifiable parts
+(PASS = no objections and floor met, REVIEW = copy/design objections,
+REFUSE = a machine-checked floor item failed). The checklist itself is
+labelled as human steps.
 
 ---
 
@@ -61,13 +80,14 @@ web checker; otherwise it returns the JSON service descriptor.
 |---|---|---|---|
 | `/` | GET | — | Service descriptor (JSON) or the web checker page (HTML) |
 | `/index.html` | GET | — | Web checker page (alias of `/`) |
-| `/health` | GET | — | `{"ok":true,"engine":"lazynext-ai-slop-checker","version":"1.4.0"}` |
+| `/health` | GET | — | `{"ok":true,"engine":"lazynext-ai-slop-checker","version":"1.4.1"}` |
 | `/rules` | GET | — | Corpus manifest: `{engine, version, count, categories[], rules[]}` |
 | `/scan` | POST | `{text}` · `{html}` | Scan report `{engine, version, input, score, verdict, clean, totalPoints, matches[], categories[]}` |
 | `/scan` | POST | `{url}` | Fetch (10s timeout) + scan; `source` includes fetched `url`/`html`/`text` |
 | `/scan` | POST | `{…, rules_url}` | Deep-merge an http(s) JSON rules file before scanning (JSON only) |
 | `/scan` | POST | `{text, rewrite:true}` | Adds `rewrite: {text, changed, changes[]}` to the report |
 | `/scan` | POST | `{…, profile}` | `"default"`\|`"strict"`\|`"lenient"` severity profile |
+| `/judge` | POST | `{text}` · `{html}` · `{project}` | Judge checklist: 5-question review (with machine signals), craft-floor gate, refusal scaffolds, machine `PASS`\|`REVIEW`\|`REFUSE` verdict (`project` = local directory path; not on Workers) |
 | `/scan-project` | POST | `{dir, topFiles?, profile?}` | Pooled project report `{engine, version, root, files[], summary, topFiles[], categories[]}` |
 | `/render-scan` | POST | `{snapshot}` · `{url}` | Rendered-tier r-* checks over a computed snapshot (pure) or a collected URL (needs playwright) |
 | `/mcp` | POST | JSON-RPC 2.0 | MCP: `initialize`, `ping`, `tools/list`, `tools/call` (tools below); GET is 405 (no SSE) |
@@ -83,7 +103,7 @@ web checker; otherwise it returns the JSON service descriptor.
 ```js
 {
   engine: "lazynext-ai-slop-checker",
-  version: "1.4.0",
+  version: "1.4.1",
   input: { type: "text", length: 412 },   // text | html | url | render-snapshot
   score: 63,               // 0 (clean) - 100 (max slop)
   verdict: "moderate",     // clean | light | moderate | heavy
@@ -94,12 +114,37 @@ web checker; otherwise it returns the JSON service descriptor.
 }
 ```
 
+### Judge report shape (POST /judge)
+
+```js
+{
+  engine: "lazynext-ai-slop-checker-judge",
+  version: "1.4.1",
+  input: { type: "text", length: 412 },   // text | html | project(dir, filesScanned)
+  scan: { project, score, verdict, clean, matches, ... },   // pooled for project
+  fiveQuestionReview: [
+    { question, hints: [...], verdictHint, signals: [{ id, count }] }
+  ],
+  craftFloor: [
+    { id, name, desc, machine: "ok"|"flag"|"unchecked", evidence: [...], humanCheckbox, guidance }
+  ],
+  craftFloorMet: boolean,
+  refusalScaffolds: [{ name, when, text }],
+  summary: { verdict: "PASS"|"REVIEW"|"REFUSE", reasons: [...], machineChecked, humanStepsRequired, note }
+}
+```
+
+Verdict rules (machine-only boundary):
+- **REFUSE** — any *machine-checked* craft-floor item carries `machine:"flag"` (e.g. `d-stat-row` → no-fake-data).
+- **REVIEW** — floor passes but machine objections exist (copy/design tells above the clean threshold).
+- **PASS** — no machine-verifiable floor violations and no machine objections. The 5-question review and any `humanCheckbox` floor items remain human steps — a human objection flips a machine PASS to REVIEW; `contrast` and `alignment` NEVER carry a machine verdict.
+
 ### Project report shape (POST /scan-project)
 
 ```js
 {
   engine: "lazynext-ai-slop-checker",
-  version: "1.4.0",
+  version: "1.4.1",
   root: "/abs/path",
   files: [{ file, kind, score, points, matches, verdict, report? }],
   summary: { filesScanned, filesWithHits, filesSkipped, totalMatches, totalPoints, score, verdict, verdictBands },
@@ -128,6 +173,7 @@ Methods: `initialize` (protocol `2025-03-26`), `ping`, `tools/list`,
 | `scan_project` | `{dir, topFiles?, profile?}` | Pooled project report (local filesystem only) |
 | `scan_render` | `{snapshot}` · `{url, profile?}` | Rendered-tier report (pure over a snapshot; URL needs the optional collector) |
 | `rewrite_text` | `{text}` | Conservative safe rewrites `{text, changed, changes[]}` |
+| `judge` | `{text}` · `{html}` · `{dir}` | Judge checklist (5-question review + machine signals, craft-floor gate, refusal scaffolds, `PASS`\|`REVIEW`\|`REFUSE` verdict; `dir` needs local filesystem access) |
 
 ```sh
 curl -s -X POST localhost:8787/mcp -H 'content-type: application/json' \
