@@ -1,12 +1,15 @@
 # Lazynext AI Slop Checker — Cloudflare Workers config
 #
-# Deployment config for the edge entry (api/worker.js). Deployed as
-# lazynext-ai-slop-checker (see docs/DEPLOYMENT.md +
-# docs/DEPLOYMENT-PLAN-2026-11-17.md). account_id is filled from the repo
-# .env at deploy time (CLOUDFLARE_ACCOUNT_ID).
+# Deployment config for the edge entry. api/worker.js is the CommonJS
+# implementation (kept require-able by the Node test suite); the deployed
+# entry is api/worker-module.mjs — an ES Module wrapper whose
+# `export default { fetch }` is what workerd registers as the event
+# handler (a pure CJS module.exports bundle is rejected at deploy with
+# code 10021 "No event handlers were registered"). account_id is filled
+# from the repo .env at deploy time (CLOUDFLARE_ACCOUNT_ID).
 
 name = "lazynext-ai-slop-checker"
-main = "api/worker.js"
+main = "api/worker-module.mjs"
 compatibility_date = "2024-11-01"
 account_id = "85953070bae00da372951a8833bd3459"
 
