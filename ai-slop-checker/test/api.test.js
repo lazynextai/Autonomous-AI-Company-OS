@@ -123,6 +123,65 @@ test("POST /scan with invalid json returns 400", async () => {
   assert.equal(res.status, 400);
 });
 
+// ── POST /judge ──────────────────────────────────────────────────────────
+
+test("POST /judge {text} returns the checklist report", async () => {
+  const { status, body } = await post("/judge", { text: "We must leverage this robust solution." });
+  assert.equal(status, 200);
+  assert.equal(body.engine, "lazynext-ai-slop-checker-judge");
+  assert.equal(body.input.type, "text");
+  assert.equal(body.fiveQuestionReview.length, 5);
+  assert.equal(body.craftFloor.length, 6);
+  assert.equal(body.summary.verdict, "REVIEW");
+  assert.ok(body.summary.reasons.some((x) => /copy objections/.test(x)));
+});
+
+test("POST /judge {html} with a machine floor flag → REFUSE", async () => {
+  const { status, body } = await post("/judge", {
+    html: '<div><p>Join 10,000+ developers</p><p>24/7 uptime support</p></div>',
+  });
+  assert.equal(status, 200);
+  assert.equal(body.summary.verdict, "REFUSE");
+  const fake = body.craftFloor.find((f) => f.id === "no-fake-data");
+  assert.equal(fake.machine, "flag");
+  assert.ok(fake.evidence.includes("d-stat-row"));
+});
+
+test("POST /judge {project} judges a directory tree", async () => {
+  const fs = require("node:fs");
+  const os = require("node:os");
+  const path = require("node:path");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "slop-api-judge-"));
+  fs.writeFileSync(path.join(dir, "README.md"), "In today's fast-paced world, we must leverage this robust solution.");
+  try {
+    const { status, body } = await post("/judge", { project: dir });
+    assert.equal(status, 200);
+    assert.equal(body.input.type, "project");
+    assert.ok(body.input.filesScanned >= 1);
+    assert.ok(["PASS", "REVIEW", "REFUSE"].includes(body.summary.verdict));
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("POST /judge validation: 0 inputs, >1 inputs, bad types → 400", async () => {
+  const none = await post("/judge", {});
+  assert.equal(none.status, 400);
+  assert.match(none.body.error, /provide one of/);
+
+  const both = await post("/judge", { text: "a", html: "<p>b</p>" });
+  assert.equal(both.status, 400);
+  assert.match(both.body.error, /exactly one of/);
+
+  const badText = await post("/judge", { text: 42 });
+  assert.equal(badText.status, 400);
+  assert.match(badText.body.error, /text must be a string|judge failed/);
+
+  const badDir = await post("/judge", { project: "" });
+  assert.equal(badDir.status, 400);
+  assert.match(badDir.body.error, /non-empty/);
+});
+
 test("unknown route returns 404", async () => {
   const { status } = await get("/nope");
   assert.equal(status, 404);

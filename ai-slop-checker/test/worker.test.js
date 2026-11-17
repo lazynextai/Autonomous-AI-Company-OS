@@ -28,7 +28,7 @@ test("worker: GET /health returns ok", async () => {
   assert.equal(res.status, 200);
   const d = await res.json();
   assert.equal(d.ok, true);
-  assert.equal(d.version, "1.4.0");
+  assert.equal(d.version, "1.4.1");
 });
 
 test("worker: GET /rules returns the manifest", async () => {
@@ -57,7 +57,22 @@ test("worker: MCP initialize handshake", async () => {
   assert.equal(res.status, 200);
   const d = await res.json();
   assert.equal(d.result.serverInfo.name, "lazynext-ai-slop-checker");
-  assert.equal(d.result.serverInfo.version, "1.4.0");
+  assert.equal(d.result.serverInfo.version, "1.4.1");
+});
+
+test("worker: POST /judge text works on the edge entry", async () => {
+  const res = await call("/judge", { method: "POST", body: { text: "We must leverage this." } });
+  assert.equal(res.status, 200);
+  const d = await res.json();
+  assert.equal(d.engine, "lazynext-ai-slop-checker-judge");
+  assert.equal(d.fiveQuestionReview.length, 5);
+});
+
+test("worker: POST /judge project returns the documented 400 (no filesystem)", async () => {
+  const res = await call("/judge", { method: "POST", body: { project: "/tmp" } });
+  assert.equal(res.status, 400);
+  const d = await res.json();
+  assert.match(d.error, /local filesystem/);
 });
 
 test("worker: MCP GET is 405", async () => {

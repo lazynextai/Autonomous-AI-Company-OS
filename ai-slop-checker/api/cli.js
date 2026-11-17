@@ -14,6 +14,9 @@
  *   node api/cli.js --profile strict <text>     (severity profile)
  *   node api/cli.js --snapshot snap.json        (rendered-tier checks)
  *   node api/cli.js --render https://example.com (collect + rendered checks, needs playwright)
+ *   node api/cli.js --judge --file demo/slop.txt   (judgement checklist)
+ *   node api/cli.js --judge --url https://example.com
+ *   node api/cli.js --judge "text"                 (judge plain text)
  */
 
 const fs = require("node:fs");
@@ -40,6 +43,9 @@ function usage() {
       "  node api/cli.js --dir <path> [--top <n>] [--json] [--profile <p>]",
       "  node api/cli.js --snapshot <snapshot.json> [--profile <p>]",
       "  node api/cli.js --render <url> [--profile <p>]   (optional playwright collector)",
+      "  node api/cli.js --judge --file <path> | --url <url> | --dir <path> | <text>",
+      "                                     (judgement checklist: 5-question review,",
+      "                                      craft-floor gate, refusal scaffolds, verdict)",
       "",
       "Scans text/HTML/URLs/directories/snapshots for AI slop and prints a summary.",
     ].join("\n")
@@ -223,6 +229,48 @@ async function main(argv) {
     console.log(`Collected ${snapshot.elements.length} elements from ${url}`);
     console.log(format(report));
     return report.clean ? 0 : 2;
+  }
+
+  // --judge: judgement checklist over --file / --url / --dir / positional text.
+  // Exit codes: 0 = PASS, 1 = usage/IO error, 2 = REVIEW, 3 = REFUSE.
+  const judgeMode = args.includes("--judge");
+  if (judgeMode) {
+    const { judgeReport, formatJudge } = require("../src/judge.js");
+    const judgeIdx = args.indexOf("--judge");
+    args.splice(judgeIdx, 1);
+    const fileJ = args.indexOf("--file");
+    const urlJ = args.indexOf("--url");
+    const dirJ = args.indexOf("--dir");
+    try {
+      let report;
+      if (fileJ !== -1) {
+        const file = path.resolve(args[fileJ + 1]);
+        const input = fs.readFileSync(file, "utf8");
+        report = judgeReport({ text: input });
+      } else if (urlJ !== -1) {
+        const { fetchRemote } = require("./server.js");
+        const remote = await fetchRemote(args[urlJ + 1]);
+        report = judgeReport({ html: remote.html });
+      } else if (dirJ !== -1) {
+        report = judgeReport({ project: path.resolve(args[dirJ + 1]) });
+      } else {
+        const text = args.filter((a) => !a.startsWith("--")).join(" ");
+        if (!text.trim()) {
+          console.error("error: --judge needs a text argument, --file, --url, or --dir");
+          return 1;
+        }
+        report = judgeReport({ text });
+      }
+      if (jsonOut) {
+        console.log(JSON.stringify(report, null, 2));
+        return report.summary.verdict === "PASS" ? 0 : report.summary.verdict === "REVIEW" ? 2 : 3;
+      }
+      console.log(formatJudge(report));
+      return report.summary.verdict === "PASS" ? 0 : report.summary.verdict === "REVIEW" ? 2 : 3;
+    } catch (err) {
+      console.error(`error: ${err.message}`);
+      return 1;
+    }
   }
 
   const dirIdx = args.indexOf("--dir");

@@ -13,6 +13,7 @@
  *   GET  /health           liveness
  *   GET  /rules            corpus manifest
  *   POST /scan             { text | html | url | rules_url }
+ *   POST /judge            { text | html } (project root: local filesystem only -> 400)
  *   POST /scan-project     -> 400 (local filesystem only)
  *   POST /mcp              JSON-RPC 2.0 (initialize/ping/tools/list/tools/call)
  *   POST /a2a              JSON-RPC 2.0 (message/send, tasks/send, tasks/get)
@@ -71,6 +72,7 @@ function serviceDescriptor() {
       health: { method: "GET", path: "/health" },
       rules: { method: "GET", path: "/rules" },
       scan: { method: "POST", path: "/scan", body: { text: "string", html: "string", url: "http(s) URL", rewrite: "boolean (text only)", rules_url: "http(s) URL to a JSON custom-rules file", profile: '"default" | "strict" | "lenient"' } },
+      judge: { method: "POST", path: "/judge", body: { text: "string", html: "string", project: "directory path (local filesystem only — not available on Workers)" }, note: "exactly one of text | html | project; 5-question review + craft-floor gate + refusal scaffolds + machine PASS | REVIEW | REFUSE verdict" },
       projectScan: { method: "POST", path: "/scan-project", note: "local filesystem only — not available on Workers; use the local Node server" },
       renderScan: { method: "POST", path: "/render-scan", body: { snapshot: "computed snapshot object ({elements:[...]}) — pure checks, no browser needed", url: "http(s) URL to collect + check (needs the optional playwright collector)", profile: '"default" | "strict" | "lenient"' }, note: "exactly one of snapshot|url; snapshot runs anywhere, url needs the local collector" },
       mcp: { method: "POST", path: "/mcp", note: "JSON-RPC 2.0 (initialize/ping/tools/list/tools/call); GET is 405 (no SSE)" },
@@ -119,6 +121,13 @@ function enginesForWorker() {
     scanUrl: async (urlString) => {
       const remote = await fetchRemote(urlString);
       return { report: scanHtml(remote.html), remote };
+    },
+    judge: (input) => {
+      if (input && input.project !== undefined) {
+        throw new Error("project judge needs local filesystem access — run the local Node server (node api/server.js) instead");
+      }
+      const { judgeReport } = require("../src/judge.js");
+      return judgeReport(input);
     },
   };
 }
@@ -217,6 +226,38 @@ async function handleScan(req) {
   }
 }
 
+async function handleJudge(req) {
+  let body = {};
+  try {
+    const raw = await req.text();
+    if (raw.length > MAX_BODY_BYTES) return json({ error: "body too large (limit 1MB)" }, 413);
+    if (raw) body = JSON.parse(raw);
+  } catch {
+    return json({ error: "invalid JSON body" }, 400);
+  }
+
+  const { text, html, project } = body;
+  const kinds = [text !== undefined, html !== undefined, project !== undefined].filter(Boolean).length;
+  if (kinds === 0) return json({ error: "provide one of: text, html, project" }, 400);
+  if (kinds > 1) return json({ error: "provide exactly one of: text, html, project" }, 400);
+  if (text !== undefined && typeof text !== "string") return json({ error: "text must be a string" }, 400);
+  if (html !== undefined && typeof html !== "string") return json({ error: "html must be a string" }, 400);
+  if (project !== undefined && (typeof project !== "string" || project.length === 0)) {
+    return json({ error: "project must be a non-empty directory path" }, 400);
+  }
+  if (project !== undefined) {
+    return json({ error: "project judge needs local filesystem access — run the local Node server (node api/server.js) instead" }, 400);
+  }
+
+  try {
+    const { judgeReport } = require("../src/judge.js");
+    const report = judgeReport({ text, html });
+    return json(report, 200);
+  } catch (err) {
+    return json({ error: `judge failed: ${err.message}` }, 400);
+  }
+}
+
 async function handleRenderScan(req, env, ctx) {
   let body = {};
   try {
@@ -259,6 +300,7 @@ module.exports = {
     if (req.method === "GET" && pathname === "/health") return json({ ok: true, engine: "lazynext-ai-slop-checker", version });
     if (req.method === "GET" && pathname === "/rules") return json(ruleManifest());
     if (req.method === "POST" && pathname === "/scan") return handleScan(req);
+    if (req.method === "POST" && pathname === "/judge") return handleJudge(req);
     if (req.method === "POST" && pathname === "/scan-project") {
       return json({ error: "project scan needs local filesystem access — run the local Node server (node api/server.js) instead" }, 400);
     }
@@ -323,6 +365,6 @@ module.exports = {
       }
     }
 
-    return json({ error: "not found", endpoints: ["/", "/health", "/rules", "/scan", "/scan-project", "/render-scan", "/mcp", "/a2a", "/.well-known/agent.json", "/widget.js", "/openapi.json", "/llms.txt"] }, 404);
+    return json({ error: "not found", endpoints: ["/", "/health", "/rules", "/scan", "/judge", "/scan-project", "/render-scan", "/mcp", "/a2a", "/.well-known/agent.json", "/widget.js", "/openapi.json", "/llms.txt"] }, 404);
   },
 };

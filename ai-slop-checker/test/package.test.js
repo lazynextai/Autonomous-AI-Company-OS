@@ -60,6 +60,7 @@ test("package.json: files allowlist exists, entries exist, runtime surface cover
     "src/project-scanner.js",
     "src/render-checks.js",
     "src/collect-render.js",
+    "src/judge.js",
     "data/slop-patterns.js",
     "data/profiles.js",
     "data/rules.ru.js",

@@ -4,7 +4,8 @@
  *
  * MCP (JSON-RPC 2.0 over POST /mcp): initialize, ping, tools/list,
  * tools/call. Tools: list_rules, scan_text, scan_html, scan_project,
- * rewrite_text. GET /mcp is 405 (this server does not offer SSE).
+ * scan_render, rewrite_text, judge. GET /mcp is 405 (this server does
+ * not offer SSE).
  *
  * A2A (lightweight): POST /a2a with JSON-RPC methods message/send,
  * tasks/send, tasks/get. The task id IS the request id; results are
@@ -96,14 +97,28 @@ const MCP_TOOLS = [
       required: ["text"],
     },
   },
+  {
+    name: "judge",
+    description:
+      "Run the judgement checklist (--judge) over text, HTML, or a directory: the 5-question review (purpose/audience/decision/variety/defaults) with machine-flagged signals per question, a craft-floor gate (contrast/alignment/text-hierarchy/spacing/no-fake-data/no-decorative-effects) mapped from scanner evidence with human-checkbox items for the non-machineable parts, refusal scaffolds, and a machine-computed PASS | REVIEW | REFUSE verdict computed ONLY from machine-verifiable parts. Same input always gives the same verdict.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        text: { type: "string", description: "plain text to judge" },
+        html: { type: "string", description: "HTML document to judge" },
+        dir: { type: "string", description: "directory path to judge — local filesystem access only" },
+      },
+      oneOf: [{ required: ["text"] }, { required: ["html"] }, { required: ["dir"] }],
+    },
+  },
 ];
 
 const AGENT_CARD = {
   name: "Lazynext AI Slop Checker",
   description:
-    "Deterministic scanner for AI writing tells and AI-default visual design tics — text, HTML, whole-project, and rendered-snapshot scans with score, verdict, category breakdown, fixes, and safe rewrites.",
+    "Deterministic scanner for AI writing tells and AI-default visual design tics — text, HTML, whole-project, and rendered-snapshot scans with score, verdict, category breakdown, fixes, safe rewrites, and the judgement checklist (5-question review, craft-floor gate, refusal scaffolds, machine PASS|REVIEW|REFUSE verdict).",
   url: "https://slop-checker.lazynext.com/a2a",
-  version: "1.4.0",
+  version: "1.4.1",
   protocolVersion: "0.3.0",
   preferredTransport: "JSONRPC",
   capabilities: { streaming: false, pushNotifications: false },
@@ -115,6 +130,7 @@ const AGENT_CARD = {
     { id: "scan_project", name: "Scan project", description: "Scan a whole directory tree for slop in prose, markup, styles, and code.", tags: ["slop", "project", "codebase"] },
     { id: "scan_render", name: "Scan rendered snapshot", description: "Run the rendered-tier design checks (r-*) over a computed snapshot — pure functions, no browser.", tags: ["slop", "design", "render", "a11y"] },
     { id: "rewrite_text", name: "Rewrite text", description: "Apply conservative safe rewrites to a text flagged by the scanner.", tags: ["rewrite", "edit"] },
+    { id: "judge", name: "Judge", description: "Run the judgement checklist: 5-question review with machine signals, craft-floor gate, refusal scaffolds, machine PASS|REVIEW|REFUSE verdict.", tags: ["judge", "review", "design"] },
   ],
 };
 
@@ -250,6 +266,21 @@ async function callTool(name, args, engines) {
     case "rewrite_text": {
       if (typeof args.text !== "string") throw new Error("text must be a string");
       return engines.rewriteText(args.text);
+    }
+    case "judge": {
+      if (!engines.judge) throw new Error("judge is not available on this entry");
+      const input =
+        args.dir !== undefined
+          ? { project: args.dir }
+          : args.html !== undefined
+            ? { html: args.html }
+            : { text: args.text };
+      if (input.text !== undefined && typeof input.text !== "string") throw new Error("text must be a string");
+      if (input.html !== undefined && typeof input.html !== "string") throw new Error("html must be a string");
+      if (input.project !== undefined && (typeof input.project !== "string" || input.project.length === 0)) {
+        throw new Error("dir must be a non-empty path");
+      }
+      return engines.judge(input);
     }
     default:
       throw new Error(`unknown tool: ${name}`);

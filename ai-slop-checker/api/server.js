@@ -7,6 +7,7 @@
  *   GET  /health      liveness probe
  *   GET  /rules       JSON manifest of the full pattern corpus
  *   POST /scan        { text | html | url } -> scan report
+ *   POST /judge       { text | html | project? } -> judgement checklist report
  *   GET  /            serves ../web/index.html when the web/ dir exists
  *
  * URL scanning: fetches the target with a 10s timeout, extracts visible text
@@ -48,7 +49,7 @@ function json(res, code, body) {
 }
 
 function notFound(res) {
-  json(res, 404, { error: "not found", endpoints: ["/", "/health", "/rules", "/scan", "/scan-project", "/render-scan", "/mcp", "/a2a", "/.well-known/agent.json", "/widget.js", "/openapi.json", "/llms.txt"] });
+  json(res, 404, { error: "not found", endpoints: ["/", "/health", "/rules", "/scan", "/judge", "/scan-project", "/render-scan", "/mcp", "/a2a", "/.well-known/agent.json", "/widget.js", "/openapi.json", "/llms.txt"] });
 }
 
 function readBody(req) {
@@ -156,6 +157,16 @@ function serviceDescriptor() {
           rewrite: "optional boolean: include auto-rewrite suggestions",
         },
       },
+      judge: {
+        method: "POST",
+        path: "/judge",
+        body: {
+          text: "plain text to judge",
+          html: "HTML document to judge",
+          project: "directory path to judge (local filesystem)",
+        },
+        note: "exactly one of text | html | project. Returns the 5-question review, craft-floor gate, refusal scaffolds, and a machine-computed PASS | REVIEW | REFUSE verdict.",
+      },
       projectScan: {
         method: "POST",
         path: "/scan-project",
@@ -180,7 +191,7 @@ function serviceDescriptor() {
         method: "POST",
         path: "/mcp",
         body: "JSON-RPC 2.0: initialize | ping | tools/list | tools/call",
-        note: "tools: list_rules, scan_text, scan_html, scan_project, rewrite_text; GET is 405 (no SSE)",
+        note: "tools: list_rules, scan_text, scan_html, scan_project, scan_render, rewrite_text, judge; GET is 405 (no SSE)",
       },
       a2a: {
         method: "POST",
@@ -319,6 +330,47 @@ async function handleScan(req, res) {
   }
 }
 
+async function handleJudge(req, res) {
+  let raw;
+  try {
+    raw = await readBody(req);
+  } catch (err) {
+    return json(res, 413, { error: err.message });
+  }
+  let body;
+  try {
+    body = JSON.parse(raw || "{}");
+  } catch {
+    return json(res, 400, { error: "invalid JSON body" });
+  }
+
+  const { text, html, project } = body;
+  const kinds = [text !== undefined, html !== undefined, project !== undefined].filter(Boolean).length;
+  if (kinds === 0) {
+    return json(res, 400, { error: "provide one of: text, html, project" });
+  }
+  if (kinds > 1) {
+    return json(res, 400, { error: "provide exactly one of: text, html, project" });
+  }
+  if (text !== undefined && typeof text !== "string") {
+    return json(res, 400, { error: "text must be a string" });
+  }
+  if (html !== undefined && typeof html !== "string") {
+    return json(res, 400, { error: "html must be a string" });
+  }
+  if (project !== undefined && (typeof project !== "string" || project.length === 0)) {
+    return json(res, 400, { error: "project must be a non-empty directory path" });
+  }
+
+  try {
+    const { judgeReport } = require("../src/judge.js");
+    const report = judgeReport({ text, html, project });
+    return json(res, 200, report);
+  } catch (err) {
+    return json(res, 400, { error: `judge failed: ${err.message}` });
+  }
+}
+
 async function handleScanProject(req, res) {
   let raw;
   try {
@@ -444,6 +496,10 @@ function enginesForServer() {
       if (!isCollectorAvailable()) throw new Error(OPT_IN_MSG);
       return collectRender(String(snapshotOrUrl)).then((snap) => scanRender(snap, opts));
     },
+    judge: (input) => {
+      const { judgeReport } = require("../src/judge.js");
+      return judgeReport(input);
+    },
     scanUrl: async (urlString) => {
       const remote = await fetchRemote(urlString);
       return { report: scanHtml(remote.html), remote };
@@ -471,6 +527,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/scan") {
       return handleScan(req, res);
+    }
+    if (req.method === "POST" && pathname === "/judge") {
+      return handleJudge(req, res);
     }
     if (req.method === "POST" && pathname === "/scan-project") {
       return handleScanProject(req, res);
@@ -561,6 +620,7 @@ if (require.main === module) {
     console.log(`  GET  /health                 liveness`);
     console.log(`  GET  /rules                  pattern corpus manifest`);
     console.log(`  POST /scan                   { text | html | url | rules_url }`);
+    console.log(`  POST /judge                  { text | html | project } (judgement checklist)`);
     console.log(`  POST /scan-project           { dir, topFiles } (local filesystem)`);
     console.log(`  POST /render-scan           { snapshot | url } (rendered-tier checks; url needs playwright)`);
     console.log(`  POST /mcp                    JSON-RPC 2.0 (initialize/tools/list/tools/call)`);
@@ -573,4 +633,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { server, handleScan, handleScanProject, handleRenderScan, ruleManifest, serviceDescriptor, fetchRemote, extractText, enginesForServer };
+module.exports = { server, handleScan, handleJudge, handleScanProject, handleRenderScan, ruleManifest, serviceDescriptor, fetchRemote, extractText, enginesForServer };

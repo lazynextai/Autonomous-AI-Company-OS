@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Lazynext AI Slop Checker API",
-    "version": "1.4.0",
-    "description": "Deterministic scanner for AI writing tells and AI-default visual design tics. Scans plain text, HTML, URLs (10s timeout), whole project directories, and rendered computed snapshots (pure rendered-tier checks); also exposes MCP (JSON-RPC 2.0) and A2A surfaces, a discovery card, an embeddable widget, an external-rules extension mechanism (`rules_url`), and severity profiles (`profile`). Zero dependencies, no LLM, same input always gives the same score.",
+    "version": "1.4.1",
+    "description": "Deterministic scanner for AI writing tells and AI-default visual design tics. Scans plain text, HTML, URLs (10s timeout), whole project directories, and rendered computed snapshots (pure rendered-tier checks); runs the judgement checklist (POST /judge: 5-question review, craft-floor gate, refusal scaffolds, machine PASS|REVIEW|REFUSE verdict); also exposes MCP (JSON-RPC 2.0) and A2A surfaces, a discovery card, an embeddable widget, an external-rules extension mechanism (`rules_url`), and severity profiles (`profile`). Zero dependencies, no LLM, same input always gives the same score.",
     "contact": { "name": "Lazynext (UNITED GLOBAL VENTURES PRIVATE LIMITED)", "email": "support@lazynext.com" },
     "license": { "name": "MIT" }
   },
@@ -100,6 +100,37 @@
         }
       }
     },
+    "/judge": {
+      "post": {
+        "summary": "Run the judgement checklist over text, HTML, or a directory",
+        "description": "Provide exactly one of text | html | project. Returns the deterministic judge report: the 5-question review (purpose/audience/decision/variety/defaults) with machine-flagged signals, the craft-floor gate (contrast/alignment/text-hierarchy/spacing/no-fake-data/no-decorative-effects) mapped from scanner evidence with human-checkbox items for the non-machineable parts, refusal scaffolds, and a machine-computed PASS | REVIEW | REFUSE verdict computed ONLY from machine-verifiable parts. project (directory) requires local filesystem access — not available on the Workers entry.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": { "type": "string", "description": "plain text to judge" },
+                  "html": { "type": "string", "description": "HTML document to judge" },
+                  "project": { "type": "string", "description": "directory path to judge (local filesystem only)" }
+                },
+                "oneOf": [
+                  { "required": ["text"] },
+                  { "required": ["html"] },
+                  { "required": ["project"] }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Judge report", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JudgeReport" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "413": { "description": "Request body over the 1MB limit", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
     "/scan-project": {
       "post": {
         "summary": "Scan a local directory tree (prose/markup/styles/code)",
@@ -161,7 +192,7 @@
     "/mcp": {
       "post": {
         "summary": "MCP endpoint (JSON-RPC 2.0)",
-        "description": "Model Context Protocol subset: initialize, ping, tools/list, tools/call. Tools: list_rules, scan_text, scan_html, scan_project, rewrite_text. No SSE — GET is 405. Batch arrays are accepted.",
+        "description": "Model Context Protocol subset: initialize, ping, tools/list, tools/call. Tools: list_rules, scan_text, scan_html, scan_project, scan_render, rewrite_text, judge. No SSE — GET is 405. Batch arrays are accepted.",
         "requestBody": {
           "required": true,
           "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JsonRpcEnvelope" } } }
@@ -440,6 +471,96 @@
             }
           },
           "profile": { "type": "string", "enum": ["strict", "lenient"], "description": "present when a profile recomputed the report" }
+        }
+      },
+      "JudgeReport": {
+        "type": "object",
+        "required": ["engine", "version", "input", "scan", "fiveQuestionReview", "craftFloor", "craftFloorMet", "refusalScaffolds", "summary"],
+        "properties": {
+          "engine": { "type": "string", "const": "lazynext-ai-slop-checker-judge" },
+          "version": { "type": "string" },
+          "input": {
+            "type": "object",
+            "oneOf": [
+              { "type": "object", "required": ["type", "length"], "properties": { "type": { "type": "string", "enum": ["text", "html"] }, "length": { "type": "integer" } } },
+              { "type": "object", "required": ["type", "dir", "filesScanned"], "properties": { "type": { "type": "string", "const": "project" }, "dir": { "type": "string" }, "filesScanned": { "type": "integer" } } }
+            ]
+          },
+          "scan": {
+            "type": "object",
+            "required": ["project", "score", "verdict", "clean", "matches"],
+            "properties": {
+              "project": { "type": "boolean" },
+              "root": { "type": "string" },
+              "score": { "type": "integer" },
+              "verdict": { "type": "string" },
+              "clean": { "type": "boolean" },
+              "matches": { "type": "array", "items": { "type": "object" } },
+              "filesScanned": { "type": "integer" },
+              "filesWithHits": { "type": "integer" },
+              "filesSkipped": { "type": "integer" },
+              "totalPoints": { "type": "integer" }
+            }
+          },
+          "fiveQuestionReview": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["question", "hints", "verdictHint", "signals"],
+              "properties": {
+                "question": { "type": "string" },
+                "hints": { "type": "array", "items": { "type": "string" } },
+                "verdictHint": { "type": "string" },
+                "signals": {
+                  "type": "array",
+                  "items": { "type": "object", "required": ["id", "count"], "properties": { "id": { "type": "string" }, "count": { "type": "integer" } } }
+                }
+              }
+            }
+          },
+          "craftFloor": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "name", "desc", "machine", "evidence", "humanCheckbox", "guidance"],
+              "properties": {
+                "id": { "type": "string" },
+                "name": { "type": "string" },
+                "desc": { "type": "string" },
+                "machine": { "type": "string", "enum": ["ok", "flag", "unchecked"] },
+                "evidence": { "type": "array", "items": { "type": "string" } },
+                "humanCheckbox": { "type": "boolean" },
+                "guidance": { "type": "string" }
+              }
+            }
+          },
+          "craftFloorMet": { "type": "boolean" },
+          "refusalScaffolds": {
+            "type": "array",
+            "items": { "type": "object", "required": ["name", "when", "text"], "properties": { "name": { "type": "string" }, "when": { "type": "string" }, "text": { "type": "string" } } }
+          },
+          "summary": {
+            "type": "object",
+            "required": ["verdict", "reasons", "machineChecked", "humanStepsRequired", "note"],
+            "properties": {
+              "verdict": { "type": "string", "enum": ["PASS", "REVIEW", "REFUSE"] },
+              "reasons": { "type": "array", "items": { "type": "string" } },
+              "machineChecked": {
+                "type": "object",
+                "properties": {
+                  "floorItemsTotal": { "type": "integer" },
+                  "floorFlagged": { "type": "integer" },
+                  "floorOk": { "type": "integer" },
+                  "floorUnchecked": { "type": "integer" },
+                  "objections": { "type": "integer" },
+                  "copyTells": { "type": "integer" },
+                  "designTells": { "type": "integer" }
+                }
+              },
+              "humanStepsRequired": { "type": "boolean", "const": true },
+              "note": { "type": "string" }
+            }
+          }
         }
       },
       "ProjectReport": {

@@ -9,9 +9,11 @@
  *   GET   /  /health  /rules  /openapi.json  /.well-known/agent.json
  *         /llms.txt  /widget.js
  *   POST  /scan {text}  {html}  {rules_url} (400 on non-http)
+ *   POST  /judge {text}  {html}  {project} (temp fixture dir, like scan-project)
  *   POST  /scan-project   (temp fixture dir created by this script)
  *   POST  /render-scan    (hand-built snapshot: gradient-text h1)
- *   POST  /mcp  initialize + tools/list + tools/call scan_text
+ *   POST  /mcp  initialize + tools/list (7 tools incl. judge) + tools/call
+ *         scan_text + tools/call judge
  *   POST  /a2a  message/send, then GET /a2a/tasks/:id replay
  *
  * Prints a route→status table and exits non-zero on ANY failure.
@@ -120,6 +122,43 @@ async function run() {
     } else fail("/scan", "POST", status, `expected 400 http(s) validation, got ${status} ${JSON.stringify(payload)}`);
   }
 
+  // ── POST /judge ───────────────────────────────────────────────────────
+  // Text judge: the checklist contract — 5 questions, 6 floor items,
+  // machine verdict in PASS | REVIEW | REFUSE.
+  {
+    const { status, payload } = await req("POST", "/judge", { text: SLOP_TEXT });
+    const ok =
+      status === 200 &&
+      payload &&
+      payload.engine === "lazynext-ai-slop-checker-judge" &&
+      Array.isArray(payload.fiveQuestionReview) && payload.fiveQuestionReview.length === 5 &&
+      Array.isArray(payload.craftFloor) && payload.craftFloor.length === 6 &&
+      ["PASS", "REVIEW", "REFUSE"].includes(payload.summary.verdict);
+    if (ok) pass("/judge", "POST", status, `text → ${payload.summary.verdict} (5Q+floor contract)`);
+    else fail("/judge", "POST", status, `expected the judge checklist, got ${status} ${JSON.stringify(payload)}`);
+  }
+  // HTML judge: a machine-checked floor item (d-gradient-text) must REFUSE.
+  {
+    const html = '<div><h1>Welcome</h1><p>Join 10,000+ users today</p><style>.hero{background-clip:text;-webkit-background-clip:text;color:transparent}</style></div>';
+    const { status, payload } = await req("POST", "/judge", { html });
+    const refused = status === 200 && payload && payload.summary.verdict === "REFUSE" && payload.craftFloor.some((f) => f.machine === "flag");
+    if (refused) pass("/judge", "POST", status, "html floor → REFUSE (d-gradient-text)");
+    else fail("/judge", "POST", status, `expected REFUSE on a flagged floor item, got ${status} ${JSON.stringify(payload)}`);
+  }
+  // Project judge (temp fixture dir).
+  {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "slop-e2e-judge-"));
+    try {
+      fs.writeFileSync(path.join(dir, "README.md"), "# " + SLOP_TEXT + "\n");
+      const { status, payload } = await req("POST", "/judge", { project: dir });
+      const ok = status === 200 && payload && payload.input.type === "project" && payload.input.filesScanned >= 1;
+      if (ok) pass("/judge", "POST", status, `project → ${payload.summary.verdict} (${payload.input.filesScanned} file(s))`);
+      else fail("/judge", "POST", status, `expected a project judge report, got ${status} ${JSON.stringify(payload)}`);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
   // ── POST /scan-project (temp fixture dir) ───────────────────────────────
   {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "slop-e2e-project-"));
@@ -202,6 +241,18 @@ async function run() {
     if (call.status === 200 && content && Array.isArray(content.content) && content.content.length > 0) {
       pass("/mcp", "POST", call.status, "tools/call scan_text ok");
     } else fail("/mcp", "POST", call.status, `tools/call scan_text failed: ${JSON.stringify(call.payload)}`);
+  }
+  {
+    const call = await req("POST", "/mcp", {
+      jsonrpc: "2.0",
+      id: 3,
+      method: "tools/call",
+      params: { name: "judge", arguments: { text: SLOP_TEXT } },
+    });
+    const data = call.payload && call.payload.result && call.payload.result.structuredContent;
+    if (call.status === 200 && data && data.summary && ["PASS", "REVIEW", "REFUSE"].includes(data.summary.verdict) && data.fiveQuestionReview.length === 5) {
+      pass("/mcp", "POST", call.status, `tools/call judge ok (${data.summary.verdict})`);
+    } else fail("/mcp", "POST", call.status, `tools/call judge failed: ${JSON.stringify(call.payload)}`);
   }
 
   // ── A2A: message/send then GET /a2a/tasks/:id replay ───────────────────

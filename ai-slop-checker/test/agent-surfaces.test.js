@@ -119,11 +119,11 @@ test("MCP: ping returns an empty result", async () => {
   assert.deepEqual(body.result, {});
 });
 
-test("MCP: tools/list returns the six expected tools", async () => {
+test("MCP: tools/list returns the seven expected tools", async () => {
   const { status, body } = await rpcPost("/mcp", { jsonrpc: "2.0", id: "tl1", method: "tools/list" });
   assert.equal(status, 200);
   const names = body.result.tools.map((t) => t.name).sort();
-  assert.deepEqual(names, ["list_rules", "rewrite_text", "scan_html", "scan_project", "scan_render", "scan_text"]);
+  assert.deepEqual(names, ["judge", "list_rules", "rewrite_text", "scan_html", "scan_project", "scan_render", "scan_text"]);
   for (const t of body.result.tools) {
     assert.ok(t.description && t.description.length > 0);
     assert.ok(t.inputSchema && t.inputSchema.type === "object");
@@ -192,6 +192,25 @@ test("MCP tools/call: rewrite_text rewrites safely", async () => {
   const data = body.result.structuredContent;
   assert.equal(data.changed, true);
   assert.ok(!data.text.includes("utilize"));
+});
+
+test("MCP tools/call: judge runs the checklist over text", async () => {
+  const { status, body } = await callTool("judge", { text: "We must leverage this robust tool." });
+  assert.equal(status, 200);
+  const data = body.result.structuredContent;
+  assert.equal(data.engine, "lazynext-ai-slop-checker-judge");
+  assert.equal(data.fiveQuestionReview.length, 5);
+  assert.equal(data.craftFloor.length, 6);
+  assert.ok(["PASS", "REVIEW", "REFUSE"].includes(data.summary.verdict));
+  assert.equal(data.summary.humanStepsRequired, true);
+});
+
+test("MCP tools/call: judge with html refutes on a machine-checked floor item", async () => {
+  const { body } = await callTool("judge", {
+    html: '<style>.hero{background-clip:text;-webkit-background-clip:text;color:transparent}</style><h1>Hi</h1>',
+  });
+  const data = body.result.structuredContent;
+  assert.equal(data.summary.verdict, "REFUSE");
 });
 
 test("MCP tools/call: unknown tool returns -32602", async () => {
@@ -298,7 +317,7 @@ test("GET /.well-known/agent.json serves the agent card", async () => {
   assert.equal(card.protocolVersion, "0.3.0");
   assert.deepEqual(card.capabilities, { streaming: false, pushNotifications: false });
   const skillIds = card.skills.map((s) => s.id).sort();
-  assert.deepEqual(skillIds, ["rewrite_text", "scan_html", "scan_project", "scan_render", "scan_text"]);
+  assert.deepEqual(skillIds, ["judge", "rewrite_text", "scan_html", "scan_project", "scan_render", "scan_text"]);
 });
 
 test("GET /widget.js serves an embeddable script that parses and mounts", async () => {
