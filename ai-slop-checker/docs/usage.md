@@ -43,6 +43,10 @@ same score.
 node api/cli.js --file demo/slop.txt --json
 node api/cli.js --profile strict "delve deep into this"
 node api/cli.js --rules data/rules.ru.js "В современном мире..."
+node api/cli.js --rules data/rules.hi.js "आज के डिजिटल युग में..."   # Hindi i18n corpus
+node api/cli.js --rules data/rules.es.js "En el mundo actual..."   # Spanish i18n corpus
+node api/cli.js --rules data/rules.fr.js "Dans le monde d'aujourd'hui..."   # French i18n corpus
+node api/cli.js --rules data/rules.de.js "In der heutigen schnelllebigen Welt..."   # German i18n corpus
 node api/cli.js --rules "rules/**/*.js" --dir src
 node api/cli.js --dir path/to/project --top 20 --json
 node api/cli.js --snapshot snapshot.json

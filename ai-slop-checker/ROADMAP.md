@@ -107,12 +107,12 @@ work, deliberately outside the score.
 
 ## Non-English built-ins (i18n corpus)
 
-The i18n path is the external-rules mechanism; three ORIGINAL sample
+The i18n path is the external-rules mechanism; five ORIGINAL sample
 corpora ship: `data/rules.ru.js` (36), `data/rules.hi.js` (33),
-`data/rules.es.js` (34). The mechanism is the product; the corpora are
-content. More built-in languages (German, French, …) stay roadmap until
-each has a real reviewer; an auto-translated corpus would import
-English-false-positive mistakes.
+`data/rules.es.js` (34), `data/rules.fr.js` (32), `data/rules.de.js`
+(32). The mechanism is the product; the corpora are content. More built-in
+languages stay roadmap until each has a real reviewer; an
+auto-translated corpus would import English-false-positive mistakes.
 
 ## Weighted severity profiles
 

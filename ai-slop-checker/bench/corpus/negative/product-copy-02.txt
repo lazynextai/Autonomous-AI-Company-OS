@@ -1,0 +1,1 @@
+The scanner checks text, HTML, and project folders. Reports show a score, a verdict, and a list of matches with suggested fixes. Everything runs locally in the browser with no data sent to a server.

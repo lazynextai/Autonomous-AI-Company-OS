@@ -1,0 +1,1 @@
+A request must include a valid session token. The token is checked against the session store before the request handler runs. Expired tokens return a 401 status with a clear error in the response body.

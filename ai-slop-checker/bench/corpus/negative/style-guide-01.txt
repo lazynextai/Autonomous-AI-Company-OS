@@ -1,0 +1,1 @@
+Use sentence case for headings. Keep paragraphs under five lines. Numbers below ten are written as words. Spell out the first mention of an abbreviation before using it again.

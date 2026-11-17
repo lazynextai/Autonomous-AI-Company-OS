@@ -1,0 +1,1 @@
+Die Bäckerei öffnet um sechs Uhr. Das erste Blech Brot kommt um zehn nach sechs aus dem Ofen, die Kruste noch warm. Maya stellt die Laibe der Größe nach auf den Tresen und zählt die Tageseinnahmen zweimal, bevor der Wasserkocher pfeift. Mittags wird abgewischt und gekehrt. Sie schließt um zwei Uhr und rührt den Teig für morgen an, während im Radio Jazz läuft.

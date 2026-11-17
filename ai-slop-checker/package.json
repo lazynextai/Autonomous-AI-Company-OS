@@ -41,6 +41,8 @@
     "test": "node --test",
     "e2e": "node scripts/e2e.js",
     "check": "node scripts/check.js",
+    "eval": "node bench/eval.js",
+    "eval:json": "node bench/eval.js --json",
     "start": "node api/server.js",
     "scan:cli": "node api/cli.js",
     "gen:assets": "node scripts/generate-embedded-assets.js",

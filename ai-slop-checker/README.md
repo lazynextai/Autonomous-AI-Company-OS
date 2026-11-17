@@ -63,11 +63,15 @@ dependencies).
 npm install        # no-op today: declares no dependencies (package-lock generation only)
 
 # Tests
-npm test           # = node --test   (383 tests)
+npm test           # = node --test   (398 tests)
 
 # Full quality gate: corpus integrity + unit suite + end-to-end matrix
 npm run check      # sequential: check-corpus.js → node --test → e2e on 8793,
                    # prints a summary table, exits non-zero on any failure
+
+# Corpus quality benchmark: per-family precision/recall/F1 + negative-FP gate
+npm run eval       # = node bench/eval.js   (exit 0 = gate PASS; --json for machine output)
+npm run eval:json  # = node bench/eval.js --json
 
 # End-to-end API contract matrix (spawns api/server.js on port 8793)
 npm run e2e        # asserts every route (GET/POST/MCP/A2A), prints a table, exits non-zero on failure
@@ -87,6 +91,8 @@ node api/cli.js --rules                                    # dump the corpus sho
 node api/cli.js --rules data/rules.ru.js "В современном мире..."   # scan with external rules
 node api/cli.js --rules data/rules.hi.js "आज के डिजिटल युग में..."   # Hindi i18n corpus
 node api/cli.js --rules data/rules.es.js "En el mundo actual..."   # Spanish i18n corpus
+node api/cli.js --rules data/rules.fr.js "Dans le monde d'aujourd'hui..."   # French i18n corpus
+node api/cli.js --rules data/rules.de.js "In der heutigen schnelllebigen Welt..."   # German i18n corpus
 node api/cli.js --rules "rules/**\/*.js" --dir src          # external rules + project scan
 node api/cli.js --dir path/to/project        # whole-project scan
 node api/cli.js --dir path/to/project --top 20
@@ -139,10 +145,11 @@ External rules files accept a path, a `.json` file, a glob, or a
 comma-separated list, and deep-merge into the built-in corpus: custom
 categories are appended, custom patterns in existing categories fold in,
 and duplicate pattern ids are rejected with a clear error. The merged corpus
-wins the report's `version`. `data/rules.ru.js`, `data/rules.hi.js` and
-`data/rules.es.js` are shipped samples — original Russian, Hindi and
-Spanish AI-slop-tell corpora demonstrating the general i18n path (279 +
-36 + 33 + 34 patterns when merged; zero duplication).
+wins the report's `version`. `data/rules.ru.js`, `data/rules.hi.js`,
+`data/rules.es.js`, `data/rules.fr.js` and `data/rules.de.js` are shipped
+samples — original Russian, Hindi, Spanish, French and German AI-slop-tell
+corpora demonstrating the general i18n path (279 + 36 + 33 + 34 + 32 + 32
+patterns when merged; zero duplication).
 
 Project scans infer each file's lens — `.md`/`.txt` are prose-scanned,
 `.html`/`.jsx`/`.tsx`/`.vue`/`.svelte`/`.astro` are HTML-scanned, and
@@ -316,7 +323,9 @@ ai-slop-checker/
 │   ├── profiles.js           # severity profiles: default / strict / lenient (UMD)
 │   ├── rules.ru.js           # original Russian sample corpus — external-rules/i18n demo
 │   ├── rules.hi.js           # original Hindi sample corpus (loanwords, epochs, hedges)
-│   └── rules.es.js           # original Spanish sample corpus (anglicisms, superlatives)
+│   ├── rules.es.js           # original Spanish sample corpus (anglicisms, superlatives)
+│   ├── rules.fr.js           # original French sample corpus (epochs, anglicisms, superlatives)
+│   └── rules.de.js           # original German sample corpus (calques, consulting soup)
 ├── src/
 │   ├── scanner.js            # scanText / scanHtml / scanDesign / extractText (UMD)
 │   ├── project-scanner.js    # scanProject — whole-directory scan (--dir)
@@ -354,16 +363,19 @@ ai-slop-checker/
 │   ├── judge.test.js         # judgement checklist: contract, verdict boundary, determinism
 │   ├── app.test.js           # web-app UX regression: Scan-lifecycle state machine (node-only)
 │   ├── profiles.test.js      # default/strict/lenient on the same text (CLI/API/render/project)
-│   ├── i18n.test.js          # hi + es corpora, ru+hi+es merge, dup rejection
+│   ├── i18n.test.js          # ru/hi/es/fr/de corpora, all-five merge, dup rejection
 │   ├── pwa.test.js           # manifest keys, icon PNGs, sw.js parse, guarded registration
 │   ├── api.test.js           # HTTP contract tests (incl. POST /judge)
 │   ├── api-rules-url.test.js # POST /scan rules_url (local fixture server)
 │   ├── agent-surfaces.test.js # MCP handshake + tools (incl. judge), A2A, discovery, widget
 │   ├── rules-loader.test.js  # merge semantics, dup rejection, .ru corpus, CLI --rules
 │   ├── openapi-parity.test.js # spec ⇄ server route parity
+│   ├── eval-harness.test.js  # eval math (precision/recall/F1), FP gate, corpus readability
 │   └── bench.test.js         # bench + dogfood-stays-fixed regression locks
 ├── bench/
-│   └── run.js                # scan our own docs/web; print the bench table
+│   ├── run.js                # scan our own docs/web; print the bench table
+│   ├── eval.js               # corpus quality benchmark: per-family P/R/F1 + negative-FP gate
+│   └── corpus/               # original labelled samples (positive/ + negative/ + per-language)
 ├── demo/
 │   ├── slop.txt              # a deliberately sloppy sample (test control)
 │   ├── clean.txt             # a clean control sample (test control)
@@ -482,9 +494,12 @@ as a human guide, non-English built-ins as content, a
 Phase 5 (v1.4.0) shipped fuzz robustness, corpus quality gates, the perf
 bench, the e2e contract matrix, and packaging validation. Phase 6 (v1.4.1)
 shipped the judgement checklist (`--judge`/`POST /judge`/MCP `judge`), the
-`npm run check` quality gate, and the web-checker stale-results UX fix
-(regression-locked in `test/app.test.js`); the real-browser render CI
-harness and the `.github/` CI gate stay devops-gated follow-ups.
+`npm run check` quality gate, the web-checker stale-results UX fix
+(regression-locked in `test/app.test.js`), the corpus quality benchmark
+(`bench/eval.js` — per-family precision/recall/F1 against original labelled
+samples with a ≤5% negative-corpus FP gate), and the French + German i18n
+corpora (`data/rules.fr.js` / `data/rules.de.js`); the real-browser render
+CI harness and the `.github/` CI gate stay devops-gated follow-ups.
 
 Deferred from this deliverable, consciously: no real-browser CI gate
 (`.github/`-gated and devops-owned per house rules — not created here), no

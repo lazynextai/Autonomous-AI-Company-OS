@@ -1,0 +1,1 @@
+Clean code isn't about memorizing rules. It's about clarity. The team stops being reactive and starts being proactive once the tests are readable.

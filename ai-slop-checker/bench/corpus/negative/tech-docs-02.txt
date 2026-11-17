@@ -1,0 +1,1 @@
+Migrations run in order of their timestamp prefix. Each migration records a hash of its contents in the version table. A rollback restores the previous migration from the stored snapshot.

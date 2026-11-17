@@ -5,8 +5,9 @@
  * The full local quality gate, run sequentially in one invocation:
  *
  *   STEP 1  Corpus integrity gate   node scripts/check-corpus.js (base +
- *                                   ru/hi/es i18n corpora — merged 382/30,
- *                                   zero duplication; exits 1 on any FAIL)
+ *                                   ru/hi/es/fr/de i18n corpora — merged
+ *                                   446/32, zero duplication; exits 1 on
+ *                                   any FAIL)
  *   STEP 2  Unit + integration      node --test  (the full 300+ suite)
  *   STEP 3  End-to-end contract     npm run e2e  (spawns api/server.js on
  *                                   port 8793, asserts every route with real
@@ -56,7 +57,7 @@ function main() {
   steps.push(runStep(
     "corpus gate",
     process.execPath,
-    ["scripts/check-corpus.js", "data/rules.ru.js", "data/rules.hi.js", "data/rules.es.js"]
+    ["scripts/check-corpus.js", "data/rules.ru.js", "data/rules.hi.js", "data/rules.es.js", "data/rules.fr.js", "data/rules.de.js"]
   ));
 
   // STEP 2 — full unit + integration suite

@@ -1,10 +1,9 @@
 "use strict";
 /**
- * i18n corpora tests: both new sample corpora (data/rules.hi.js — Hindi,
- * data/rules.es.js — Spanish) fire on a sample in their script, score 0 on
- * the English clean demo, merge with ru without duplication, and keep
- * duplicate-id rejection working. The i18n path is the external-rules
- * mechanism (data/rules.ru.js pattern).
+ * i18n corpora tests: the shipped sample corpora (data/rules.{ru,hi,es,fr,de}.js)
+ * fire on a sample in their language, score 0 on the English clean demo,
+ * merge without duplication, and keep duplicate-id rejection working. The
+ * i18n path is the external-rules mechanism (data/rules.ru.js pattern).
  */
 
 const test = require("node:test");
@@ -97,21 +96,95 @@ test("data/rules.es.js: pattern count and category count when merged", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Merged ru + hi + es (all three external corpora)
+// French
 // ---------------------------------------------------------------------------
 
-test("merging ru + hi + es: 279 + ru + hi + es with no duplication", () => {
-  const merged = loadRules("data/rules.ru.js,data/rules.hi.js,data/rules.es.js");
+test("data/rules.fr.js: fires on French slop, scores 0 on English clean, appends fr-copy-tics", () => {
+  const merged = loadRules("data/rules.fr.js");
+  const engine = createEngine(merged);
+  assert.equal(merged.version, "1.0.0-fr");
+
+  const frSlop =
+    "Dans le monde d'aujourd'hui, il est important de noter que les entreprises " +
+    "doivent optimiser leurs processus. Il convient de souligner qu'une " +
+    "transformation digitale et une solution intégrée apportent une réelle valeur ajoutée. " +
+    "En conclusion, les experts s'accordent à dire que cette approche innovante " +
+    "est révolutionnaire et offre une expérience utilisateur optimale.";
+  const report = engine.scanText(frSlop);
+  assert.equal(report.clean, false, "French slop must not be clean");
+  assert.ok(report.score >= 30, `expected a firm French score, got ${report.score}`);
+  assert.ok(report.matches.some((m) => m.id === "fr-f-monde-aujourdhui"), "epoch opener fires");
+  assert.ok(report.matches.some((m) => m.id === "fr-w-innovant"), "generic superlative fires");
+  assert.ok(report.matches.some((m) => m.category === "fr-copy-tics"), "appended category fires");
+  assert.ok(report.categories.some((c) => c.id === "fr-copy-tics"), "appended category reported");
+
+  const enReport = engine.scanText(EN_CLEAN);
+  assert.equal(enReport.clean, true, "English clean prose stays clean on the merged fr engine");
+  assert.equal(enReport.matches.length, 0, "no false fires on clean English prose");
+});
+
+test("data/rules.fr.js: pattern count and category count when merged", () => {
+  const merged = loadRules("data/rules.fr.js");
+  const frCount = require("../data/rules.fr.js").patterns.length;
+  assert.ok(frCount >= 25 && frCount <= 40, `fr corpus within the 25-35-ish band (got ${frCount})`);
+  assert.equal(merged.patterns.length, BASE_COUNT + frCount);
+  assert.equal(merged.categories.length, BASE_CATS + 1);
+});
+
+// ---------------------------------------------------------------------------
+// German
+// ---------------------------------------------------------------------------
+
+test("data/rules.de.js: fires on German slop, scores 0 on English clean, appends de-copy-tics", () => {
+  const merged = loadRules("data/rules.de.js");
+  const engine = createEngine(merged);
+  assert.equal(merged.version, "1.0.0-de");
+
+  const deSlop =
+    "In der heutigen schnelllebigen Welt ist es wichtig zu erwähnen, dass " +
+    "Unternehmen ihre Prozesse optimieren müssen. Experten sind sich einig, " +
+    "dass diese innovative Lösung eine nahtlose Benutzererfahrung bietet. " +
+    "Zusammenfassend lässt sich sagen, dass die digitale Transformation von " +
+    "großer Bedeutung ist und Synergien wirklich Mehrwert schaffen.";
+  const report = engine.scanText(deSlop);
+  assert.equal(report.clean, false, "German slop must not be clean");
+  assert.ok(report.score >= 30, `expected a firm German score, got ${report.score}`);
+  assert.ok(report.matches.some((m) => m.id === "de-f-heutigen-schnelllebigen"), "epoch opener fires");
+  assert.ok(report.matches.some((m) => m.id === "de-w-nahtlos"), "seamless calque fires");
+  assert.ok(report.matches.some((m) => m.category === "de-copy-tics"), "appended category fires");
+  assert.ok(report.categories.some((c) => c.id === "de-copy-tics"), "appended category reported");
+
+  const enReport = engine.scanText(EN_CLEAN);
+  assert.equal(enReport.clean, true, "English clean prose stays clean on the merged de engine");
+  assert.equal(enReport.matches.length, 0, "no false fires on clean English prose");
+});
+
+test("data/rules.de.js: pattern count and category count when merged", () => {
+  const merged = loadRules("data/rules.de.js");
+  const deCount = require("../data/rules.de.js").patterns.length;
+  assert.ok(deCount >= 25 && deCount <= 40, `de corpus within the 25-35-ish band (got ${deCount})`);
+  assert.equal(merged.patterns.length, BASE_COUNT + deCount);
+  assert.equal(merged.categories.length, BASE_CATS + 1);
+});
+
+// ---------------------------------------------------------------------------
+// Merged ru + hi + es + fr + de (all five external corpora)
+// ---------------------------------------------------------------------------
+
+test("merging ru + hi + es + fr + de: 279 + all five with no duplication", () => {
+  const merged = loadRules("data/rules.ru.js,data/rules.hi.js,data/rules.es.js,data/rules.fr.js,data/rules.de.js");
   const ruCount = require("../data/rules.ru.js").patterns.length;
   const hiCount = require("../data/rules.hi.js").patterns.length;
   const esCount = require("../data/rules.es.js").patterns.length;
+  const frCount = require("../data/rules.fr.js").patterns.length;
+  const deCount = require("../data/rules.de.js").patterns.length;
 
   assert.equal(
     merged.patterns.length,
-    BASE_COUNT + ruCount + hiCount + esCount,
+    BASE_COUNT + ruCount + hiCount + esCount + frCount + deCount,
     "every external pattern lands exactly once"
   );
-  assert.equal(merged.categories.length, BASE_CATS + 3, "one new category per i18n corpus");
+  assert.equal(merged.categories.length, BASE_CATS + 5, "one new category per i18n corpus");
   assert.equal(new Set(merged.patterns.map((p) => p.id)).size, merged.patterns.length, "no duplicate ids in the merged set");
 
   const engine = createEngine(merged);
@@ -127,17 +200,25 @@ test("i18n corpora are original files (not copies of each other)", () => {
   const ru = fs.readFileSync(path.join(__dirname, "..", "data", "rules.ru.js"), "utf8");
   const hi = fs.readFileSync(path.join(__dirname, "..", "data", "rules.hi.js"), "utf8");
   const es = fs.readFileSync(path.join(__dirname, "..", "data", "rules.es.js"), "utf8");
+  const fr = fs.readFileSync(path.join(__dirname, "..", "data", "rules.fr.js"), "utf8");
+  const de = fs.readFileSync(path.join(__dirname, "..", "data", "rules.de.js"), "utf8");
   // Distinct id prefixes prove they are hand-written corpora, not clones.
   assert.ok(ru.includes('id: "ru-'), "ru ids");
   assert.ok(hi.includes('id: "hi-'), "hi ids");
   assert.ok(es.includes('id: "es-'), "es ids");
-  // And the .ru id set is entirely different from the new ones.
-  const ruIds = new Set([...ru.matchAll(/\bid: "([^"]+)"/g)].map((m) => m[1]));
-  const hiIds = new Set([...hi.matchAll(/\bid: "([^"]+)"/g)].map((m) => m[1]));
-  const esIds = new Set([...es.matchAll(/\bid: "([^"]+)"/g)].map((m) => m[1]));
-  for (const id of hiIds) assert.ok(!ruIds.has(id), `hi id ${id} must not collide with ru`);
-  for (const id of esIds) assert.ok(!ruIds.has(id), `es id ${id} must not collide with ru`);
-  for (const id of esIds) assert.ok(!hiIds.has(id), `es id ${id} must not collide with hi`);
+  assert.ok(fr.includes('id: "fr-'), "fr ids");
+  assert.ok(de.includes('id: "de-'), "de ids");
+  // And every new corpus's id set is disjoint from every other.
+  const corpora = [
+    ["ru", ru], ["hi", hi], ["es", es], ["fr", fr], ["de", de],
+  ].map(([name, text]) => [name, new Set([...text.matchAll(/\bid: "([^"]+)"/g)].map((m) => m[1]))]);
+  for (let i = 0; i < corpora.length; i++) {
+    for (let j = i + 1; j < corpora.length; j++) {
+      const [nameA, idsA] = corpora[i];
+      const [nameB, idsB] = corpora[j];
+      for (const id of idsA) assert.ok(!idsB.has(id), `${nameA} id ${id} must not collide with ${nameB}`);
+    }
+  }
 });
 
 test("duplicate-id rejection still works after the i18n corpora exist", () => {
@@ -149,6 +230,10 @@ test("duplicate-id rejection still works after the i18n corpora exist", () => {
   // And a duplicate of a base id in the same custom set is still rejected.
   const payload2 = { patterns: [{ id: "w-delve", category: "word-ban", severity: 2, kind: "word", match: "x", desc: "dup", fix: "dup" }] };
   assert.throws(() => loadRules(payload2), /duplicate pattern id "w-delve"/);
+  // New corpora must reject dupes among themselves as well.
+  const withFr = loadRules("data/rules.fr.js");
+  const frPayload = { patterns: [{ id: "fr-w-seamless", category: "word-ban", severity: 2, kind: "word", match: "x", desc: "dup", fix: "dup" }] };
+  assert.throws(() => loadRules(frPayload, { base: withFr }), /duplicate pattern id "fr-w-seamless"/);
 });
 
 function enCleanOnEngine(engine) {

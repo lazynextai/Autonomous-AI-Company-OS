@@ -14,7 +14,7 @@
 - OpenAPI: https://slop-checker.lazynext.com/openapi.json
 - MCP: https://slop-checker.lazynext.com/mcp (JSON-RPC 2.0 — list_rules, scan_text, scan_html, scan_project, scan_render, rewrite_text, judge; GET is 405, no SSE)
 - A2A: https://slop-checker.lazynext.com/a2a (JSON-RPC 2.0 — message/send, tasks/send, tasks/get; agent card at https://slop-checker.lazynext.com/.well-known/agent.json; task results replay at GET /a2a/tasks/:id)
-- Rules manifest: https://slop-checker.lazynext.com/rules (JSON; 279 built-in patterns across 27 categories + external i18n corpora: data/rules.ru.js, data/rules.hi.js, data/rules.es.js)
+- Rules manifest: https://slop-checker.lazynext.com/rules (JSON; 279 built-in patterns across 27 categories + external i18n corpora: data/rules.ru.js, data/rules.hi.js, data/rules.es.js, data/rules.fr.js, data/rules.de.js)
 - Severity profiles: default / strict / lenient (CLI --profile, API profile field)
 - Widget: https://slop-checker.lazynext.com/widget.js (shadow-DOM embed: <script src=".../widget.js" data-target="#el"></script>)
 - Repository: https://github.com/lazynextai/Autonomous-AI-Company-OS (monorepo: ai-slop-checker/)

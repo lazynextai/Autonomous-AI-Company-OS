@@ -1,0 +1,1 @@
+La boulangerie ouvre à six heures. Le premier plateau de pains sort du four à six heures dix, la croûte encore chaude. Maya range les miches sur le comptoir, les plus grosses en premier, et compte la recette deux fois avant que la bouilloire chante. À midi, les tables sont essuyées et le sol balayé. Elle ferme à deux heures et prépare la pâte du lendemain en écoutant la radio.
