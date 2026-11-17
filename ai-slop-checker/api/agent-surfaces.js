@@ -22,8 +22,6 @@
  * Workers entry returns a clear error for it. Zero dependencies.
  */
 
-const { URL } = require("node:url");
-
 const PROTOCOL_VERSION = "2025-03-26";
 
 const MCP_TOOLS = [

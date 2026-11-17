@@ -25,8 +25,14 @@
  * Deterministic, zero dependencies, never edits files.
  */
 
-const fs = require("node:fs");
-const path = require("node:path");
+const { nodeFs, nodePath } = require("./node-bridge.js");
+
+// Node-only modules — see src/node-bridge.js: null on the Workers edge, the
+// real node:fs / node:path under Node. project-scanner is a
+// local-filesystem feature (POST /scan-project and project judge both
+// short-circuit on the Worker), so on the edge these are never exercised.
+const fs = nodeFs();
+const path = nodePath();
 
 const BUILTIN_ENGINE = require("./scanner.js");
 

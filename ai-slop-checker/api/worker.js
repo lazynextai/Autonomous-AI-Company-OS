@@ -1,15 +1,24 @@
 "use strict";
 /**
  * Lazynext AI Slop Checker — Cloudflare Workers entry (drop-in alt to
- * api/server.js). Not deployed; kept dependency-light so the same scanner
- * runs on the edge.
+ * api/server.js). Deployed as `lazynext-ai-slop-checker` (see
+ * docs/DEPLOYMENT.md); runs the same deterministic scanner on the edge.
  *
- * Deploy (documented in README.md + docs/DEPLOYMENT.md, not executed here):
+ * Deploy:
  *   cd ai-slop-checker
- *   wrangler deploy --name lazynext-ai-slop-checker
+ *   wrangler deploy   (CLOUDFLARE_API_TOKEN=$CLOUDFLARE_DEPLOY_TOKEN)
+ *
+ * The worker has zero node:* imports anywhere in its loaded module graph —
+ * workerd (Service Worker format) has no node:fs/node:path/node:url, and
+ * wrangler refuses external node:* imports in this format. File-backed
+ * discovery routes (/llms.txt, /openapi.json) are served through the
+ * [assets] binding when present, with embedded constant fallbacks
+ * (api/embedded-assets.js); Node-only filesystem features live behind
+ * src/node-bridge.js and short-circuit (400/501) on the edge.
  *
  * Routes (same contract as api/server.js):
- *   GET  /                 JSON descriptor
+ *   GET  /                 web checker page (when the [assets] binding is
+ *                          present) — JSON service descriptor otherwise
  *   GET  /health           liveness
  *   GET  /rules            corpus manifest
  *   POST /scan             { text | html | url | rules_url }
@@ -22,6 +31,10 @@
  *   GET  /widget.js        embeddable in-browser widget
  *   GET  /openapi.json     OpenAPI 3.1 contract
  *   GET  /llms.txt         LLM discovery file
+ *   GET  static map        /(index.html|style.css|app.js|sw.js|register-sw.js|
+ *                          manifest.webmanifest) -> web/, /icons/* -> web/icons/
+ *                          /data/* /src/* /assets/* /web/* -> same path
+ *                          (curated GET/HEAD passthrough to env.ASSETS)
  */
 
 const { scanText, scanHtml, extractText } = require("../src/scanner.js");
@@ -29,6 +42,7 @@ const { rewriteText } = require("../src/rewriter.js");
 const { loadRules } = require("../src/rules-loader.js");
 const corpus = require("../data/slop-patterns.js");
 const agentSurfaces = require("./agent-surfaces.js");
+const { LLMS_TXT, OPENAPI_JSON } = require("./embedded-assets.js");
 
 const version = corpus.version;
 const MAX_BODY_BYTES = 1_000_000;
@@ -85,9 +99,174 @@ function serviceDescriptor() {
   };
 }
 
+/**
+ * Serve a static file from the [assets] binding. Returns null when the
+ * binding is absent (unit tests / local), so callers fall back.
+ * 1:1 paths pass the ORIGINAL request through (method/headers/query kept);
+ * remapped paths (e.g. /app.js -> /web/app.js) build a same-origin Request
+ * with the same method + headers. GET and HEAD are both supported by the
+ * assets runtime (HEAD-parity house convention).
+ */
+function serveAsset(req, env, assetPath) {
+  if (!env || !env.ASSETS || typeof env.ASSETS.fetch !== "function") return null;
+  try {
+    const reqPath = new URL(req.url).pathname;
+    if (reqPath !== assetPath) {
+      const target = new URL(assetPath, req.url).toString();
+      return env.ASSETS.fetch(new Request(target, { method: req.method, headers: req.headers }));
+    }
+    return env.ASSETS.fetch(req);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Curated static web surface (mirror of api/server.js resolveStatic for the
+ * edge). web/index.html loads the engine and brand assets via parent- and
+ * self-relative refs that the WHATWG URL parser normalises to site-root
+ * paths; the worker maps exactly those paths onto the [assets] directory:
+ *
+ *   /                      -> web/index.html
+ *   /index.html            -> web/index.html
+ *   /style.css /app.js /sw.js /register-sw.js /manifest.webmanifest
+ *                          -> web/<file>             (index.html self-relative)
+ *   /icons/*               -> web/icons/*            (manifest icons)
+ *   /web/* /data/* /src/*  -> same path              (engine + app data)
+ *   /assets/*              -> same path              (logo / favicon)
+ *
+ * Everything else stays 404 — test/, docs/, bench/, scripts/, .cursor and
+ * the rest of the product tree are NOT exposed even though the whole tree
+ * is bound as assets (run_worker_first = true keeps the worker in front).
+ * Only GET/HEAD pass through; other methods 404.
+ */
+const STATIC_PREFIX_ROUTES = [
+  ["/web/", "/web/"],
+  ["/data/", "/data/"],
+  ["/src/", "/src/"],
+  ["/assets/", "/assets/"],
+  ["/icons/", "/web/icons/"],
+];
+
+const STATIC_EXACT_ROUTES = new Map([
+  ["/style.css", "/web/style.css"],
+  ["/app.js", "/web/app.js"],
+  ["/sw.js", "/web/sw.js"],
+  ["/register-sw.js", "/web/register-sw.js"],
+  ["/manifest.webmanifest", "/web/manifest.webmanifest"],
+]);
+
+function resolveStaticAssetPath(pathname) {
+  if (pathname === "/" || pathname === "/index.html") return "/web/index.html";
+  if (STATIC_EXACT_ROUTES.has(pathname)) return STATIC_EXACT_ROUTES.get(pathname);
+  for (const [prefix, mapped] of STATIC_PREFIX_ROUTES) {
+    if (pathname.startsWith(prefix)) return mapped + pathname.slice(prefix.length);
+  }
+  return null;
+}
+
+/**
+ * SSRF host-block guard on outbound URL fetches (sibling-product
+ * isSafeDocUrl spirit): rejects localhost, *.local / *.internal names, and
+ * literal IPs in private, loopback, link-local, CGNAT, multicast or
+ * broadcast space — including IPv6 loopback/link-local/ULA/multicast and
+ * IPv4-mapped IPv6 (e.g. [::ffff:169.254.169.254] cloud metadata).
+ * Ordinary DNS names that resolve to private ranges cannot be detected
+ * without a resolver on the edge (resolution happens in Cloudflare's
+ * network, where fetch already enforces platform policy); literal hosts
+ * are checked directly.
+ */
+function isBlockedHost(hostname) {
+  const h = String(hostname || "").toLowerCase().replace(/\.$/, "");
+  if (!h) return true;
+  if (h === "localhost") return true;
+  if (h.endsWith(".local") || h.endsWith(".internal")) return true;
+
+  // IPv6 literal (strip [brackets] and any %zone).
+  let v6 = h;
+  if (v6.startsWith("[") && v6.endsWith("]")) v6 = v6.slice(1, -1);
+  const zoneAt = v6.indexOf("%");
+  if (zoneAt !== -1) v6 = v6.slice(0, zoneAt);
+  if (v6.includes(":")) return isBlockedIpv6(v6);
+
+  // IPv4 literal?
+  const octs = h.split(".");
+  if (octs.length === 4 && octs.every((o) => /^\d{1,3}$/.test(o))) {
+    const n = octs.map(Number);
+    if (n.some((o) => o > 255)) return false; // not a valid literal; DNS name
+    return isBlockedIpv4(n);
+  }
+  return false; // ordinary DNS name — resolved at the edge
+}
+
+function isBlockedIpv4([a, b, c, d]) {
+  if (a === 0) return true; // 0.0.0.0/8 "this network"
+  if (a === 10) return true; // 10.0.0.0/8 private
+  if (a === 100 && b >= 64 && b <= 127) return true; // 100.64.0.0/10 CGNAT
+  if (a === 127) return true; // loopback
+  if (a === 169 && b === 254) return true; // 169.254.0.0/16 link-local
+  if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12 private
+  if (a === 192 && b === 168) return true; // 192.168.0.0/16 private
+  if (a >= 224 && a <= 239) return true; // multicast
+  if (a === 255 && b === 255 && c === 255 && d === 255) return true; // broadcast
+  return false;
+}
+
+function isBlockedIpv6(addr) {
+  // IPv4-mapped ([::ffff:a.b.c.d] and similar) — check the embedded v4.
+  const mapped = addr.match(/(?:^|:)((?:\d{1,3}\.){3}\d{1,3})$/);
+  if (mapped && mapped[1].split(".").every((o) => /^\d{1,3}$/.test(o))) {
+    const n = mapped[1].split(".").map(Number);
+    if (!n.some((o) => o > 255)) return isBlockedIpv4(n);
+  }
+  if (addr === "::" || addr === "::1") return true; // unspecified / loopback
+  if (/^f[cd]/.test(addr)) return true; // fc00::/7 unique-local (fc00–fdff)
+  if (/^fe[89ab]/.test(addr)) return true; // fe80::/10 link-local (fe80–febf)
+  if (/^ff/.test(addr)) return true; // multicast
+  return false;
+}
+
+/**
+ * Per-IP scan cap: in-memory sliding window (60 scans / 60s) on this
+ * isolate. Honest caveat: per-isolate, not global (the free-tier abuse
+ * bound, not a hard quota). Cloudflare sets CF-Connecting-IP at the edge
+ * (client-supplied values are overwritten), so the key can be trusted.
+ */
+const SCAN_LIMIT_PER_WINDOW = 60;
+const SCAN_WINDOW_MS = 60_000;
+const scanBuckets = new Map(); // ip -> { windowStart, count }
+
+function requestClientIp(req) {
+  const cf = req.headers.get("cf-connecting-ip");
+  if (cf) return cf;
+  const fwd = req.headers.get("x-forwarded-for");
+  if (fwd) return String(fwd).split(",")[0].trim();
+  return "unknown";
+}
+
+function scanRateLimited(ip) {
+  const now = Date.now();
+  let bucket = scanBuckets.get(ip);
+  if (!bucket || now - bucket.windowStart >= SCAN_WINDOW_MS) {
+    bucket = { windowStart: now, count: 0 };
+    scanBuckets.set(ip, bucket);
+  }
+  bucket.count += 1;
+  // Opportunistic prune keeps the map bounded.
+  if (scanBuckets.size > 5000) {
+    for (const [key, b] of scanBuckets) {
+      if (now - b.windowStart >= SCAN_WINDOW_MS) scanBuckets.delete(key);
+    }
+  }
+  return bucket.count > SCAN_LIMIT_PER_WINDOW;
+}
+
 async function fetchRemote(urlString, opts = {}) {
   const parsed = new URL(urlString);
   if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("url must be http(s)");
+  if (isBlockedHost(parsed.hostname)) {
+    throw new Error("url host is not allowed (private/local/link-local/multicast hosts are blocked)");
+  }
   const res = await fetch(urlString, {
     signal: AbortSignal.timeout(URL_TIMEOUT_MS),
     headers: { "User-Agent": "LazynextSlopChecker/1.2 (+https://lazynext.com)", Accept: opts.jsonOnly ? "application/json,text/json,text/plain" : "text/html,application/xhtml+xml" },
@@ -133,6 +312,9 @@ function enginesForWorker() {
 }
 
 async function handleScan(req) {
+  if (scanRateLimited(requestClientIp(req))) {
+    return json({ error: `too many scan requests (limit ${SCAN_LIMIT_PER_WINDOW}/min per IP) — retry shortly` }, 429);
+  }
   let body = {};
   try {
     const raw = await req.text();
@@ -296,7 +478,13 @@ module.exports = {
     const url = new URL(req.url);
     const { pathname } = url;
 
-    if (req.method === "GET" && pathname === "/") return json(serviceDescriptor());
+    if (req.method === "GET" && (pathname === "/" || pathname === "/index.html")) {
+      // Deployed: the branded web checker, same-origin with the API (zero
+      // CORS). Without the assets binding (unit tests) keep the descriptor.
+      const page = serveAsset(req, env, "/web/index.html");
+      if (page) return page;
+      return json(serviceDescriptor());
+    }
     if (req.method === "GET" && pathname === "/health") return json({ ok: true, engine: "lazynext-ai-slop-checker", version });
     if (req.method === "GET" && pathname === "/rules") return json(ruleManifest());
     if (req.method === "POST" && pathname === "/scan") return handleScan(req);
@@ -345,26 +533,31 @@ module.exports = {
       return new Response(agentSurfaces.WIDGET_JS, { headers: { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "public, max-age=3600" } });
     }
     if (req.method === "GET" && pathname === "/llms.txt") {
-      const { readFileSync } = require("node:fs");
-      const path = require("node:path");
-      try {
-        const content = readFileSync(path.join(__dirname, "..", "llms.txt"), "utf8");
-        return new Response(content, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
-      } catch {
-        return json({ error: "not found" }, 404);
-      }
+      // Assets binding first (byte-exact files, no drift), embedded constant
+      // fallback for env-less contexts (unit tests). No node:fs — the edge
+      // has no filesystem.
+      const fromAssets = serveAsset(req, env, "/llms.txt");
+      if (fromAssets) return fromAssets;
+      return new Response(LLMS_TXT, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
     }
     if (req.method === "GET" && pathname === "/openapi.json") {
-      const { readFileSync } = require("node:fs");
-      const path = require("node:path");
-      try {
-        const content = readFileSync(path.join(__dirname, "openapi.json"), "utf8");
-        return new Response(content, { headers: { "Content-Type": "application/json; charset=utf-8" } });
-      } catch {
-        return json({ error: "not found" }, 404);
+      const fromAssets = serveAsset(req, env, "/api/openapi.json");
+      if (fromAssets) return fromAssets;
+      return new Response(OPENAPI_JSON, { headers: { "Content-Type": "application/json; charset=utf-8" } });
+    }
+
+    // ── Web surface: curated static map (gate before the 404) ─────────────
+    // GET/HEAD only; the worker decides which asset paths are served even
+    // though the whole product tree is bound as [assets] (run_worker_first).
+    if (req.method === "GET" || req.method === "HEAD") {
+      const assetPath = resolveStaticAssetPath(pathname);
+      if (assetPath) {
+        const assetRes = serveAsset(req, env, assetPath);
+        if (assetRes) return assetRes;
       }
     }
 
     return json({ error: "not found", endpoints: ["/", "/health", "/rules", "/scan", "/judge", "/scan-project", "/render-scan", "/mcp", "/a2a", "/.well-known/agent.json", "/widget.js", "/openapi.json", "/llms.txt"] }, 404);
   },
+  isBlockedHost,
 };
