@@ -1,0 +1,1 @@
+When the queue stalls, check the worker logs first. The queue name appears in the health endpoint response. Restart the consumer process, then watch the backlog count for five minutes before deciding whether to escalate.

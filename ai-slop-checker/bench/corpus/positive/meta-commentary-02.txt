@@ -1,0 +1,1 @@
+In this article, we'll explain why this distinction matters and why the rest of this guide treats it as the foundation. To put it simply, it's about trust. Hint: the reasoning starts in the next section.

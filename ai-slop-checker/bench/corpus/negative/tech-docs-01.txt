@@ -1,0 +1,1 @@
+The server accepts three configuration values on startup. The first controls the cache size, the second sets the retry limit, and the third enables the audit log. Values are read from the environment file in the project directory.

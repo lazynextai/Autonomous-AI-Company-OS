@@ -1,0 +1,1 @@
+The team agreed to ship the login page first. Design will deliver the mockups by Thursday. Engineering estimates two days for the API work. The next check-in is scheduled for Monday at ten.

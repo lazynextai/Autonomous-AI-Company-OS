@@ -103,6 +103,39 @@ changes live in the "Unreleased" section until tagged.
   host-status classification, table/summary formatting); no network.
 - Test count: 358 → **383** (node --test); e2e unchanged 26/26.
 
+### Corpus quality bench + fr/de corpora
+- **`bench/eval.js`** — the corpus quality benchmark (zero-dep, pure
+  helpers exported for tests): scans the curated labelled corpora in
+  `bench/corpus/` (30 original positive text samples — at least 2 per
+  family across word-ban, filler-phrases, business-jargon,
+  throat-clearing, binary-contrast, weasel-attribution, false-agency,
+  passive-voice, meta-commentary, vague-declarative,
+  superficial-analysis, rhetorical-setup, dramatic-fragment,
+  negative-listing, summary-recap — plus 6 design-positive HTML
+  snippets; 15 clean text samples + 5 clean HTML negatives) and reports
+  per-family precision/recall/F1, the overall negative-corpus FP rate,
+  and a PASS/FAIL gate (FP rate ≤ 5%). `--json` emits machine-readable
+  rows. Runs as `npm run eval` / `npm run eval:json`.
+- **`data/rules.fr.js` (32 patterns, `fr-copy-tics`) + `data/rules.de.js`
+  (32 patterns, `de-copy-tics`)** — original French and German
+  AI-slop-tell corpora on the same external-rules i18n path as
+  ru/hi/es. Merged totals: 279 + 36 + 33 + 34 + 32 + 32 = **446 patterns
+  / 32 categories** across all six corpora, zero id duplication.
+  `positive-fr.md` / `positive-de.md` (slop samples) and
+  `negative-fr.md` / `negative-de.md` (clean prose, written fresh) are
+  scanned in `bench/eval.js` as fr/de lines with the same PASS gate.
+- **Corpus gate widened** — `scripts/check.js` STEP 1 now checks all six
+  corpora (base + ru/hi/es/fr/de); `test/corpus-validate.test.js`
+  expectations moved to 446/32; `test/i18n.test.js` covers fr/de fires,
+  clean-English silence, and all-five merge; `test/eval-harness.test.js`
+  pins the metric math (precision/recall/F1), the FP-rate gate (~5%
+  boundary), and corpus file readability.
+- **Docs** — `docs/eval-report.md` records the final eval table
+  (2026-11-17; methodology: samples authored in-repo, not from the 5
+  source projects); README i18n list + eval one-liner + `npm run eval`;
+  ROADMAP non-English built-ins now lists all five corpora.
+- Test count: 384 → **398** (node --test); e2e unchanged 26/26.
+
 ## v1.4.0 — 2026-11-16 (phase 5: hardening & release readiness)
 
 ### Fuzz robustness

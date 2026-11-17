@@ -66,6 +66,8 @@ test("package.json: files allowlist exists, entries exist, runtime surface cover
     "data/rules.ru.js",
     "data/rules.hi.js",
     "data/rules.es.js",
+    "data/rules.fr.js",
+    "data/rules.de.js",
     "api/server.js",
     "api/worker.js",
     "api/agent-surfaces.js",

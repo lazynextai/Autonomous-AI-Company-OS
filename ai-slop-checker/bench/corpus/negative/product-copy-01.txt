@@ -1,0 +1,1 @@
+Pricing is on the plans page. The free tier includes one project and three API keys. The paid tier adds scheduled reports and a shared workspace. Cancel anytime from your account settings.

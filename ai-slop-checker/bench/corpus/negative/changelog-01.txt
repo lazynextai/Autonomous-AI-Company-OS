@@ -1,0 +1,1 @@
+Version 2.3.1 adds CSV export to the reports page. Version 2.3.2 fixes a rounding error in the budget view. Version 2.3.3 updates the French and German translation files.

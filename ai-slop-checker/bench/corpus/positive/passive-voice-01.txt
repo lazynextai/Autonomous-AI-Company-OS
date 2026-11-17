@@ -1,0 +1,1 @@
+It is believed that the launch caused the outage. Mistakes were made during the migration. It has been determined that the rollback was too slow.
