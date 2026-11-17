@@ -63,7 +63,7 @@ dependencies).
 npm install        # no-op today: declares no dependencies (package-lock generation only)
 
 # Tests
-npm test           # = node --test   (345 tests)
+npm test           # = node --test   (383 tests)
 
 # Full quality gate: corpus integrity + unit suite + end-to-end matrix
 npm run check      # sequential: check-corpus.js → node --test → e2e on 8793,
@@ -71,6 +71,11 @@ npm run check      # sequential: check-corpus.js → node --test → e2e on 8793
 
 # End-to-end API contract matrix (spawns api/server.js on port 8793)
 npm run e2e        # asserts every route (GET/POST/MCP/A2A), prints a table, exits non-zero on failure
+
+# Live verification — validates the DEPLOYED Worker over real HTTP (read-only
+# probes + the service's own POSTs; exits non-zero on any failure)
+npm run live       # https://slop-checker.lazynext.com + sibling hosts (default)
+npm run live:all   # explicit full host matrix (same as the default)
 
 # CLI
 node api/cli.js "We must leverage this robust cutting-edge solution."

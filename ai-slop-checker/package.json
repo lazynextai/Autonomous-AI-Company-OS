@@ -43,7 +43,9 @@
     "check": "node scripts/check.js",
     "start": "node api/server.js",
     "scan:cli": "node api/cli.js",
-    "gen:assets": "node scripts/generate-embedded-assets.js"
+    "gen:assets": "node scripts/generate-embedded-assets.js",
+    "live": "node scripts/live-check.js",
+    "live:all": "node scripts/live-check.js --hosts checker.lazynext.com,api.lazynext.com,app.lazynext.com,lazynext.com"
   },
   "keywords": [
     "ai-slop",
