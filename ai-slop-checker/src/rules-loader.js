@@ -30,13 +30,28 @@
     typeof module !== "undefined" && module.exports
       ? require("../data/slop-patterns.js")
       : root.SlopPatterns;
-  const api = factory(base, typeof module !== "undefined" && module.exports ? require("node:fs") : null, typeof module !== "undefined" && module.exports ? require("node:path") : null);
+  const api = factory(base);
   if (typeof module !== "undefined" && module.exports) {
     module.exports = api;
   } else if (typeof window !== "undefined") {
     window.SlopRules = api;
   }
-})(typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : this, function (BASE_CORPUS, fs, path) {
+})(typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : this, function (BASE_CORPUS) {
+
+/* Node-only fs/path. Obtained lazily through src/node-bridge.js so the
+ * module can also be bundled as a Cloudflare Worker — workerd has no
+ * node:fs / node:path, and the bridge's computed specifier keeps esbuild
+ * from ever turning a node:* module into an external import. Under Node
+ * these are the real modules and file loading works unchanged; in a
+ * browser or on the edge they are null and only in-memory payloads are
+ * supported (string paths throw the documented browser error). */
+let fs = null;
+let path = null;
+if (typeof require === "function" && typeof module !== "undefined" && module.exports) {
+  const bridge = require("./node-bridge.js");
+  fs = bridge.nodeFs();
+  path = bridge.nodePath();
+}
 
 const VALID_KINDS = new Set(["word", "phrase", "regex"]);
 const VALID_SEVERITIES = new Set([1, 2, 3]);

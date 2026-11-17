@@ -42,7 +42,8 @@
     "e2e": "node scripts/e2e.js",
     "check": "node scripts/check.js",
     "start": "node api/server.js",
-    "scan:cli": "node api/cli.js"
+    "scan:cli": "node api/cli.js",
+    "gen:assets": "node scripts/generate-embedded-assets.js"
   },
   "keywords": [
     "ai-slop",
