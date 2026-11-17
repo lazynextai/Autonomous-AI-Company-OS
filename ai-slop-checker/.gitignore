@@ -1,0 +1,21 @@
+# Dependencies: none. Lockfile is generated for reproducibility but the
+# package declares zero runtime dependencies.
+package-lock.json
+
+# Node
+node_modules/
+*.log
+
+# Editor
+.DS_Store
+.idea/
+.vscode/
+
+# Test/runtime artifacts
+.playwright-mcp/
+coverage/
+*.tmp
+
+# The logo asset is a brand file copied into the repo; large binary is kept
+# intentional (brand anchor), but a downscaled favicon is generated. If the
+# JPG ever needs to shrink, regenerate assets/favicon.png with sips.

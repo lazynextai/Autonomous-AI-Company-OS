@@ -1,0 +1,8 @@
+{
+  "name": "acme-fast-platforms",
+  "version": "0.1.0",
+  "description": "A demo project used by the Lazynext AI Slop Checker fixture tree.",
+  "keywords": ["demo", "slop", "fixture"],
+  "banner": "Built for the modern team — enterprise-grade, future-proof, next-generation.",
+  "dependencies": {}
+}

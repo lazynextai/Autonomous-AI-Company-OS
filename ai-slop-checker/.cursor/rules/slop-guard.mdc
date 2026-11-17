@@ -1,0 +1,127 @@
+---
+description: Lazynext Slop Guard — Cursor rule file. Scans and fixes AI tells in writing and UI before they ship. Use when working with prose, product copy, or generated UI. Companion to the Lazynext AI Slop Checker engine.
+globs: ["**/*.md", "**/*.txt", "**/*.html", "**/*.tsx", "**/*.jsx", "**/*.css"]
+---
+
+# Lazynext Slop Guard (Cursor rules)
+
+Company: Lazynext · UNITED GLOBAL VENTURES PRIVATE LIMITED · support@lazynext.com · https://lazynext.com
+
+## When this applies
+
+You are editing or reviewing prose, product copy, docs, or UI markup that a
+model (or a hurried human) may have written. Before calling it done, check it
+against the tells below. Every tell is a *default nobody chose* — a deliberate
+choice is not slop and must be preserved.
+
+## Writing tells — cut or fix
+
+1. **Banned vocabulary.** Remove or replace: delve, foster, leverage, utilize,
+   facilitate, empower, streamline, robust, cutting-edge, paradigm shift,
+   game-changer, tapestry, realm, beacon, multifaceted, meticulous, intricate,
+   paramount, transformative, elevate, embark, supercharge, harness,
+   ever-evolving, seamless, unlock, journey, synergy, next-level,
+   revolutionize, unleash, next-generation, industry-leading, future-proof
+   enterprise-grade, this is huge. Name the mechanism instead.
+2. **Empty phrases.** Delete: "it's worth noting", "it's important to note",
+   "at the end of the day", "at its core", "in today's world", "in the age of",
+   "in the world of", "in a world where", "the reality is", "the truth is",
+   "when it comes to", "in terms of", "with regard to", "in order to",
+   "going forward", "let's dive in", "it turns out", "more than just".
+3. **Throat-clearing / faux insight.** Delete: "here's the thing",
+   "here's why", "here's the problem though", "let me be clear", "i'll be
+   honest", "the uncomfortable truth is", "what nobody tells you", "what
+   most people get wrong", "the part everyone misses". State the claim
+   directly.
+4. **Rhythm crutches.** Binary contrasts ("It's not X. It's Y." plus "Not
+   because X. Because Y.", "stops being X and starts being Y", "doesn't mean
+   X, but actually Y"), colon reveals ("The best part: it learns."), negative
+   listings ("Not a X. Not a Y. A Z."), dramatic fragments ("X. And Y. And
+   Z."), em-dash clusters (3+ dashes), rhetorical setups ("What if I told
+   you", "And that's okay"), stacked one-liners. Rewrite as plain, varied
+   prose.
+5. **Puffery and weasel words.** "stands as a testament", "marks a pivotal
+   moment", "plays a vital role", "experts agree", "studies show" — cut or
+   cite. Empty adverbs (really, just, literally, genuinely, simply, actually,
+   truly, fundamentally, importantly, crucially, inherently, inevitably,
+   arguably, deeply) — cut when they add nothing.
+6. **Superficial analysis.** Trailing -ing clauses that name a feeling:
+   "highlighting the team's commitment", "underscoring the importance",
+   "reflecting our focus", "showcasing our dedication". Say what the change
+   does.
+7. **Meta-commentary.** "the key point is", "this distinction matters", "as
+   you can see", "let that sink in", "make no mistake", "this matters
+   because", "the rest of this essay", "in this section we'll". Delete the
+   aside.
+8. **Vague declaratives.** "the stakes are high", "the implications are
+   significant", "the reasons are structural". Name the specific thing.
+9. **False agency and passive voice.** "the decision emerges", "the data
+   tells us", "the market rewards", "nobody designed this"; "it is believed
+   that", "mistakes were made", "the decision was reached". Name the actor.
+10. **Formatting slop.** Emoji in headings, decorative bold, bullets where
+    prose belongs, headers over two-sentence sections.
+
+## Design tells — UI in this diff
+
+1. **Colour:** indigo-violet gradients (`from-indigo-500 to-violet-600`,
+   `#6366f1`→`#a855f7`), gradient headline text (`bg-clip-text
+   text-transparent`), colored glow shadows, warm amber/stone "cozy" washes,
+   the stock semantic rainbow (bg-blue-50/amber-50/green-50/red-50 pairs),
+   one-hue status boxes (border+text+bg /10 all the same hue), glow halos.
+2. **Type:** one serif-italic word inside a sans headline, display serifs
+   (Playfair/Lora/Cormorant) in UI, a tracked-caps kicker above every heading
+   (`uppercase tracking-widest`), h1 at `text-lg`/`text-base` (flat
+   hierarchy), full-sentence display headlines (`text-6xl font-extrabold
+   tracking-tight`), crushed tracking (`letter-spacing: -0.06em`), decorative
+   strikes (`line-through`/`<mark>`/`<s>` for emphasis), the editorial
+   dashboard ("Good morning," serif greeting, oldstyle numerals), default
+   Inter/Space Grotesk pairings with no stated reason.
+3. **Components:** `animate-ping` status dots, `border-l-4` callouts on every
+   list item, rounded-square icon tiles, giant decorative icons (`w-24 h-24`),
+   `backdrop-blur` glass surfaces, `rounded-full` pills on cards, badge/pill
+   spam ("✨ New", "β Beta"), `bg-blue-50` icon-in-a-tint-of-itself, huge soft
+   drop shadows, ghost cards (hairline + wide shadow), hard offset shadows
+   (`box-shadow: 4px 4px 0`), "Powered by AI" badges, blob/mascot SVG marks,
+   tasteful-terminal mono+ASCII costumes.
+4. **Motion:** `hover:scale-105` + `transition-all` on everything, spinners
+   whose rotate keyframe clobbers a translate(-50%,-50%) centre (wobble),
+   marquee/ticker strips, reveal classes hiding content at rest with no `.js`
+   gate.
+5. **Layout:** invented stat rows (`10k+ users`, `99.9% uptime`, `24/7`),
+   `01/02/03` markers on unordered sections, cards nested in cards, one
+   spacing value stamped everywhere (`gap-4`/`space-y-4` × N), equal-weight
+   card grids with nothing leading, codex-grid hairline backgrounds, border
+   that dies at a rounded corner (`rounded-xl overflow-hidden` wrapper +
+   child border), "Built for the modern team"/"In today's digital age"
+   boilerplate, middle-dot meta strings ("A · B · C") or glued arrows
+   ("Learn more →").
+
+## Quality floor
+
+- Lead with the point when the setup adds nothing.
+- Specific beats punchy: names, numbers, dates, mechanisms, consequences.
+- Portability test: if a sentence could move to any other product unchanged,
+  it is filler — cut it or make it specific.
+- Active voice with human subjects. The team shipped it Tuesday beats the
+  decision emerged.
+- Show, don't tell. No "this highlights our commitment to".
+- One accent, one voice. Subtract first.
+- Preserve the user's deliberate choices (brand tokens, a logo, a real
+  illustration) — that is what separates taste from slop.
+
+## Verification
+
+When a scan tool is available (repo root):
+
+```sh
+node api/cli.js --file <file>     # text; exit 2 = findings
+node api/cli.js --url <url>       # remote HTML
+node api/cli.js --dir <path>      # whole-project scan; exit 2 = findings
+node api/cli.js --json <text>     # machine-readable report
+```
+
+If any of the notes above apply to this diff, fix the tell (or, for a
+deliberate choice, leave it and say why in your reply). For a project scan,
+triage each hit (confirmed or deliberate?), report the grouped findings
+before changing anything, fix, and re-scan until the count drops. Sign off
+with the file name and which tells were fixed.

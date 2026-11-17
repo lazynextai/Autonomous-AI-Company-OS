@@ -1,0 +1,17 @@
+# Keep the build context small and secrets out of the image.
+node_modules/
+.git/
+.gitignore
+.github/
+*.md
+!docs/DEPLOYMENT.md
+test/
+bench/
+skill/
+.cursor/
+.env*
+*.log
+Dockerfile
+.dockerignore
+wrangler.toml
+.wrangler/

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lazynext AI Slop Checker</title>
+  <meta name="description" content="Deterministic scanner for AI writing tells and AI-default visual design tics. Powered by the Lazynext AI Slop Checker engine." />
+  <link rel="icon" type="image/png" href="../assets/favicon.png" />
+  <link rel="stylesheet" href="./style.css" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <meta name="theme-color" content="#0468F8" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <img src="../assets/lazynext-logo.jpg" alt="Lazynext logo" class="brand-logo" />
+      <div>
+        <h1 class="brand-name">Lazynext <span class="brand-sub">AI Slop Checker</span></h1>
+        <p class="brand-tagline">Catch AI tells before they ship. Deterministic, offline, no LLM.</p>
+      </div>
+    </div>
+    <nav class="site-nav" aria-label="Page sections">
+      <a href="#checker">Checker</a>
+      <a href="#about">About</a>
+      <a href="#attribution">Sources</a>
+    </nav>
+  </header>
+
+  <main id="checker">
+    <section class="panel input-panel">
+      <h2>Scan something</h2>
+      <div class="tabs" role="tablist" aria-label="Input type">
+        <button type="button" role="tab" id="tab-text" aria-selected="true" aria-controls="pane-text" data-pane="text">Paste text</button>
+        <button type="button" role="tab" id="tab-url" aria-selected="false" aria-controls="pane-url" data-pane="url">Scan a URL</button>
+        <button type="button" role="tab" id="tab-folder" aria-selected="false" aria-controls="pane-folder" data-pane="folder">Scan a folder</button>
+      </div>
+
+      <div id="pane-text" role="tabpanel" aria-labelledby="tab-text" class="pane">
+        <label for="input-text">Text to check</label>
+        <textarea id="input-text" rows="9" spellcheck="false" placeholder="Paste a paragraph, blog post, product copy, or anything AI might have written..."></textarea>
+      </div>
+
+      <div id="pane-url" role="tabpanel" aria-labelledby="tab-url" class="pane" hidden>
+        <label for="input-url">URL to fetch and scan</label>
+        <input id="input-url" type="url" placeholder="https://example.com/page" />
+        <p class="hint">In-browser scanning fetches the page directly (may hit CORS limits). When served by the Lazynext Slop Checker API (<code>node api/server.js</code>), URL scans run server-side with a 10&nbsp;s timeout.</p>
+      </div>
+
+      <div id="pane-folder" role="tabpanel" aria-labelledby="tab-folder" class="pane" hidden>
+        <label for="folder-files">Website assets or a project folder to scan</label>
+        <div class="folder-row">
+          <button type="button" id="btn-pick-folder" class="btn-quiet">Choose a folder…</button>
+          <span id="folder-status" class="hint">Scans prose, markup, styles and code files for AI slop.</span>
+        </div>
+        <input id="folder-files" type="file" multiple accept=".md,.mdx,.txt,.html,.htm,.jsx,.tsx,.vue,.svelte,.astro,.php,.twig,.css,.scss,.sass,.less,.js,.ts,.mjs,.cjs,.json,.yaml,.yml,.py,.rb,.go,.java,.cs,.c,.h,.cpp,.rs" hidden />
+        <p class="hint">Your browser scans the files locally — nothing is uploaded. Chrome and Edge can pick a whole folder (<code>showDirectoryPicker</code>); other browsers fall back to selecting files.</p>
+      </div>
+
+      <div class="actions">
+        <button type="button" id="btn-scan" class="btn-primary">Scan for slop</button>
+        <button type="button" id="btn-sample" class="btn-quiet">Load a slop sample</button>
+        <span id="engine-mode" class="engine-mode"></span>
+      </div>
+      <p id="scan-error" class="error" hidden></p>
+    </section>
+
+    <section id="results" class="results" hidden>
+      <div class="score-row">
+        <div class="gauge">
+          <svg viewBox="0 0 120 120" role="img" aria-label="Slop score gauge">
+            <circle class="gauge-track" cx="60" cy="60" r="52" />
+            <circle id="gauge-fill" class="gauge-fill" cx="60" cy="60" r="52" />
+          </svg>
+          <div class="gauge-label">
+            <strong id="score-value">0</strong><span>/100</span>
+            <em id="verdict-value">—</em>
+          </div>
+        </div>
+        <div class="score-summary">
+          <h3 id="verdict-heading">Result</h3>
+          <p id="summary-text">Run a scan to see the verdict.</p>
+        </div>
+      </div>
+
+      <div class="cols">
+        <section class="panel">
+          <h3>Category breakdown</h3>
+          <ul id="category-list" class="category-list"></ul>
+        </section>
+
+        <section class="panel">
+          <h3>Flagged snippets</h3>
+          <ul id="match-list" class="match-list"></ul>
+        </section>
+      </div>
+
+      <section class="panel">
+        <h3>Before / after preview</h3>
+        <div class="rewrite-grid">
+          <div>
+            <h4>Original</h4>
+            <pre id="rewrite-before" class="rewrite-box"></pre>
+          </div>
+          <div>
+            <h4>Safe auto-rewrite</h4>
+            <pre id="rewrite-after" class="rewrite-box"></pre>
+            <p id="rewrite-note" class="hint"></p>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <section id="about" class="panel">
+      <h2>What this checks</h2>
+      <p>The Lazynext AI Slop Checker merges the ideas behind five open-source anti-slop projects into one deterministic engine:
+        <strong>no-ai-slop</strong> and <strong>stop-slop</strong> for writing tells, <strong>kill-ai-slop</strong> for visual and copy tics,
+        <strong>impeccable</strong> for its design vocabulary, and <strong>hallmark</strong> for its hard design floor.
+        Every pattern is a fixed rule with a human fix: no model, no API key, and the same input always gives the same score.</p>
+      <ul class="feature-list">
+        <li><strong>Text tells:</strong> 21 categories of AI-dialect words, filler phrases, binary contrasts, and rhythm crutches.</li>
+        <li><strong>Design tells:</strong> 6 categories of machine-default UI: indigo-violet gradients, kickers, glassmorphism, badge spam, invented stat rows and more.</li>
+        <li><strong>Safe rewrites:</strong> conservative before/after suggestions for the most fixable patterns.</li>
+        <li><strong>Runs anywhere:</strong> this page runs the whole engine in your browser; no server required.</li>
+      </ul>
+    </section>
+
+    <section id="attribution" class="panel">
+      <h2>Sources</h2>
+      <p>Original implementation by Lazynext, informed by (and crediting):</p>
+      <ul class="feature-list">
+        <li><a href="https://github.com/pbakaus/impeccable">pbakaus/impeccable</a>: design vocabulary &amp; slop detector rules</li>
+        <li><a href="https://github.com/petergyang/no-ai-slop">petergyang/no-ai-slop</a>: writing tells &amp; editing principles</li>
+        <li><a href="https://github.com/hardikpandya/stop-slop">hardikpandya/stop-slop</a>: phrase/structures lists</li>
+        <li><a href="https://github.com/yetone/kill-ai-slop">yetone/kill-ai-slop</a>: visual &amp; copy tics taxonomy</li>
+        <li><a href="https://github.com/Nutlope/hallmark">Nutlope/hallmark</a>: hard design floor</li>
+      </ul>
+      <p class="hint">Full credit mapping lives in <a href="../ATTRIBUTIONS.md">ATTRIBUTIONS.md</a>.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>© 2026 UNITED GLOBAL VENTURES PRIVATE LIMITED · <a href="https://lazynext.com">lazynext.com</a> | <a href="mailto:support@lazynext.com">support@lazynext.com</a></p>
+    <p class="hint">Lazynext AI Slop Checker · MIT licensed <span id="engine-version"></span></p>
+  </footer>
+
+  <script src="../data/slop-patterns.js"></script>
+  <script src="../src/scanner.js"></script>
+  <script src="../src/rewriter.js"></script>
+  <script src="../src/project-scanner-browser.js"></script>
+  <script src="./app.js"></script>
+  <script src="./register-sw.js" defer></script>
+</body>
+</html>
