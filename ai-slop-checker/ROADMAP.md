@@ -1,6 +1,6 @@
 # Roadmap — Lazynext AI Slop Checker
 
-What is genuinely left after v1.4.1. Ordered roughly by leverage; nothing
+What is genuinely left after v1.4.2. Ordered roughly by leverage; nothing
 here has a hard date. The engine stays deterministic and dependency-free.
 
 ## SHIPPED — Phase 6 polish & judgement checklist (v1.4.1, 2026-11-17)

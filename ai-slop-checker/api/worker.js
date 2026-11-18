@@ -26,7 +26,9 @@
  *   POST /scan-project     -> 400 (local filesystem only)
  *   POST /mcp              JSON-RPC 2.0 (initialize/ping/tools/list/tools/call)
  *   POST /a2a              JSON-RPC 2.0 (message/send, tasks/send, tasks/get)
- *   GET  /a2a/tasks/:id    replay a task result from the in-memory store
+ *   GET  /a2a/tasks/:id    replay a task result (KV-backed when the
+ *                          optional RECENT binding is present; in-memory
+ *                          bounded store otherwise)
  *   GET  /.well-known/agent.json   agent card
  *   GET  /widget.js        embeddable in-browser widget
  *   GET  /openapi.json     OpenAPI 3.1 contract
@@ -477,6 +479,12 @@ async function handleRenderScan(req, env, ctx) {
 module.exports = {
   version,
   fetch: async (req, env, ctx) => {
+    // Optional A2A durable store: when the RECENT KV binding is present,
+    // tasks/send write through to KV and tasks/get + GET /a2a/tasks/:id
+    // read KV first with an in-memory fallback (see api/agent-surfaces.js).
+    // Unbound deploys / unit envs keep the in-memory bounded store —
+    // setKvStore(undefined) is a cheap per-fetch no-op that clears it.
+    agentSurfaces.setKvStore(env && env.RECENT);
     const url = new URL(req.url);
     const { pathname } = url;
 
@@ -527,7 +535,7 @@ module.exports = {
     }
     const a2aTaskMatch = pathname.match(/^\/a2a\/tasks\/([^/]+)$/);
     if (readOnly(req) && a2aTaskMatch) {
-      const out = agentSurfaces.a2aTaskGet(a2aTaskMatch[1]);
+      const out = await agentSurfaces.a2aTaskGet(a2aTaskMatch[1]);
       return json(out.body, out.status);
     }
     if (readOnly(req) && pathname === "/.well-known/agent.json") return json(agentSurfaces.AGENT_CARD);

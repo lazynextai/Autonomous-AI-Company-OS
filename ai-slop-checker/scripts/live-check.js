@@ -372,7 +372,7 @@ async function requestWithRetry(urlStr, opts) {
   throw lastErr || new Error("request failed");
 }
 
-const UA = "LazynextSlopCheckerLiveCheck/1.4.1 (+https://lazynext.com)";
+const UA = "LazynextSlopCheckerLiveCheck/1.4.2 (+https://lazynext.com)";
 
 async function runServiceChecks(base) {
   const rows = [];

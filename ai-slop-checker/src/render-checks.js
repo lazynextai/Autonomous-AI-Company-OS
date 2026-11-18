@@ -937,7 +937,7 @@ const api = {
   RENDER_CHECKS,
   RENDER_CATEGORIES,
   checkById: CHECK_BY_ID,
-  version: corpus ? corpus.version : "1.4.1",
+  version: corpus ? corpus.version : "1.4.2",
 };
 
 if (typeof window !== "undefined") {

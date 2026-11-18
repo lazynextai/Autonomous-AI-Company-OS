@@ -9,8 +9,12 @@
  *
  * A2A (lightweight): POST /a2a with JSON-RPC methods message/send,
  * tasks/send, tasks/get. The task id IS the request id; results are
- * replayed from an in-memory recent store (no KV, no files) via
- * tasks/get and the REST shortcut GET /a2a/tasks/:id.
+ * replayed from a pluggable recent-task store via tasks/get and the REST
+ * shortcut GET /a2a/tasks/:id. Default (local Node server / any deploy
+ * without the binding): a bounded in-memory store (30-min TTL). When a
+ * `RECENT` KV binding is present on the Worker, sends write through to KV
+ * (a2atask:{id}, 30-min TTL) and reads are KV-first with a memory
+ * fallback — so a replay survives an isolate recycle.
  *
  * Discovery: GET /.well-known/agent.json (the AGENT_CARD) and widget.js
  * (WIDGET_JS, a shadow-DOM embeddable widget that runs the engine
@@ -116,7 +120,7 @@ const AGENT_CARD = {
   description:
     "Deterministic scanner for AI writing tells and AI-default visual design tics — text, HTML, whole-project, and rendered-snapshot scans with score, verdict, category breakdown, fixes, safe rewrites, and the judgement checklist (5-question review, craft-floor gate, refusal scaffolds, machine PASS|REVIEW|REFUSE verdict).",
   url: "https://slop-checker.lazynext.com/a2a",
-  version: "1.4.1",
+  version: "1.4.2",
   protocolVersion: "0.3.0",
   preferredTransport: "JSONRPC",
   capabilities: { streaming: false, pushNotifications: false },
@@ -132,22 +136,55 @@ const AGENT_CARD = {
   ],
 };
 
-// ── In-memory recent task store (A2A) ────────────────────────────────────
-// Task id == request id; results live in process memory with a hard cap +
-// TTL. The a11y sibling replays from KV; this product has no KV in the
-// plain-Node server, so an in-memory recent store is the honest analogue
-// for a lightweight A2A surface.
+// ── Recent-task store (A2A) — pluggable ────────────────────────────────
+// Task id == request id; results live in a bounded recent-task store.
+// Default: in-memory (hard cap + TTL) — the honest analogue for the
+// plain-Node server, which has no KV. When a KV store is bound (the
+// Worker's optional `RECENT` namespace), sends write through to KV and
+// reads are KV-first with a memory fallback, so a replay survives an
+// isolate recycle on the edge. The memory path stays byte-for-byte the
+// same when no binding is present (tests + local behavior unchanged).
 const RECENT_MAX = 200;
 const RECENT_TTL_MS = 30 * 60 * 1000;
+const RECENT_TTL_S = 30 * 60; // KV expirationTtl is in seconds
 const recent = new Map(); // id -> { value, at }
+let kvStore = null; // optional KVNamespace-shaped { put, get }
+
+/**
+ * Bind (or unbind) the KV-backed recent-task store. `kv` should be shaped
+ * like a Workers KVNamespace (put/get functions); anything else — including
+ * undefined/null and an env without the binding — falls back to the
+ * in-memory store. Wired by api/worker.js from env.RECENT per fetch; the
+ * local Node server never binds and keeps the memory path unchanged.
+ */
+function setKvStore(kv) {
+  kvStore = kv && typeof kv.put === "function" && typeof kv.get === "function" ? kv : null;
+}
+function clearKvStore() {
+  kvStore = null;
+}
+function getKvStore() {
+  return kvStore;
+}
 
 function rememberTask(id, value) {
+  const key = String(id);
   if (recent.size >= RECENT_MAX) {
     // Evict oldest entry (Map iterates in insertion order).
     const oldest = recent.keys().next().value;
     if (oldest !== undefined) recent.delete(oldest);
   }
-  recent.set(String(id), { value, at: Date.now() });
+  recent.set(key, { value, at: Date.now() });
+  if (kvStore) {
+    // Write-through: KV gets the SAME view object's JSON (identical-view
+    // property — one view per task, replay is deep-identical). Fire the
+    // put but surface it to callers that await; failures are swallowed so
+    // a transient KV error never breaks a send (memory still holds it).
+    return kvStore
+      .put("a2atask:" + key, JSON.stringify(value), { expirationTtl: RECENT_TTL_S })
+      .catch(() => {});
+  }
+  return null;
 }
 function recallTask(id) {
   const hit = recent.get(String(id));
@@ -157,6 +194,29 @@ function recallTask(id) {
     return null;
   }
   return hit.value;
+}
+/**
+ * Durable recall: KV-first when a store is bound, memory fallback on miss.
+ * Invalid/corrupt KV JSON (or a well-formed object that is not a task
+ * view) is treated as a miss — the memory store is the fallback, and if
+ * that misses too the caller reports task-not-found exactly as before.
+ */
+async function recallTaskDurable(id) {
+  const key = String(id);
+  if (kvStore) {
+    try {
+      const raw = await kvStore.get("a2atask:" + key);
+      if (raw !== null && raw !== undefined) {
+        const parsed = JSON.parse(String(raw));
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && typeof parsed.id === "string" && Array.isArray(parsed.artifacts)) {
+          return parsed;
+        }
+      }
+    } catch {
+      // KV read/parse failure -> fall through to the memory store.
+    }
+  }
+  return recallTask(key);
 }
 function clearTaskStore() {
   recent.clear();
@@ -368,7 +428,9 @@ async function handleA2aMessage(msg, engines) {
         // two calls (observed as an intermediate full-suite run showing
         // 382 pass / 1 fail on the deepEqual of the two views).
         const view = taskView(msg.id, report);
-        rememberTask(msg.id, view);
+        // Await the write-through when a KV store is bound (null otherwise
+        // — the memory path is synchronous and unchanged).
+        await rememberTask(msg.id, view);
         return { status: 200, body: rpcOk(msg.id, { task: view }) };
       } catch (scanErr) {
         return { status: 200, body: rpcErr(msg.id, -32000, scanErr.message) };
@@ -376,7 +438,7 @@ async function handleA2aMessage(msg, engines) {
     }
     case "tasks/get": {
       const id = String(msg.params?.id ?? "");
-      const task = recallTask(id);
+      const task = await recallTaskDurable(id);
       if (!task) return { status: 200, body: rpcErr(msg.id, -32000, `task not found: ${id}`) };
       return { status: 200, body: rpcOk(msg.id, { task }) };
     }
@@ -397,8 +459,8 @@ async function handleA2aBody(raw, engines) {
 }
 
 /** REST shortcut: GET /a2a/tasks/:id → { task } (404 when missing/expired). */
-function a2aTaskGet(id) {
-  const task = recallTask(id);
+async function a2aTaskGet(id) {
+  const task = await recallTaskDurable(id);
   if (!task) return { status: 404, body: { error: `task not found: ${id}` } };
   return { status: 200, body: { task } };
 }
@@ -477,6 +539,9 @@ module.exports = {
   WIDGET_JS,
   PROTOCOL_VERSION,
   recentStore: recent,
+  setKvStore,
+  clearKvStore,
+  getKvStore,
   handleMcpBody,
   handleMcpMessage,
   handleA2aBody,
@@ -486,6 +551,7 @@ module.exports = {
   textFromMessage,
   rememberTask,
   recallTask,
+  recallTaskDurable,
   clearTaskStore,
   validateRpc,
 };

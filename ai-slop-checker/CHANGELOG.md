@@ -3,6 +3,38 @@
 All notable changes to the Lazynext AI Slop Checker. SemVer; unreleased
 changes live in the "Unreleased" section until tagged.
 
+## v1.4.2 — 2026-11-18 (A2A durable task replay via optional KV-backed store)
+
+### A2A recent-task store is now pluggable
+- **`api/agent-surfaces.js`** — the A2A recent-task store gained an
+  optional KV-backed path. Default (local Node server / any deploy without
+  the binding): the existing bounded in-memory store, byte-for-byte
+  unchanged. When a `RECENT` KV namespace is bound on the Worker,
+  `tasks/send` **write-through** — the SAME view object's JSON is stored
+  at `a2atask:{id}` with a 30-minute TTL (`expirationTtl` 1800) — and
+  `tasks/get` + the REST shortcut `GET /a2a/tasks/:id` read **KV-first**
+  with an in-memory fallback on miss. Invalid/corrupt KV JSON (or JSON
+  that is not a task view) is treated as a graceful miss; a throwing KV
+  read is swallowed and falls back to memory. Results therefore survive an
+  isolate recycle on the edge while the unbound path stays identical.
+- **`api/worker.js`** — binds `agentSurfaces.setKvStore(env?.RECENT)` per
+  fetch; unbound deploys/unit envs keep the memory store (cheap no-op).
+- **`wrangler.toml`** — optional `[[kv_namespaces]]` `RECENT` binding
+  (id filled at deploy time; `npx wrangler kv namespace create
+  'AI_SLOP_RECENT'`).
+- **`api/server.js`** — `GET /a2a/tasks/:id` awaits the (now async)
+  durable recall.
+- **Tests** — `test/a2a-kv.test.js` (mock-KV unit suite: write-through
+  same-view, KV-first identical replay incl. REST, KV-miss → memory,
+  corrupt JSON → graceful miss, throwing KV → memory, unbound path
+  unchanged).
+- **Version bumps** — 1.4.1 → 1.4.2 across `package.json`, corpus
+  `data/slop-patterns.js`, agent card + fallback `src/render-checks.js`,
+  `api/openapi.json` (`info.version` + `/a2a` + `/a2a/tasks/{id}`
+  descriptions), `llms.txt`, `README.md`, `docs/usage.md`,
+  `docs/DEPLOYMENT.md`, `scripts/live-check.js` UA, and the embedded
+  assets (regenerated via `npm run gen:assets`).
+
 ## v1.4.1 — 2026-11-17 (phase 6: judgement checklist, quality gate, UX fix)
 
 ### Judgement checklist (`--judge` / `POST /judge` / MCP `judge`)

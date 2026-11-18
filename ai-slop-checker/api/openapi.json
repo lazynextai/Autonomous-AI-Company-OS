@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Lazynext AI Slop Checker API",
-    "version": "1.4.1",
+    "version": "1.4.2",
     "description": "Deterministic scanner for AI writing tells and AI-default visual design tics. Scans plain text, HTML, URLs (10s timeout), whole project directories, and rendered computed snapshots (pure rendered-tier checks); runs the judgement checklist (POST /judge: 5-question review, craft-floor gate, refusal scaffolds, machine PASS|REVIEW|REFUSE verdict); also exposes MCP (JSON-RPC 2.0) and A2A surfaces, a discovery card, an embeddable widget, an external-rules extension mechanism (`rules_url`), and severity profiles (`profile`). Zero dependencies, no LLM, same input always gives the same score.",
     "contact": { "name": "Lazynext (UNITED GLOBAL VENTURES PRIVATE LIMITED)", "email": "support@lazynext.com" },
     "license": { "name": "MIT" }
@@ -209,7 +209,7 @@
     "/a2a": {
       "post": {
         "summary": "A2A endpoint (lightweight JSON-RPC 2.0)",
-        "description": "Agent-to-agent subset: message/send, tasks/send, tasks/get. The task id IS the JSON-RPC request id; results are replayed from an in-memory recent store for up to 30 minutes. GET is 405.",
+        "description": "Agent-to-agent subset: message/send, tasks/send, tasks/get. The task id IS the JSON-RPC request id; results are replayed from a bounded recent-task store for up to 30 minutes (in-memory locally; KV-backed on the hosted worker when the RECENT binding is present). GET is 405.",
         "requestBody": {
           "required": true,
           "content": {
@@ -230,7 +230,7 @@
     "/a2a/tasks/{id}": {
       "get": {
         "summary": "Replay a completed A2A task result",
-        "description": "REST shortcut for tasks/get: replays the task view for the given task id (which equals the JSON-RPC request id of the send). 404 when unknown or expired.",
+        "description": "REST shortcut for tasks/get: replays the task view for the given task id (which equals the JSON-RPC request id of the send). Reads the recent-task store KV-first on the hosted worker (in-memory fallback); 404 when unknown or expired.",
         "parameters": [
           { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "task id (== the JSON-RPC request id from message/send or tasks/send)" }
         ],
