@@ -18,6 +18,7 @@ const {
   evaluateLanguage,
   FAMILIES,
   GATE_MAX_FPR,
+  LANGUAGE_LINES,
 } = require("../bench/eval.js");
 
 const CORPUS_DIR = path.join(__dirname, "..", "bench", "corpus");
@@ -133,16 +134,25 @@ test("gate: the constant exported matches the contract", () => {
 });
 
 // ---------------------------------------------------------------------------
-// i18n lines (fr/de) via the same path bench/eval.js uses
+// i18n lines (fr/de/ru/hi/es) via the same path bench/eval.js uses
 // ---------------------------------------------------------------------------
 
-test("eval i18n: fr and de evaluators exist and pass on shipped samples", () => {
-  const fr = evaluateLanguage("fr");
-  const de = evaluateLanguage("de");
-  assert.equal(fr.posHit, true, "fr positive sample must fire");
-  assert.equal(fr.negHit, false, "fr clean sample must stay clean");
-  assert.equal(fr.pass, true);
-  assert.equal(de.posHit, true, "de positive sample must fire");
-  assert.equal(de.negHit, false, "de clean sample must stay clean");
-  assert.equal(de.pass, true);
+test("eval i18n: every language corpus file exists, is readable and non-empty", () => {
+  for (const lang of LANGUAGE_LINES) {
+    for (const side of ["positive", "negative"]) {
+      const f = path.join(CORPUS_DIR, `${side}-${lang}.md`);
+      assert.ok(fs.existsSync(f), `missing language corpus file: ${f}`);
+      const raw = fs.readFileSync(f, "utf8"); // throws if unreadable
+      assert.ok(raw.trim().length > 0, `language corpus file must not be empty: ${f}`);
+    }
+  }
+});
+
+test("eval i18n: every language evaluator passes on shipped samples", () => {
+  for (const lang of LANGUAGE_LINES) {
+    const r = evaluateLanguage(lang);
+    assert.equal(r.posHit, true, `${lang} positive sample must fire`);
+    assert.equal(r.negHit, false, `${lang} clean sample must stay clean`);
+    assert.equal(r.pass, true, `${lang} line must pass`);
+  }
 });
