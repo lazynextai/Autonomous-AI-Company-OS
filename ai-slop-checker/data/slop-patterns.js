@@ -573,7 +573,7 @@ function patternToRegExp(pattern) {
 }
 
 return {
-    version: "1.4.2",
+    version: "1.4.3",
     categories: PATTERN_CATEGORIES,
     patterns: SLOP_PATTERNS,
     categoryById: CATEGORY_BY_ID,

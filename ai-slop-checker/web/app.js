@@ -21,6 +21,7 @@
   const scanner = window.SlopScanner;
   const rewriter = window.SlopRewriter;
   const projectScanner = window.SlopProjectBrowser;
+  const judgeEngine = window.SlopJudge; // optional — the Review tab checks it at click time
 
   // ── Pure, DOM-free state transitions (regression-locked by test/app.test.js) ──
   // The web checker's scan lifecycle is explicit-state: START clears the
@@ -57,16 +58,23 @@
     tabText: document.getElementById("tab-text"),
     tabUrl: document.getElementById("tab-url"),
     tabFolder: document.getElementById("tab-folder"),
+    tabReview: document.getElementById("tab-review"),
     paneText: document.getElementById("pane-text"),
     paneUrl: document.getElementById("pane-url"),
     paneFolder: document.getElementById("pane-folder"),
+    paneReview: document.getElementById("pane-review"),
     inputText: document.getElementById("input-text"),
     inputUrl: document.getElementById("input-url"),
+    inputReview: document.getElementById("input-review"),
     btnScan: document.getElementById("btn-scan"),
     btnSample: document.getElementById("btn-sample"),
     btnPickFolder: document.getElementById("btn-pick-folder"),
     folderFiles: document.getElementById("folder-files"),
     folderStatus: document.getElementById("folder-status"),
+    btnJudge: document.getElementById("btn-judge"),
+    btnJudgeReuse: document.getElementById("btn-judge-reuse"),
+    judgeMode: document.getElementById("judge-mode"),
+    judgeError: document.getElementById("judge-error"),
     engineMode: document.getElementById("engine-mode"),
     engineVersion: document.getElementById("engine-version"),
     scanError: document.getElementById("scan-error"),
@@ -81,6 +89,16 @@
     rewriteBefore: document.getElementById("rewrite-before"),
     rewriteAfter: document.getElementById("rewrite-after"),
     rewriteNote: document.getElementById("rewrite-note"),
+    judgeResults: document.getElementById("judge-results"),
+    judgeBanner: document.getElementById("judge-banner"),
+    judgeVerdict: document.getElementById("judge-verdict"),
+    judgeVerdictHeading: document.getElementById("judge-verdict-heading"),
+    judgeVerdictReason: document.getElementById("judge-verdict-reason"),
+    judgeVerdictNote: document.getElementById("judge-verdict-note"),
+    judgeQuestions: document.getElementById("judge-questions"),
+    judgeFloor: document.getElementById("judge-floor"),
+    judgeFloorChip: document.getElementById("judge-floor-chip"),
+    judgeRefusals: document.getElementById("judge-refusals"),
   };
 
   const SLOP_SAMPLE = `In today's fast-paced world, it's important to note that we truly need to
@@ -163,7 +181,7 @@ low-hanging fruit. Let's dive in!`;
   }
 
   function setupTabs() {
-    const tabs = [els.tabText, els.tabUrl, els.tabFolder];
+    const tabs = [els.tabText, els.tabUrl, els.tabFolder, els.tabReview];
     for (const tab of tabs) {
       tab.addEventListener("click", () => {
         tabs.forEach((t) => t.setAttribute("aria-selected", String(t === tab)));
@@ -171,6 +189,7 @@ low-hanging fruit. Let's dive in!`;
         els.paneText.hidden = tab !== els.tabText;
         els.paneUrl.hidden = tab !== els.tabUrl;
         els.paneFolder.hidden = tab !== els.tabFolder;
+        els.paneReview.hidden = tab !== els.tabReview;
       });
     }
   }
@@ -503,7 +522,199 @@ low-hanging fruit. Let's dive in!`;
     return project;
   }
 
+  // ── Review tab (in-browser judgement checklist, v1.4.3) ─────────────────
+  // Runs window.SlopJudge (src/judge-browser.js — the browser-safe twin of
+  // src/judge.js) over the pasted copy: 5-question review, craft-floor
+  // gate, refusal scaffolds, machine PASS|REVIEW|REFUSE. Deterministic,
+  // same verdict as --judge / POST /judge for the same input.
+  function setJudgeError(message) {
+    els.judgeError.textContent = message;
+    els.judgeError.hidden = !message;
+  }
+
+  function judgeVerdictClass(verdict) {
+    return verdict === "PASS" ? "judge-pass" : verdict === "REFUSE" ? "judge-refuse" : "judge-review";
+  }
+
+  function renderJudgeReport(report) {
+    els.judgeResults.hidden = false;
+    const v = report.summary.verdict;
+    els.judgeBanner.className = `judge-banner ${judgeVerdictClass(v)}`;
+    els.judgeVerdict.textContent = v;
+    els.judgeVerdictHeading.textContent =
+      v === "PASS"
+        ? "Nothing machine-flagged — run the human checklist below"
+        : v === "REFUSE"
+          ? "Craft floor not met — do not ship"
+          : "Machine objections found — fix before it ships";
+    els.judgeVerdictReason.textContent = report.summary.reasons.join("  ·  ");
+
+    els.judgeVerdictNote.textContent = report.summary.note;
+    els.judgeFloorChip.textContent = report.craftFloorMet ? "floor met" : "floor NOT met";
+
+    // 5-question review
+    els.judgeQuestions.innerHTML = "";
+    report.fiveQuestionReview.forEach((q, i) => {
+      const li = document.createElement("li");
+      const head = document.createElement("div");
+      head.className = "question-head";
+      const strong = document.createElement("strong");
+      strong.textContent = `${i + 1}. ${q.question}`;
+      head.appendChild(strong);
+      li.appendChild(head);
+
+      const signalsUl = document.createElement("ul");
+      signalsUl.className = "question-signals";
+      if (q.signals.length === 0) {
+        const none = document.createElement("li");
+        none.className = "question-signal-none";
+        none.textContent = "no machine evidence detected for this question";
+        signalsUl.appendChild(none);
+      } else {
+        for (const s of q.signals) {
+          const sig = document.createElement("li");
+          const id = document.createElement("code");
+          id.textContent = s.id;
+          sig.appendChild(id);
+          sig.appendChild(document.createTextNode(` ${s.count}×`));
+          signalsUl.appendChild(sig);
+        }
+      }
+      li.appendChild(signalsUl);
+
+      const pass = document.createElement("p");
+      pass.className = "question-pass-looks";
+      pass.textContent = `Pass looks like: ${q.verdictHint}`;
+      li.appendChild(pass);
+
+      const details = document.createElement("details");
+      const summary = document.createElement("summary");
+      summary.textContent = "Reviewer hints";
+      details.appendChild(summary);
+      const hintsUl = document.createElement("ul");
+      hintsUl.className = "question-hints";
+      for (const h of q.hints) {
+        const hi = document.createElement("li");
+        hi.textContent = h;
+        hintsUl.appendChild(hi);
+      }
+      details.appendChild(hintsUl);
+      li.appendChild(details);
+
+      els.judgeQuestions.appendChild(li);
+    });
+
+    // Craft floor
+    els.judgeFloor.innerHTML = "";
+    for (const f of report.craftFloor) {
+      const li = document.createElement("li");
+      li.className = `floor-item ${f.machine === "flag" ? "floor-flag" : f.machine === "ok" ? "floor-ok" : "floor-human"}`;
+
+      const head = document.createElement("div");
+      head.className = "floor-head";
+      const strong = document.createElement("strong");
+      strong.textContent = f.name;
+      head.appendChild(strong);
+      const chip = document.createElement("span");
+      chip.className = "floor-chip";
+      chip.textContent =
+        f.machine === "ok" ? "machine ✓ ok" : f.machine === "flag" ? "machine ✗ flagged" : "human step";
+      head.appendChild(chip);
+      li.appendChild(head);
+
+      const desc = document.createElement("p");
+      desc.className = "floor-desc";
+      desc.textContent = f.desc;
+      li.appendChild(desc);
+
+      if (f.evidence.length > 0) {
+        const ev = document.createElement("p");
+        ev.className = "floor-evidence";
+        ev.textContent = `Machine evidence: ${f.evidence.join(", ")}`;
+        li.appendChild(ev);
+      }
+
+      if (f.humanCheckbox) {
+        const label = document.createElement("label");
+        label.className = "floor-human-step";
+        const box = document.createElement("input");
+        box.type = "checkbox";
+        label.appendChild(box);
+        label.appendChild(document.createTextNode(` Human step — verify: ${f.guidance}`));
+        li.appendChild(label);
+      }
+
+      els.judgeFloor.appendChild(li);
+    }
+
+    // Refusal scaffolds
+    els.judgeRefusals.innerHTML = "";
+    for (const s of report.refusalScaffolds) {
+      const li = document.createElement("li");
+      const name = document.createElement("strong");
+      name.textContent = s.name;
+      li.appendChild(name);
+      const when = document.createElement("p");
+      when.className = "floor-desc";
+      when.textContent = s.when;
+      li.appendChild(when);
+      const text = document.createElement("p");
+      text.className = "refusal-text";
+      text.textContent = s.text;
+      li.appendChild(text);
+      els.judgeRefusals.appendChild(li);
+    }
+  }
+
+  /** Auto-classify pasted review input: markup looking like HTML scans as html. */
+  function judgeInputKind(text) {
+    const trimmed = text.trim();
+    const looksHtml = trimmed.startsWith("<") && /<\/[a-z][\s\S]*>/i.test(trimmed.slice(0, 5000));
+    return looksHtml ? "html" : "text";
+  }
+
+  async function runReview() {
+    const input = els.inputReview.value.trim();
+    if (!input) {
+      setJudgeError("Paste some copy to review first (or use the last scanned text).");
+      els.judgeResults.hidden = true;
+      return;
+    }
+    if (!judgeEngine) {
+      setJudgeError("Review engine failed to load (src/judge-browser.js did not load).");
+      return;
+    }
+    setJudgeError("");
+    els.btnJudge.disabled = true;
+    els.btnJudge.textContent = "Reviewing…";
+    els.judgeMode.textContent = "engine: in-browser (local)";
+    try {
+      const kind = judgeInputKind(input);
+      const report = kind === "html" ? judgeEngine.judgeReport({ html: input }) : judgeEngine.judgeReport({ text: input });
+      renderJudgeReport(report);
+      if (kind === "html") els.judgeMode.textContent = "engine: in-browser (html floor machine-checked)";
+    } catch (err) {
+      els.judgeResults.hidden = true;
+      setJudgeError(`Review failed: ${err && err.message ? err.message : err}`);
+    } finally {
+      els.btnJudge.disabled = false;
+      els.btnJudge.textContent = "Run review";
+    }
+  }
+
+  function reuseLastScannedText() {
+    const lastText = els.inputText.value.trim();
+    if (!lastText) {
+      setJudgeError("No previous text scan to reuse — paste some copy into the “Paste text” tab first, or into this box directly.");
+      return;
+    }
+    setJudgeError("");
+    els.inputReview.value = lastText;
+    els.inputReview.focus();
+  }
+
   function run() {
+    if (els.tabReview.getAttribute("aria-selected") === "true") return runReview();
     const activePaneId =
       els.tabText.getAttribute("aria-selected") === "true" ? "text"
         : els.tabUrl.getAttribute("aria-selected") === "true" ? "url"
@@ -779,6 +990,8 @@ low-hanging fruit. Let's dive in!`;
     setupTabs();
     els.btnScan.addEventListener("click", run);
     els.btnSample.addEventListener("click", loadSample);
+    if (els.btnJudge) els.btnJudge.addEventListener("click", runReview);
+    if (els.btnJudgeReuse) els.btnJudgeReuse.addEventListener("click", reuseLastScannedText);
     if (els.btnPickFolder) {
       els.btnPickFolder.addEventListener("click", async () => {
         const picked = await pickFolder();
