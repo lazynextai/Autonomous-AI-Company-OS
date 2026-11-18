@@ -18,9 +18,9 @@
  *                 prose (technical docs, product copy, academic-neutral,
  *                 narrative) + clean HTML, crafted to score low with no
  *                 intended tells.
- *   LANGUAGE      bench/corpus/positive-{fr,de}.md / negative-{fr,de}.md
+ *   LANGUAGE      bench/corpus/positive-{fr,de,ru,hi,es}.md / negative-{fr,de,ru,hi,es}.md
  *                 — original i18n slop/clean samples scanned with the
- *                 merged base + data/rules.{fr,de}.js engines.
+ *                 merged base + data/rules.{fr,de,ru,hi,es}.js engines.
  *
  * Metrics per text family: hits on positives (recall proxy), hits on
  * negatives (false positives), per-family precision/recall/F1. Overall:
@@ -78,7 +78,7 @@ const FAMILIES = [
   { id: "design", categories: ["design-color", "design-type", "design-copy", "design-component", "design-motion", "design-layout"] },
 ];
 
-const LANGUAGE_LINES = ["fr", "de"];
+const LANGUAGE_LINES = ["fr", "de", "ru", "hi", "es"];
 
 // ---------------------------------------------------------------------------
 // Pure helpers (exported for test/eval-harness.test.js)
@@ -262,7 +262,7 @@ function main(argv) {
   console.log("── per-family precision/recall/F1 ─────────────────────────────");
   console.log(formatTable(result));
   console.log("");
-  console.log("── i18n lines (merged base + data/rules.{fr,de}.js) ───────────");
+  console.log("── i18n lines (merged base + data/rules.{fr,de,ru,hi,es}.js) ──");
   for (const l of result.languageLines) {
     console.log(
       `  ${l.lang.padEnd(4)} positive hits: ${l.posHit ? `yes (${l.posMatches} match${l.posMatches === 1 ? "" : "es"})` : "NO"}   ` +

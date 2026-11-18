@@ -1,0 +1,1 @@
+La panadería abre a las seis. La primera bandeja de pan sale del horno a las seis y diez, con la corteza todavía caliente. Maya coloca los panes en el mostrador, los más grandes delante, y cuenta la recaudación dos veces antes de que silbe la tetera. Al mediodía las mesas quedan limpias y el suelo barrido. Cierra a las dos y prepara la masa del día siguiente escuchando la radio.
