@@ -50,6 +50,23 @@
         retry: true,
       };
     },
+    /**
+     * Folder-judge availability (unreleased, pending the v1.4.4 deploy):
+     * the Review tab's "Judge scanned project" action is only enabled after
+     * a Folder scan produced an in-memory PROJECT REPORT OBJECT
+     * ({ files: [...], summary: {...} } — the scanProjectBrowser shape).
+     * Pure and DOM-free so test/app.test.js can exercise the disabled /
+     * enabled logic with no browser. A dir-path string is never a report.
+     */
+    projectJudgeState(report) {
+      const available = Boolean(report && Array.isArray(report.files) && report.summary);
+      return {
+        available,
+        hint: available
+          ? `Folder-judge: ready to judge ${report.summary.filesScanned} scanned file(s) from “${report.root || "this project"}” in the Review tab.`
+          : "Folder-judge: run a Folder scan first. The scanned project report can then be judged in the Review tab.",
+      };
+    },
   };
   if (typeof window !== "undefined") window.SlopAppState = SlopAppState;
   if (typeof globalThis !== "undefined" && globalThis !== window) globalThis.SlopAppState = SlopAppState;
@@ -73,7 +90,9 @@
     folderStatus: document.getElementById("folder-status"),
     btnJudge: document.getElementById("btn-judge"),
     btnJudgeReuse: document.getElementById("btn-judge-reuse"),
+    btnJudgeProject: document.getElementById("btn-judge-project"),
     judgeMode: document.getElementById("judge-mode"),
+    judgeProjectStatus: document.getElementById("judge-project-status"),
     judgeError: document.getElementById("judge-error"),
     engineMode: document.getElementById("engine-mode"),
     engineVersion: document.getElementById("engine-version"),
@@ -90,6 +109,7 @@
     rewriteAfter: document.getElementById("rewrite-after"),
     rewriteNote: document.getElementById("rewrite-note"),
     judgeResults: document.getElementById("judge-results"),
+    judgeResultsTitle: document.getElementById("judge-results-title"),
     judgeBanner: document.getElementById("judge-banner"),
     judgeVerdict: document.getElementById("judge-verdict"),
     judgeVerdictHeading: document.getElementById("judge-verdict-heading"),
@@ -364,6 +384,7 @@ low-hanging fruit. Let's dive in!`;
   // as the fallback. The browser-safe project scanner pools them with the
   // same prose/markup/styles/code lenses as the CLI --dir mode.
   let pickedProject = null; // { root, files: [{name, rel, file}] }
+  let lastProjectReport = null; // the project REPORT object from the most recent folder scan (judged via the Review tab)
 
   async function readTextFile(file) {
     return new Promise((resolve, reject) => {
@@ -538,6 +559,8 @@ low-hanging fruit. Let's dive in!`;
 
   function renderJudgeReport(report) {
     els.judgeResults.hidden = false;
+    els.judgeResultsTitle.textContent =
+      report.input.type === "project" ? "Project review" : "Review verdict";
     const v = report.summary.verdict;
     els.judgeBanner.className = `judge-banner ${judgeVerdictClass(v)}`;
     els.judgeVerdict.textContent = v;
@@ -713,6 +736,59 @@ low-hanging fruit. Let's dive in!`;
     els.inputReview.focus();
   }
 
+  // ── Folder-judge path (unreleased, pending the v1.4.4 deploy) ──────────
+  // The Review tab can judge a whole scanned project: after a Folder scan
+  // completed, `lastProjectReport` holds the in-memory project report
+  // object (scanProjectBrowser shape) and `runProjectReview()` sends THAT
+  // OBJECT through the judge engine's `project` path — never a directory
+  // path (the browser has no filesystem; src/judge-browser.js rejects
+  // strings with the documented contract error). The button is disabled
+  // until a report exists, driven by the pure SlopAppState helper.
+  function updateProjectJudgeAvailability() {
+    const st = SlopAppState.projectJudgeState(lastProjectReport);
+    if (els.btnJudgeProject) {
+      els.btnJudgeProject.disabled = !st.available;
+      els.btnJudgeProject.title = st.available
+        ? `Judge the scanned project report (${lastProjectReport.summary.filesScanned} file(s)).`
+        : "Run a Folder scan first, then judge the whole scanned project.";
+    }
+    if (els.judgeProjectStatus) els.judgeProjectStatus.textContent = st.hint;
+    return st;
+  }
+
+  async function runProjectReview() {
+    if (!judgeEngine) {
+      setJudgeError("Review engine failed to load (src/judge-browser.js did not load).");
+      return;
+    }
+    const st = SlopAppState.projectJudgeState(lastProjectReport);
+    if (!st.available) {
+      setJudgeError("No scanned project to judge. Run a Folder scan first.");
+      els.judgeResults.hidden = true;
+      return;
+    }
+    setJudgeError("");
+    if (els.btnJudgeProject) {
+      els.btnJudgeProject.disabled = true;
+      els.btnJudgeProject.textContent = "Reviewing project…";
+    }
+    els.judgeMode.textContent = `engine: in-browser (project: ${lastProjectReport.root || "folder"})`;
+    try {
+      const report = judgeEngine.judgeReport({ project: lastProjectReport });
+      renderJudgeReport(report);
+      els.judgeMode.textContent = "engine: in-browser (project floor machine-checked)";
+    } catch (err) {
+      els.judgeResults.hidden = true;
+      setJudgeError(`Review failed: ${err && err.message ? err.message : err}`);
+    } finally {
+      if (els.btnJudgeProject) {
+        els.btnJudgeProject.disabled = false;
+        els.btnJudgeProject.textContent = "Judge scanned project";
+      }
+      updateProjectJudgeAvailability();
+    }
+  }
+
   function run() {
     if (els.tabReview.getAttribute("aria-selected") === "true") return runReview();
     const activePaneId =
@@ -726,6 +802,8 @@ low-hanging fruit. Let's dive in!`;
     const finishProject = (project) => {
       els.btnScan.disabled = false;
       els.btnScan.textContent = "Scan for slop";
+      lastProjectReport = project; // the Review tab can now judge this project
+      updateProjectJudgeAvailability();
       renderProjectReport(project);
     };
     const finish = (result) => {
@@ -747,6 +825,8 @@ low-hanging fruit. Let's dive in!`;
       const apiAvailable = await detectApiAvailability().catch(() => false);
 
       if (activePaneId === "folder") {
+        lastProjectReport = null; // a fresh folder scan invalidates the previous report
+        updateProjectJudgeAvailability();
         const project = await scanFolderLocal();
         if (!project) return fail("Choose a folder or select files first.");
         return finishProject(project);
@@ -992,6 +1072,8 @@ low-hanging fruit. Let's dive in!`;
     els.btnSample.addEventListener("click", loadSample);
     if (els.btnJudge) els.btnJudge.addEventListener("click", runReview);
     if (els.btnJudgeReuse) els.btnJudgeReuse.addEventListener("click", reuseLastScannedText);
+    if (els.btnJudgeProject) els.btnJudgeProject.addEventListener("click", runProjectReview);
+    updateProjectJudgeAvailability(); // initial state: disabled until a folder scan holds a report
     if (els.btnPickFolder) {
       els.btnPickFolder.addEventListener("click", async () => {
         const picked = await pickFolder();

@@ -117,3 +117,47 @@ test("results area shows an error and a retry button, not stale content", () => 
   assert.match(appSrc, /matchList\.innerHTML = "";/, "matches cleared in the error state");
   assert.match(appSrc, /els\.results\.hidden = st\.resultsHidden/, "error state controls the results section visibility");
 });
+
+// ────────────────────────────────────────────────────────────────────────
+// Folder-judge availability (unreleased, pending the v1.4.4 deploy)
+// ────────────────────────────────────────────────────────────────────────
+// The Review tab's "Judge scanned project" action is only enabled when a
+// Folder scan holds an in-memory project report OBJECT
+// ({ files: [...], summary: {...} } — the scanProjectBrowser shape). The
+// disabled/enabled decision lives in the DOM-free pure helper
+// `SlopAppState.projectJudgeState` so Node can exercise it with no
+// browser/DOM; the structural locks below pin the wiring (clear on folder
+// START, store on finish, re-sync through the helper).
+
+test("project-judge: pure availability helper flips with a project report (disabled → enabled)", () => {
+  const S = loadAppState();
+  assert.equal(S.projectJudgeState(null).available, false, "no report → disabled");
+  assert.equal(S.projectJudgeState(undefined).available, false, "no report → disabled");
+  assert.equal(S.projectJudgeState("demo/site").available, false, "a dir-path string is never a report (object-only contract)");
+  assert.equal(S.projectJudgeState({ files: [] }).available, false, "files without a summary is not a completed project report");
+  assert.match(S.projectJudgeState(null).hint, /run a Folder scan first/i, "scan-first hint when disabled");
+  const ready = S.projectJudgeState({ root: "demo/site", files: [{}], summary: { filesScanned: 3 } });
+  assert.equal(ready.available, true, "well-formed pre-scanned report → enabled");
+  assert.match(ready.hint, /ready to judge 3 scanned file/, "ready hint names the files");
+});
+
+test("project-judge: wiring — folder scan START clears the report, finish stores it, availability re-synced", () => {
+  // The clear happens inside the folder branch of run(): after the finish
+  // helpers are defined, before the folder scan runs. (The unique suffix
+  // disambiguates the run() clear from the top-of-file `let lastProjectReport
+  // = null` declaration.)
+  assert.match(appSrc, /lastProjectReport = null; \/\/ a fresh folder scan/, "folder scan start clears the previous project report");
+  assert.ok(
+    appSrc.indexOf("lastProjectReport = null; // a fresh folder scan") > appSrc.indexOf("const finishProject"),
+    "the clear sits in the folder branch, after the finish helper is defined"
+  );
+  assert.ok(
+    appSrc.indexOf("lastProjectReport = null") < appSrc.indexOf("const project = await scanFolderLocal()"),
+    "the clear runs before the folder scan"
+  );
+  // finishProject stores the fresh report and re-syncs button availability.
+  assert.match(appSrc, /lastProjectReport = project/, "finishProject stores the fresh report object");
+  assert.match(appSrc, /updateProjectJudgeAvailability\(\)/, "availability is re-synced through the helper");
+  // The Review-tab action passes the pre-scanned OBJECT — never a path.
+  assert.match(appSrc, /judgeEngine\.judgeReport\(\{ project: lastProjectReport \}\)/, "the judge receives the in-memory report object (object-only contract)");
+});

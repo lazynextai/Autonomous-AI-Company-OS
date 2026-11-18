@@ -64,8 +64,10 @@
         <div class="actions">
           <button type="button" id="btn-judge" class="btn-primary">Run review</button>
           <button type="button" id="btn-judge-reuse" class="btn-quiet">Use last scanned text</button>
+          <button type="button" id="btn-judge-project" class="btn-primary" disabled title="Run a Folder scan first, then judge the whole scanned project.">Judge scanned project</button>
           <span id="judge-mode" class="engine-mode"></span>
         </div>
+        <p id="judge-project-status" class="hint">Folder-judge: run a Folder scan first. The scanned project report can then be judged in-browser here.</p>
         <p id="judge-error" class="error" hidden></p>
       </div>
 
@@ -124,6 +126,7 @@
     </section>
 
     <section id="judge-results" class="results" hidden>
+      <h2 id="judge-results-title">Review verdict</h2>
       <div class="judge-banner" id="judge-banner">
         <div class="judge-verdict" id="judge-verdict">-</div>
         <div class="judge-summary">
