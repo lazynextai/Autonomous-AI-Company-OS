@@ -119,7 +119,7 @@ test("results area shows an error and a retry button, not stale content", () => 
 });
 
 // ────────────────────────────────────────────────────────────────────────
-// Folder-judge availability (unreleased, pending the v1.4.4 deploy)
+// Folder-judge availability (shipped in v1.4.4)
 // ────────────────────────────────────────────────────────────────────────
 // The Review tab's "Judge scanned project" action is only enabled when a
 // Folder scan holds an in-memory project report OBJECT

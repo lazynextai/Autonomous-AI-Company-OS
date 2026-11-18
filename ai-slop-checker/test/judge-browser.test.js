@@ -274,7 +274,7 @@ test("web/app.js: Review tab wiring references exist", () => {
 });
 
 // ├──────────────────────────────────────────────────────────────────────
-// │ Folder-judge path (unreleased, pending the v1.4.4 deploy)
+// │ Folder-judge path (shipped in v1.4.4)
 // ├──────────────────────────────────────────────────────────────────────
 // The Review tab's "Judge scanned project" action sends the PRE-SCANNED
 // PROJECT REPORT OBJECT from the Folder tab into the judge engine's

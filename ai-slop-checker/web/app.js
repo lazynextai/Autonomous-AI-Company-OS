@@ -51,7 +51,7 @@
       };
     },
     /**
-     * Folder-judge availability (unreleased, pending the v1.4.4 deploy):
+     * Folder-judge availability (shipped in v1.4.4):
      * the Review tab's "Judge scanned project" action is only enabled after
      * a Folder scan produced an in-memory PROJECT REPORT OBJECT
      * ({ files: [...], summary: {...} } — the scanProjectBrowser shape).
@@ -736,7 +736,7 @@ low-hanging fruit. Let's dive in!`;
     els.inputReview.focus();
   }
 
-  // ── Folder-judge path (unreleased, pending the v1.4.4 deploy) ──────────
+  // ── Folder-judge path (shipped in v1.4.4) ────────────────────────────
   // The Review tab can judge a whole scanned project: after a Folder scan
   // completed, `lastProjectReport` holds the in-memory project report
   // object (scanProjectBrowser shape) and `runProjectReview()` sends THAT
