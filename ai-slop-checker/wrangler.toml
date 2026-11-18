@@ -45,7 +45,7 @@ run_worker_first = true
 # deploy time.)
 [[kv_namespaces]]
 binding = "RECENT"
-id = "REPLACE_ME"
+id = "dd4afa72fb3d4b638e71119c42b0b830"
 
 # Resource hints (no paid features used).
 # [observability]
