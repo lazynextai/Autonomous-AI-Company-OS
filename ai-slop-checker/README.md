@@ -127,7 +127,12 @@ curl -s -X POST localhost:8787/render-scan -H 'content-type: application/json' \
 # "Review" tab that runs the judgement checklist (--judge) fully in the
 # browser via src/judge-browser.js: the 5-question review, craft-floor gate
 # with machine-verified items and human-step checkboxes, refusal scaffolds,
-# and the deterministic PASS | REVIEW | REFUSE verdict. Installable as a PWA
+# and the deterministic PASS | REVIEW | REFUSE verdict. Since this change
+# (unreleased until the next deploy), a completed "Scan a folder" run can
+# also be judged in-browser: the Review tab's "Judge scanned project"
+# action sends the pre-scanned project REPORT OBJECT through the same
+# checklist, so a whole project can be reviewed with no additional input.
+# Installable as a PWA
 # when served over http(s) (manifest + service worker; file:// stays
 # untouched).
 ```

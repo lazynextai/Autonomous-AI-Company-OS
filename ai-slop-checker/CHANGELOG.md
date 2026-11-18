@@ -3,6 +3,31 @@
 All notable changes to the Lazynext AI Slop Checker. SemVer; unreleased
 changes live in the "Unreleased" section until tagged.
 
+## v1.4.4 — Unreleased
+
+### Review tab: judge a scanned project in-browser (folder-judge path)
+- **`web/index.html` + `web/app.js` + `web/style.css`** — once a "Scan a
+  folder" run completes, the Review tab's **"Judge scanned project"** button
+  (a new `btn-judge-project` action, disabled with a scan-first hint until a
+  project report exists) sends the in-memory pre-scanned project report
+  OBJECT through `judgeEngine.judgeReport({ project })` and renders the
+  SAME judge output as the text path (verdict banner, 5-question review,
+  craft-floor items, refusal scaffolds), titled **"Project review"**. The
+  contract stays object-only: `src/judge-browser.js` still rejects a
+  dir-path string with the documented `pre-scanned project report object`
+  error — the browser has no filesystem, and the Folder tab's report is the
+  only accepted input. Triggered via the pure, DOM-free
+  `SlopAppState.projectJudgeState(report)` helper (enabled/disabled +
+  hint), regression-pinned in `test/app.test.js` + `test/judge-browser.test.js`.
+- **Tests** — +6 (419 → 425 under `node --test`): the judge-browser
+  `project` path accepts the fixture report object and returns the same
+  report shape as the text path (parity on verdict + 5Q + floor counts,
+  with contrast/alignment staying human checkboxes in both), path-like
+  values still rejected, plus wiring/parse locks for the new button and
+  `runProjectReview`.
+- **Not deployed** — this entry rides the next deploy; `package.json`
+  stays at 1.4.3.
+
 ## v1.4.3 — 2026-11-18 (web checker Review tab: in-browser judgement checklist)
 
 ### The judgement checklist now runs in the web checker

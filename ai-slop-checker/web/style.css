@@ -121,6 +121,10 @@ textarea { resize: vertical; min-height: 140px; font-family: ui-monospace, SFMon
 }
 .btn-primary { background: var(--brand-blue); color: #fff; }
 .btn-primary:hover { background: #0456d0; }
+.btn-primary:disabled, .btn-quiet:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 .btn-quiet { background: #fff; border-color: var(--brand-rule); color: var(--brand-ink); }
 .btn-quiet:hover { border-color: var(--brand-blue); color: var(--brand-blue); }
 
