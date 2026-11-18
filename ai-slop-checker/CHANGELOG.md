@@ -3,6 +3,39 @@
 All notable changes to the Lazynext AI Slop Checker. SemVer; unreleased
 changes live in the "Unreleased" section until tagged.
 
+## v1.4.3 — 2026-11-18 (web checker Review tab: in-browser judgement checklist)
+
+### The judgement checklist now runs in the web checker
+- **`src/judge-browser.js`** (new) — browser-safe UMD twin of `src/judge.js`
+  exposing the SAME engine as `window.SlopJudge`: the 5-question review with
+  machine-flagged signals, the craft-floor gate (machine-checked only where
+  evidence exists — contrast/alignment always human checkboxes), refusal
+  scaffolds, and the deterministic PASS | REVIEW | REFUSE verdict computed
+  only from machine-verifiable parts. Zero build, no CDNs; the CommonJS arm
+  is the Node require path so a single module serves both runtimes.
+- **Parity pinned** — `test/judge-browser.test.js` (new) deep-compares the
+  full browser report against `src/judge.js` on `demo/slop.txt` (REVIEW) and
+  `demo/clean.txt` (PASS) plus the html REFUSE path, so the two cannot
+  drift. Parse-level (new Function + vm window shim), behavioural honesty
+  boundary, project-report input contract (pre-scanned report object — the
+  browser has no filesystem, dir-path strings are rejected with the
+  object-contract error), and web wiring assertions.
+- **Web checker (web/index.html + web/app.js + web/style.css)** — a 4th
+  "Review" tab alongside Paste text / Scan a URL / Scan a folder: a copy
+  input that auto-classifies HTML vs text, "Run review" producing the full
+  judge output in-browser (verdict banner PASS/REVIEW/REFUSE, 5-question
+  review, craft-floor list with machine chips + human-step checkboxes,
+  refusal scaffolds), and a "Use last scanned text" shortcut reusing the
+  Paste-text tab's content. Brand-consistent (blue `#0468F8` / cyan
+  `#04B4FC`, existing styles). `src/judge-browser.js` loads after scanner.js
+  and before app.js in index.html's script order.
+- **Version bumps** — 1.4.2 → 1.4.3 across `package.json`, corpus
+  `data/slop-patterns.js`, agent card + fallback `src/render-checks.js`,
+  `api/openapi.json` (`info.version`), `llms.txt`, `README.md`,
+  `docs/usage.md`, `docs/DEPLOYMENT.md`, `scripts/live-check.js` UA,
+  `test/worker.test.js` version assertions, and the embedded assets
+  (regenerated via `npm run gen:assets`).
+
 ## v1.4.2 — 2026-11-18 (A2A durable task replay via optional KV-backed store)
 
 ### A2A recent-task store is now pluggable

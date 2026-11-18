@@ -121,10 +121,15 @@ curl -s -X POST localhost:8787/render-scan -H 'content-type: application/json' \
 # Web checker (in-browser engine, no server needed): open web/index.html,
 # or visit http://localhost:8787 with the API running. Includes a
 # "Scan a folder" mode (File System Access API, file-input fallback) that
-# scans chosen website assets entirely in the browser, and a
+# scans chosen website assets entirely in the browser, a
 # "Design reviews" panel that runs the rendered-tier checks over a pasted
-# snapshot JSON — also entirely in the browser. Installable as a PWA when
-# served over http(s) (manifest + service worker; file:// stays untouched).
+# snapshot JSON — also entirely in the browser — and, since v1.4.3, a
+# "Review" tab that runs the judgement checklist (--judge) fully in the
+# browser via src/judge-browser.js: the 5-question review, craft-floor gate
+# with machine-verified items and human-step checkboxes, refusal scaffolds,
+# and the deterministic PASS | REVIEW | REFUSE verdict. Installable as a PWA
+# when served over http(s) (manifest + service worker; file:// stays
+# untouched).
 ```
 
 ### Browser notes
@@ -164,7 +169,7 @@ lockfiles, and binaries are skipped.
 ```js
 {
   engine: "lazynext-ai-slop-checker",
-  version: "1.4.2",
+  version: "1.4.3",
   input: { type: "text", length: 412 },
   score: 63,                    // 0 (clean) - 100 (max slop)
   verdict: "moderate",          // clean | light | moderate | heavy
@@ -300,8 +305,8 @@ and was **not** executed for this deliverable:
 
 ```sh
 cd ai-slop-checker
-docker build -t lazynext/ai-slop-checker:1.4.2 .
-docker run --rm -p 3000:3000 lazynext/ai-slop-checker:1.4.2
+docker build -t lazynext/ai-slop-checker:1.4.3 .
+docker run --rm -p 3000:3000 lazynext/ai-slop-checker:1.4.3
 # or the Worker:
 export CLOUDFLARE_API_TOKEN="$CLOUDFLARE_DEPLOY_TOKEN"   # see docs/DEPLOYMENT.md
 wrangler deploy --name lazynext-ai-slop-checker

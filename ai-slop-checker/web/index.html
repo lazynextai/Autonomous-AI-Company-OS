@@ -33,6 +33,7 @@
         <button type="button" role="tab" id="tab-text" aria-selected="true" aria-controls="pane-text" data-pane="text">Paste text</button>
         <button type="button" role="tab" id="tab-url" aria-selected="false" aria-controls="pane-url" data-pane="url">Scan a URL</button>
         <button type="button" role="tab" id="tab-folder" aria-selected="false" aria-controls="pane-folder" data-pane="folder">Scan a folder</button>
+        <button type="button" role="tab" id="tab-review" aria-selected="false" aria-controls="pane-review" data-pane="review">Review</button>
       </div>
 
       <div id="pane-text" role="tabpanel" aria-labelledby="tab-text" class="pane">
@@ -54,6 +55,18 @@
         </div>
         <input id="folder-files" type="file" multiple accept=".md,.mdx,.txt,.html,.htm,.jsx,.tsx,.vue,.svelte,.astro,.php,.twig,.css,.scss,.sass,.less,.js,.ts,.mjs,.cjs,.json,.yaml,.yml,.py,.rb,.go,.java,.cs,.c,.h,.cpp,.rs" hidden />
         <p class="hint">Your browser scans the files locally — nothing is uploaded. Chrome and Edge can pick a whole folder (<code>showDirectoryPicker</code>); other browsers fall back to selecting files.</p>
+      </div>
+
+      <div id="pane-review" role="tabpanel" aria-labelledby="tab-review" class="pane" hidden>
+        <label for="input-review">Copy to review</label>
+        <textarea id="input-review" rows="9" spellcheck="false" placeholder="Paste the copy, landing-page HTML, or reuse the last scanned text. Get the design-review checklist verdict (PASS / REVIEW / REFUSE)."></textarea>
+        <p class="hint">Runs the judgement checklist (<code>--judge</code>) fully in your browser: the 5-question review, the craft-floor gate (machine-checked where possible, human steps for contrast and alignment), and refusal scaffolds. Deterministic: same input, same verdict.</p>
+        <div class="actions">
+          <button type="button" id="btn-judge" class="btn-primary">Run review</button>
+          <button type="button" id="btn-judge-reuse" class="btn-quiet">Use last scanned text</button>
+          <span id="judge-mode" class="engine-mode"></span>
+        </div>
+        <p id="judge-error" class="error" hidden></p>
       </div>
 
       <div class="actions">
@@ -110,6 +123,35 @@
       </section>
     </section>
 
+    <section id="judge-results" class="results" hidden>
+      <div class="judge-banner" id="judge-banner">
+        <div class="judge-verdict" id="judge-verdict">-</div>
+        <div class="judge-summary">
+          <h3 id="judge-verdict-heading">Review verdict</h3>
+          <p id="judge-verdict-reason">Run a review to see the verdict.</p>
+          <p id="judge-verdict-note" class="hint"></p>
+        </div>
+      </div>
+
+      <section class="panel">
+        <h3>The 5-question review <span class="judge-chip judge-chip-human">human steps</span></h3>
+        <p class="hint">Machine signals per question are listed first; the questions themselves are for the reviewer to answer.</p>
+        <ol id="judge-questions" class="judge-questions"></ol>
+      </section>
+
+      <section class="panel">
+        <h3>Craft floor <span class="judge-chip" id="judge-floor-chip"></span></h3>
+        <p class="hint">Machine-checked where the evidence exists; contrast and alignment are human steps. Check the box once verified.</p>
+        <ul id="judge-floor" class="judge-floor"></ul>
+      </section>
+
+      <section class="panel">
+        <h3>Refusal scaffolds <span class="judge-chip judge-chip-human">reviewer's words</span></h3>
+        <p class="hint">The professional sentences to send when the floor passes but the bar does not.</p>
+        <ul id="judge-refusals" class="judge-refusals"></ul>
+      </section>
+    </section>
+
     <section id="about" class="panel">
       <h2>What this checks</h2>
       <p>The Lazynext AI Slop Checker merges the ideas behind five open-source anti-slop projects into one deterministic engine:
@@ -147,6 +189,7 @@
   <script src="../src/scanner.js"></script>
   <script src="../src/rewriter.js"></script>
   <script src="../src/project-scanner-browser.js"></script>
+  <script src="../src/judge-browser.js"></script>
   <script src="./app.js"></script>
   <script src="./register-sw.js" defer></script>
 </body>
