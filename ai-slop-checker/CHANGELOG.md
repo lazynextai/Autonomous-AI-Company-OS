@@ -3,7 +3,7 @@
 All notable changes to the Lazynext AI Slop Checker. SemVer; unreleased
 changes live in the "Unreleased" section until tagged.
 
-## v1.4.4 — Unreleased
+## v1.4.4 — 2026-11-19 (web Review tab folder-judge path shipped)
 
 ### Review tab: judge a scanned project in-browser (folder-judge path)
 - **`web/index.html` + `web/app.js` + `web/style.css`** — once a "Scan a
@@ -25,8 +25,10 @@ changes live in the "Unreleased" section until tagged.
   with contrast/alignment staying human checkboxes in both), path-like
   values still rejected, plus wiring/parse locks for the new button and
   `runProjectReview`.
-- **Not deployed** — this entry rides the next deploy; `package.json`
-  stays at 1.4.3.
+- **Deployed 2026-11-19** — this entry shipped with v1.4.4: version bumped
+  1.4.3 → 1.4.4 and the Worker redeployed in place
+  (`lazynext-ai-slop-checker`), so `package.json` and the live worker
+  both read 1.4.4.
 
 ## v1.4.3 — 2026-11-18 (web checker Review tab: in-browser judgement checklist)
 

@@ -128,7 +128,7 @@ curl -s -X POST localhost:8787/render-scan -H 'content-type: application/json' \
 # browser via src/judge-browser.js: the 5-question review, craft-floor gate
 # with machine-verified items and human-step checkboxes, refusal scaffolds,
 # and the deterministic PASS | REVIEW | REFUSE verdict. Since this change
-# (unreleased until the next deploy), a completed "Scan a folder" run can
+# (shipped in v1.4.4), a completed "Scan a folder" run can
 # also be judged in-browser: the Review tab's "Judge scanned project"
 # action sends the pre-scanned project REPORT OBJECT through the same
 # checklist, so a whole project can be reviewed with no additional input.
@@ -174,7 +174,7 @@ lockfiles, and binaries are skipped.
 ```js
 {
   engine: "lazynext-ai-slop-checker",
-  version: "1.4.3",
+  version: "1.4.4",
   input: { type: "text", length: 412 },
   score: 63,                    // 0 (clean) - 100 (max slop)
   verdict: "moderate",          // clean | light | moderate | heavy
@@ -310,8 +310,8 @@ and was **not** executed for this deliverable:
 
 ```sh
 cd ai-slop-checker
-docker build -t lazynext/ai-slop-checker:1.4.3 .
-docker run --rm -p 3000:3000 lazynext/ai-slop-checker:1.4.3
+docker build -t lazynext/ai-slop-checker:1.4.4 .
+docker run --rm -p 3000:3000 lazynext/ai-slop-checker:1.4.4
 # or the Worker:
 export CLOUDFLARE_API_TOKEN="$CLOUDFLARE_DEPLOY_TOKEN"   # see docs/DEPLOYMENT.md
 wrangler deploy --name lazynext-ai-slop-checker
