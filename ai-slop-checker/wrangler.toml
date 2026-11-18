@@ -30,6 +30,23 @@ directory = "./"
 binding = "ASSETS"
 run_worker_first = true
 
+# Optional A2A recent-task KV store
+#
+# When a `RECENT` KV binding is present, tasks/send write the task view
+# through to KV (a2atask:{id}, 30-min TTL) and tasks/get + the REST
+# shortcut read KV first with an in-memory fallback — durable across
+# isolate recycles. Unbound deploys (and the local Node server) keep the
+# bounded in-memory store; no KV is required to run. Create the namespace
+# and paste its id here:
+#
+#   npx wrangler kv namespace create 'AI_SLOP_RECENT'
+#
+# (id is left as REPLACE_ME in the committed file; fill the real id at
+# deploy time.)
+[[kv_namespaces]]
+binding = "RECENT"
+id = "REPLACE_ME"
+
 # Resource hints (no paid features used).
 # [observability]
 # enabled = true

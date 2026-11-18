@@ -580,7 +580,7 @@ const server = http.createServer(async (req, res) => {
     }
     const a2aTaskMatch = pathname.match(/^\/a2a\/tasks\/([^/]+)$/);
     if (req.method === "GET" && a2aTaskMatch) {
-      const out = agentSurfaces.a2aTaskGet(a2aTaskMatch[1]);
+      const out = await agentSurfaces.a2aTaskGet(a2aTaskMatch[1]);
       return json(res, out.status, out.body);
     }
     if (req.method === "GET" && pathname === "/.well-known/agent.json") {

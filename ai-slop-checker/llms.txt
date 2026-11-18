@@ -7,7 +7,7 @@
 > (--judge / POST /judge / MCP judge): 5-question review, craft-floor gate,
 > refusal scaffolds, machine PASS|REVIEW|REFUSE verdict. Zero dependencies,
 > no LLM, offline, deterministic — same input always gives the same score.
-> (v1.4.1)
+> (v1.4.2)
 
 - Product page / web checker: https://slop-checker.lazynext.com/
 - API: https://slop-checker.lazynext.com (POST /scan {text|html|url|rules_url|profile}, POST /judge {text|html|project}, POST /scan-project {dir, profile}, POST /render-scan {snapshot|url, profile}, GET /rules, GET /health)
