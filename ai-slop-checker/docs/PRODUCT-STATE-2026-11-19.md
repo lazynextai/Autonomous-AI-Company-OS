@@ -1,0 +1,172 @@
+# Lazynext AI Slop Checker — Product State & Founder Handoff
+
+**Date:** 2026-11-19
+**Version:** v1.4.4 (repo == prod at `69d8537`)
+**Author:** Lazynext OS
+**Status:** LIVE — consolidated founder handoff
+
+---
+
+## 0. One-page executive summary
+
+**What.** Lazynext AI Slop Checker is a zero-dependency Cloudflare Worker that detects "AI slop" — machine-generated writing, design, and content tells — in text, HTML, rendered pages, and whole project folders, with in-place rewriting and a deterministic judgement checklist.
+
+**Where.** LIVE at **https://slop-checker.lazynext.com** (worker `lazynext-ai-slop-checker`; workers.dev mirror `lazynext-ai-slop-checker.dry-hall-6a50.workers.dev`). Health spot-checked 2026-11-19: `{"ok":true,"engine":"lazynext-ai-slop-checker","version":"1.4.4"}`.
+
+**Version.** v1.4.4 — 425/425 tests, corpus integrity 446 patterns / 32 categories, eval gate F1 1.000 across 16 families, 0.0% false-positive on 20 clean negatives.
+
+**One-line pitch.** A fast, private, bilingual-by-design quality gate that finds, explains, and rewrites AI-slop artifacts in anything you paste, point it at, or ship from a repo — no account, no API key, no cost.
+
+**What the founder needs to know.** Twelve product PRs merged (#92→#103), the service is live and monitored every 15 minutes, all quality gates pass, and four decisions remain founder-gated (MIT license confirmation, npm publish, CI gate ownership, and optional roadmap items) — see Section 6.
+
+---
+
+## 1. What is live
+
+### URLs
+| Surface | URL | Notes |
+|---|---|---|
+| Canonical product | `https://slop-checker.lazynext.com` | Custom domain binding, zone `ff0ad1848e936913a9c4b4e85b1f04af` |
+| Workers.dev mirror | `https://lazynext-ai-slop-checker.dry-hall-6a50.workers.dev` | Same worker |
+| Health | `https://slop-checker.lazynext.com/health` | `{"ok":true,"engine":"lazynext-ai-slop-checker","version":"1.4.4"}` — spot-checked live 2026-11-19 |
+| Skills/agent docs | `skill/SKILL.md`, `skill/CLAUDE.md`, `skill/references/visual-tells.md` | Harness-format skill distribution |
+| Repo | `ai-slop-checker/` in `lazynextai/Autonomous-AI-Company-OS` | Monorepo path; product tree only |
+
+### Features
+- **5-language, 446-pattern corpus (32 categories).** Base engine `data/slop-patterns.js` (279 patterns / 27 categories), merged with language rule files `rules.{ru,hi,es,fr,de}.js` → 446 total patterns across 32 categories. Corpus integrity verified: 446 unique / 32 cats, zero duplicates.
+- **Scanning + rewriting.** Text, HTML, and whole-project (folder) scanning in `src/{scanner,rewriter,project-scanner,rules-loader}.js`; in-place safe rewrites for pattern hits (smoke-verified: 2 safe rewrites produced on a live slop sample).
+- **Rendered-tier pure-snapshot checks** (`src/render-checks.js` + `src/collect-render.js`): machine-checkable visual-tell signals from a DOM snapshot — including **WCAG contrast** verification for the rendered page — no browser-side judgment, deterministic from the snapshot alone.
+- **Severity profiles** — issues graded by severity; aggregate score (0–100) with level bands (e.g., live sample: 41/100 Moderate). Soft tells surface as evidence but stay **out of the deterministic score by design**.
+- **`--judge` CLI + Review tab + folder-judge.** CLI judging via `api/cli.js`/`src/judge.js` + browser bridge `src/judge-browser.js` / `src/node-bridge.js`; in-browser "Review" tab shipping a judgement checklist (5Q = 5, craft floor = 6, floor MET on the live smoke); folder-judge gates Project review on a folder scan (disabled → plain scan; enabled → full Project review with machine-checked floor answers).
+- **Agent surfaces.** MCP server with 7 tools, A2A endpoints with **durable task persistence across isolates** (KV `AI_SLOP_RECENT`, RECENT binding, 30-min TTL, replay-safe), widget, OpenAPI 3.1 (`api/openapi.json`), `llms.txt`, and `agent.json`. All in `api/agent-surfaces.js`.
+- **PWA shell** (`web/`): four tabs — Text / URL / Folder / Review — with `sw.js` service worker, manifest, and icons. Brand colors `#0468F8` / `#04B4FC`.
+- **Packaging.** `package.json` v1.4.4, **zero runtime dependencies**; scripts: `test` / `check` / `e2e` / `live` / `eval` / `gen:assets` (verified from the tree this session). `npm pack --dry-run`: 40 files, 3.6 MB.
+
+### Tree map (abridged)
+```
+ai-slop-checker/
+├── data/slop-patterns.js            # 279 base / 27 cats (en)
+├── rules.{ru,hi,es,fr,de}.js        # +167 patterns → 446 / 32 cats merged
+├── src/{scanner,rewriter,project-scanner,rules-loader,render-checks,
+│        collect-render,judge,judge-browser,node-bridge}.js
+├── api/{server,worker,worker-module.mjs,agent-surfaces,cli,
+│        embedded-assets}.js + openapi.json
+├── web/                             # 4 tabs, PWA shell (sw.js + manifest + icons)
+├── skill/{SKILL.md,CLAUDE.md,references/visual-tells.md}
+├── .cursor/rules/slop-guard.mdc
+├── test/                            # 425 tests (spot-checked 425/425 pass)
+├── bench/{run,eval}.js + bench/corpus/
+├── scripts/{check-corpus,e2e,live-check,check}.js
+├── docs/{DEPLOYMENT.md,DEPLOYMENT-PLAN-2026-11-17.md,usage.md,
+│         design-review-guide.md,eval-report.md,dogfood-report.md,
+│         RELEASE-2026-11-17.md}
+├── CHANGELOG.md · ROADMAP.md · ATTRIBUTIONS.md · README.md · LICENSE (MIT — founder UNCONFIRMED)
+└── package.json                     # v1.4.4, zero-deps
+```
+
+---
+
+## 2. Five-repo absorption mapping
+
+All five upstreams were absorbed as **original work** — concepts, taxonomy, and workflow ideas only; nothing copied verbatim. Upstream licenses credited in `ATTRIBUTIONS.md` (MIT ×3, Apache-2.0 ×2).
+
+| Upstream repo | What was absorbed | Where it landed |
+|---|---|---|
+| `impeccable` | Design-vocabulary / rendered-check spirit; `design-*` heuristics; craft floor | `src/render-checks.js`, `src/collect-render.js`, `src/rules-loader.js` |
+| `no-ai-slop` | Banned-words vocabulary; 20+ pattern vocabulary terms | `data/slop-patterns.js` base list |
+| `stop-slop` | Filler / jargon / throat-clearing / structural categories; scoring-rubric idea | Category taxonomy in `data/slop-patterns.js`, severity scoring |
+| `kill-ai-slop` | Visual-tells taxonomy; field-guide; project-scan workflow | `skill/references/visual-tells.md`, `src/project-scanner.js`, `--judge` flow |
+| `hallmark` | Quality-floor concept; machine-checkable design signals; harness-format skill distribution | Craft floor in Review tab, judge checklist, `skill/SKILL.md` + `CLAUDE.md` |
+
+---
+
+## 3. Ship history (12 merged PRs, `git log origin/main`)
+
+| PR | Commit | What shipped |
+|---|---|---|
+| [#92](https://github.com/lazynextai/Autonomous-AI-Company-OS/pull/92) | `145f307` | Product v1.4.1 — consolidated no-ai-slop/stop-slop/impeccable/hallmark/kill-ai-slop; build arc 47 → 319 tests |
+| [#93](https://github.com/lazynextai/Autonomous-AI-Company-OS/pull/93) | `01e5652` | Deployment plan + run book (Worker vs Docker decision) |
+| [#94](https://github.com/lazynextai/Autonomous-AI-Company-OS/pull/94) | `ce805c3` | Worker-runtime compatibility (ESM wrapper, SSRF guard, static asset map) |
+| [#95](https://github.com/lazynextai/Autonomous-AI-Company-OS/pull/95) | `cda13b4` | Live-service guard — `scripts/live-check.js`, deploy gotchas doc |
+| [#96](https://github.com/lazynextai/Autonomous-AI-Company-OS/pull/96) | `4943bf2` | `scripts/health_check.py` 15-min monitoring, origin `slop-checker` |
+| [#97](https://github.com/lazynextai/Autonomous-AI-Company-OS/pull/97) | `8111d16` | 1 ms flake fix — deterministic `taskView` comparisons + regression guard |
+| [#98](https://github.com/lazynextai/Autonomous-AI-Company-OS/pull/98) | `845e561` | Corpus quality eval (precision/recall gate) + fr/de i18n corpora → 446/32 |
+| [#99](https://github.com/lazynextai/Autonomous-AI-Company-OS/pull/99) | `b6f5ae5` | A2A KV-backed task durability (v1.4.2) |
+| [#100](https://github.com/lazynextai/Autonomous-AI-Company-OS/pull/100) | `60879f3` | Complete i18n eval lines (ru/hi/es) in `bench/eval` |
+| [#101](https://github.com/lazynextai/Autonomous-AI-Company-OS/pull/101) | `112e2c1` | Web checker Review tab — in-browser judgement checklist (v1.4.3) |
+| [#102](https://github.com/lazynextai/Autonomous-AI-Company-OS/pull/102) | `b7a7718` | Web Review tab folder-judge path (judge scanned projects in-browser) |
+| [#103](https://github.com/lazynextai/Autonomous-AI-Company-OS/pull/103) | `69d8537` | **v1.4.4 release** — folder-judge shipped; repo == prod |
+
+---
+
+## 4. Quality & verification evidence
+
+All numbers below come from real command runs; spot-checks re-run live on 2026-11-19 for this handoff are marked **live**.
+
+### Automated gates
+- **Tests: 425/425 pass** — `node --test` (run ×3 across the session; **live re-check 2026-11-19: `tests 425 / pass 425 / fail 0`**).
+- **`npm run check` ALL GREEN** — corpus + tests + e2e **26/26**.
+- **`npm run eval` GATE PASS** (`bench/eval.js`): **0.0% false-positive on 20 clean negatives**, **16/16 families F1 = 1.000**, i18n eval lines **ru / hi / es / fr / de all PASS**.
+- **`check-corpus` INTEGRITY PASS** — **446 unique patterns / 32 categories**, no duplicate IDs.
+- **Fuzz: 79 tests** — found and fixed **4 real bugs**: OOR numeric entities → U+FFFD, hex-entity radix, hostile snapshot styles, OOB screens.
+- **`npm pack --dry-run`** — 40 files, 3.6 MB (publish-ready shape).
+
+### Real-browser smoke of the DEPLOYED site (2026-11-19)
+- Slop sample (AI-flavored copy): **41/100 Moderate, 6 tells, 3 categories**, plus **2 safe rewrites** produced.
+- Clean sample: **0/100**.
+- URL-scan works same-origin: `example.com` → **0/100 via engine:API**.
+- Review tab: "Machine objections found", **5Q = 5**, **craft floor 6 → FLOOR MET**, 3 refusal scaffolds.
+- Folder → judge gate: disabled → scan 2 files → 41/100; enabled → Project review with **6 objections, 4 machine-checked OK floor items**.
+- Resources **10/10 returned 200** (incl. `/health`); **0 console errors** observed.
+- Brand colors verified `#0468F8` / `#04B4FC`.
+
+### Honest caveats
+- **CDP console-capture persistence is NOT guaranteed.** The 0-console-error observation and screenshots (`smoke-live-1..8`) were captured in-session via the CDP harness; the screenshots live under the cursor sandbox `/tmp` path and **may no longer exist on disk**. They are session evidence, not durable artifacts — re-run `npm run live` for fresh evidence.
+- Soft-tell signals are surfaced as evidence but deliberately **excluded from the deterministic score** (see ROADMAP.md) — this is a design decision, not a gap.
+
+---
+
+## 5. Operations
+
+### Monitoring
+- **`scripts/health_check.py`** (repo root, launchd, every 15 min) monitors the `slop-checker` origin — added via PR #96. A stale/missing health response triggers the same alerting path as the other company origins.
+- **`npm run live`** = `scripts/live-check.js` → last run **20/20 ALL GREEN** across all check categories.
+
+### Deploy run book
+- Full run book: **`docs/DEPLOYMENT.md`** (incl. gotchas) + **`docs/DEPLOYMENT-PLAN-2026-11-17.md`** (Worker vs Docker decision record).
+
+### Known gotchas (documented in DEPLOYMENT.md)
+- **`binding = "ASSETS"` must be explicit** in the worker config; static assets are served from a curated map with `run_worker_first`.
+- **Fresh `Request` for asset fetches** — reuse of the incoming request object breaks asset serving.
+- **522-trap on worker recreate**: deleting/replacing the worker script drops the `workers/domains` binding while the proxied DNS record remains → instant 522 (~40 ms). Fix: re-bind via `PUT /accounts/{acct}/workers/domains` for `slop-checker.lazynext.com` (zone `ff0ad1848e936913a9c4b4e85b1f04af`).
+- **ESM wrapper required**: workerd rejects CJS-only workers (error 10021) — `api/worker-module.mjs` is the entry wrapper.
+
+### Abuse & safety guards (live-verified)
+- **SSRF host-block guard**: blocked `169.254.x.x` and `127.0.0.1` scan targets → 502.
+- **Per-IP scan cap**: 60 scans/min per IP.
+
+### Rollback
+- `npx wrangler rollback <version> --name lazynext-ai-slop-checker` — previous release is rollback-safe; after ANY rollback/recreate, verify the custom-domain binding still answers (522-trap above) and re-run `npm run live`.
+
+---
+
+## 6. Founder decision checklist (4 gated items)
+
+| # | Item | Status | One-line reason | Next action |
+|---|---|---|---|---|
+| 1 | **MIT license confirmation** | FILE PRESENT, founder UNCONFIRMED | `LICENSE` ships MIT but the founder has not confirmed adoption | Confirm MIT (or choose another) — then update `LICENSE` + metadata if changed |
+| 2 | **npm publish `@lazynext/ai-slop-checker`** | READY, not published | Pack shape verified (40 files, 3.6 MB, zero-deps) but publishing needs founder authorization + npm org access | Authorize publish; run `npm publish --dry-run` → live publish |
+| 3 | **CI gate** (`.github/`) | NOT CREATED | House rule: `.github/` is devops-owned only | Devops adds the CI workflow when scheduled — do not create from product side |
+| 4 | **Optional roadmap items** | OPEN | Status-page entry, real-browser CI farm, A2A multi-worker KV edge case, soft-tell auto-scoring — all deliberate deferrals (soft-tell scoring stays out of the deterministic score) | Founder prioritizes or closes; tracked in `ROADMAP.md` |
+
+---
+
+## 7. House-rule compliance statement
+
+- **Scope discipline:** only `ai-slop-checker/` changed across the whole product arc (+ one ops `AGENTS.md` bullet via PR #93). Nothing else in the monorepo was touched.
+- **Protected files untouched:** `worker.js`, `index.html`, `src/scanner.js`, `package.json`, `test/scanner.test.mjs`, `.github/` were never modified by product work.
+- **No secrets:** no credentials in code, docs, or commits; no new paid services beyond the existing plan.
+- **Fleet undisturbed:** the local agent fleet was never stopped, restarted, or interfered with during any verification or deployment work (verified running at handoff time).
+- **Main tree clean:** only pre-existing untracked files present in the main checkout.
+- **Worktree discipline:** all git operations for this handoff ran in a detached worktree (`/private/tmp/lazynext-state-doc`) — the shared working tree was never checked out, pulled, or reset.
+- **No fabricated data:** every figure in this document comes from a real command run or a live check (Section 4 lists the exact gates); anything not measured is labelled as such.
