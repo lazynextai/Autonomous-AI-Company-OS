@@ -1,0 +1,78 @@
+name: ai-slop-checker CI
+
+# Per-PR quality gate for ai-slop-checker/ plus a daily live-check of the
+# deployed worker (https://slop-checker.lazynext.com). Founder-authorized
+# 2026-11-19 (full authority for the .github/-gated items).
+#
+# Install note: ai-slop-checker declares ZERO runtime dependencies and its
+# package-lock.json is gitignored (generated for reproducibility), so the
+# repo convention here is `npm install`, not `npm ci` — and there is no
+# committed lockfile for actions/setup-node to cache on, so no npm cache.
+# Matches the existing repo workflows (actions/checkout@v4,
+# actions/setup-node@v4, node-version "20", per-dir working-directory).
+
+on:
+  push:
+    paths:
+      - "ai-slop-checker/**"
+      - ".github/workflows/ai-slop-checker.yml"
+  pull_request:
+    paths:
+      - "ai-slop-checker/**"
+      - ".github/workflows/ai-slop-checker.yml"
+  schedule:
+    - cron: "0 4 * * *" # daily 04:00 UTC — live-check of the deployed worker
+  workflow_dispatch: # manual kick (runs both jobs)
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-slop-checker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install (zero declared deps; npm ci needs a committed lockfile)
+        run: npm install
+
+      - name: Quality gate — corpus integrity + 425 tests + e2e (26/26)
+        run: npm run check
+
+      - name: Eval gate — precision/recall, FP rate (GATE <= 5%)
+        run: node bench/eval.js
+
+      - name: Corpus integrity — 5 i18n corpora cross-file (446/32)
+        run: node scripts/check-corpus.js data/rules.ru.js data/rules.hi.js data/rules.es.js data/rules.fr.js data/rules.de.js
+
+  live:
+    needs: quality # never live-check on a red tree
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-slop-checker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install (zero declared deps; npm ci needs a committed lockfile)
+        run: npm install
+
+      - name: Live-check slop-checker.lazynext.com (read-only probes)
+        run: npm run live
