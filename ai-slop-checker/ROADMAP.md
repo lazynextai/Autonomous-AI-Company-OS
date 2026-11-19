@@ -125,16 +125,30 @@ not engineering.
 
 ## CI gate
 
-A `slop-check` GitHub Action exit-code gate for prose/docs PRs. The CLI
-already exits 2 on findings, so the action is a thin wrapper — but it
-would run on the monorepo's real PR flow and needs a founder decision on
-enforcement policy (hard fail vs comment-only). **Deliberately not created
-in v1.3.0:** `.github/` is devops-role-gated per house rules, and the
-real-browser render CI harness (playwright collector against live
-fixtures) would live here too. Founder decision + devops action required
-before either lands. **Still open in v1.4.1** — do NOT create workflows in
-`.github/` from this repo (devops-owned per house rules); the local
-analogue is `npm run check`.
+**SHIPPED 2026-11-19** — `.github/workflows/ai-slop-checker.yml` (quality
+gate + daily live-check). Founder granted FULL AUTHORITY on 2026-11-19 for
+the previously devops-gated `.github/` item. The workflow mirrors the local
+analogue (`npm run check`) as a hard-fail gate:
+
+- **Triggers:** `push` + `pull_request` on `ai-slop-checker/**` (and the
+  workflow file itself), plus `schedule` (`0 4 * * *`, daily 04:00 UTC)
+  and `workflow_dispatch`.
+- **`quality` job** (all triggers, `needs`-gated only downstream): `npm run
+  check` (corpus integrity → `node --test` → e2e 26/26), `node bench/eval.js`
+  (GATE PASS, FP ≤ 5%), and the explicit 5-i18n-corpus integrity check
+  (`data/rules.{ru,hi,es,fr,de}.js`, merged 446/32) — each a separate
+  `run:` step so a failure names the step.
+- **`live` job** (`schedule`/`workflow_dispatch`, `needs: quality` so it
+  never runs on a red tree): `npm run live` — read-only probes of the
+  deployed worker at `https://slop-checker.lazynext.com` (GET/HEAD surface,
+  `/scan` text contract, MCP handshake, two deliberately-blocked SSRF
+  `url` scans, asset-gating, sibling hosts). Site down → job fails →
+  normal CI notifications.
+
+The **real-browser render CI harness** (playwright collector against live
+fixtures, `src/collect-render.js`) remains a separate deferred item: it
+needs a browser farm, and the pure checks are fully covered by tests
+(34 hand-crafted snapshot tests + the hostile-snapshot fuzz battery).
 
 ## Package publishing
 
@@ -173,11 +187,6 @@ deliverable).
   needs playwright + a browser farm; that lives under `.github/` which is
   devops-gated. The pure checks are fully tested without a browser
   (34 hand-crafted snapshot tests + the hostile-snapshot fuzz battery).
-- **CI gate (`slop-check` action)** — `.github/` is devops-role-gated per
-  house rules; the action is a thin `--exit-code` wrapper (the local
-  analogue is `npm run check`) but needs a founder decision on enforcement
-  policy (hard fail vs comment-only) before devops can create it. Do NOT
-  create workflows in this repo.
 - **A2A is deliberately lightweight** — task results replay from an
   in-memory store (bounded, 30-min TTL), not persistent KV/files, because
   the plain-Node server has no KV. Production persistence for A2A tasks is a

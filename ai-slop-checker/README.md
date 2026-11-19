@@ -496,11 +496,32 @@ A 100 KB realistic prose document scans in ~8 ms. Re-run anytime with
 `node bench/perf.js` (or `--json`) — numbers vary by machine, so record
 your own.
 
+## CI
+
+Shipped 2026-11-19: `.github/workflows/ai-slop-checker.yml` runs as a
+hard-fail quality gate on every PR touching `ai-slop-checker/` and a daily
+live-check of the deployed worker.
+
+- **Per-PR quality gate:** `npm run check` (corpus integrity → `node --test`
+  → e2e 26/26), `node bench/eval.js` (GATE PASS, FP ≤ 5%), and the explicit
+  5-i18n-corpus integrity check (`data/rules.{ru,hi,es,fr,de}.js`, merged
+  446/32) — each a separate `run:` step so a failure names the step.
+- **Daily live-check (04:00 UTC, plus `workflow_dispatch`):** `npm run live`
+  — read-only probes of `https://slop-checker.lazynext.com` (surface
+  GET/HEAD, `/scan` text contract, MCP handshake, two intentionally-blocked
+  SSRF `url` scans, asset gating, sibling hosts). The live job depends on
+  the quality job, so it never runs on a red tree; a site-down failure
+  alerts through the normal CI channels.
+
+The real-browser render harness (playwright collector) remains a separate
+devops-gated follow-up; the pure rendered-tier checks are already covered by
+34 hand-crafted snapshot tests plus the hostile-snapshot fuzz battery.
+
 ## Roadmap
 
 See [`ROADMAP.md`](ROADMAP.md) for what is genuinely left (a theme catalog
-as a human guide, non-English built-ins as content, a
-`.github/`-gated CI, plugin packaging) and why each item is deferred.
+as a human guide, non-English built-ins as content, plugin packaging) and
+why each item is deferred.
 Phase 5 (v1.4.0) shipped fuzz robustness, corpus quality gates, the perf
 bench, the e2e contract matrix, and packaging validation. Phase 6 (v1.4.1)
 shipped the judgement checklist (`--judge`/`POST /judge`/MCP `judge`), the
@@ -509,10 +530,12 @@ shipped the judgement checklist (`--judge`/`POST /judge`/MCP `judge`), the
 (`bench/eval.js` — per-family precision/recall/F1 against original labelled
 samples with a ≤5% negative-corpus FP gate), and the French + German i18n
 corpora (`data/rules.fr.js` / `data/rules.de.js`); the real-browser render
-CI harness and the `.github/` CI gate stay devops-gated follow-ups.
+CI harness remains a devops-gated follow-up (the CI gate itself shipped
+2026-11-19 — see [## CI](#ci)).
 
-Deferred from this deliverable, consciously: no real-browser CI gate
-(`.github/`-gated and devops-owned per house rules — not created here), no
+Deferred from this deliverable, consciously: no real-browser CI harness
+(playwright collector — `.github/`-gated and devops-owned per house rules,
+not created here), no
 LLM-based scoring (the engine is deliberately deterministic), and no
 deployment of the worker, API, or container (run books in
 `docs/DEPLOYMENT.md`, not executed).
