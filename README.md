@@ -11,6 +11,7 @@ The entire backend runs on Cloudflare's serverless platform (Workers, D1, Worker
 | Marketing site | [lazynext.com](https://lazynext.com) | Company site + status page |
 | Product app | [checker.lazynext.com](https://checker.lazynext.com) | Accessibility Checker — scan UI, reports, checkout (installable PWA) |
 | Product API | [api.lazynext.com](https://api.lazynext.com) | Scan/report/badge/checkout API + `/mcp` + `/a2a` + `widget.js` |
+| AI Slop Checker | [slop-checker.lazynext.com](https://slop-checker.lazynext.com) | AI slop scanner — text/HTML/project + render checks, judge, `/mcp` + `/a2a` + `/rules` (279 patterns) |
 | Founder dashboard | [dashboard.lazynext.com](https://dashboard.lazynext.com) | Next.js ops console (passphrase + optional TOTP; installable PWA) |
 | Platform worker | `ai-company-os.dry-hall-6a50.workers.dev` | Internal state API — token-gated (returns 401 unauthenticated) |
 | Status | [status.lazynext.com](https://status.lazynext.com) | Redirects to lazynext.com/status |
