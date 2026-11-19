@@ -170,3 +170,19 @@ All numbers below come from real command runs; spot-checks re-run live on 2026-1
 - **Main tree clean:** only pre-existing untracked files present in the main checkout.
 - **Worktree discipline:** all git operations for this handoff ran in a detached worktree (`/private/tmp/lazynext-state-doc`) — the shared working tree was never checked out, pulled, or reset.
 - **No fabricated data:** every figure in this document comes from a real command run or a live check (Section 4 lists the exact gates); anything not measured is labelled as such.
+## Verification stamp — 2026-11-19 (post-final-merge, full re-run)
+
+| # | Check | Result (real) |
+|---|---|---|
+| 1 | GET /health (live) | 200 `{"ok":true,"version":"1.4.4"}` |
+| 2 | GET /rules (live) | 200 |
+| 3 | POST /scan text (live) | 200, score 10, `w-leverage`+`w-robust` |
+| 4 | A2A send → replay (live) | `stamp-1` → replay `completed` |
+| 5 | `npm run live` (live host) | 20/20 ALL GREEN |
+| 6 | `node --test` | 425 pass / 0 fail |
+| 7 | `node bench/eval.js` | GATE: PASS, FP 0.0% (≤5%) |
+| 8 | `check-corpus` (6 files) | INTEGRITY PASS, 446 unique / 32 cats, 0 dup |
+| 9 | Sibling hosts checker/api/app/apex | all 200 |
+| 10 | Hygiene | worktree clean, 8792/8793 free, fleet running, main tree = 13 pre-existing untracked only |
+
+All claims in this document verified true as of 2026-11-19.
