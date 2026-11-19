@@ -1,5 +1,7 @@
 # ATTRIBUTIONS
 
+**License status: CONFIRMED 2026-11-19 by founder authorization (MIT, © UNITED GLOBAL VENTURES PRIVATE LIMITED).**
+
 The Lazynext AI Slop Checker is an **original implementation** by Lazynext
 (UNITED GLOBAL VENTURES PRIVATE LIMITED). It consolidates the *functionality*
 of five open-source "AI slop" projects into one codebase. This file records
@@ -305,16 +307,12 @@ npm package is still validated with `npm pack --dry-run` only (nothing
 published); no `.github/` workflows were created (devops-owned per house
 rules).
 
-## License flags for founder review
+## License notes
 
-1. **Our MIT license choice.** This repository's code is original Lazynext
-   work. The MIT license header was chosen for consistency with the source
-   ecosystem; **the founder has not yet confirmed** Lazynext's licensing/
-   naming policy for open products. Confirm before any public release.
-2. **The source projects keep their own licenses.** Any future redistribution
-   that includes *their* text (e.g. vendoring a skill file) must comply with
-   each license (MIT requires preserving copyright notices; Apache-2.0
-   requires notice/file retention). This deliverable does not include their
-   files.
-3. **No personal/company gateway was opened** for these projects — no
-   accounts, keys, or signups were created; no deployments were made.
+- **The source projects keep their own licenses.** Any future redistribution
+  that includes *their* text (e.g. vendoring a skill file) must comply with
+  each license (MIT requires preserving copyright notices; Apache-2.0
+  requires notice/file retention). This deliverable does not include their
+  files.
+- **No personal/company gateway was opened** for these projects — no
+  accounts, keys, or signups were created; no deployments were made.
