@@ -1,3 +1,5 @@
+License confirmed by founder authorization on 2026-11-19 (UNITED GLOBAL VENTURES PRIVATE LIMITED).
+
 MIT License
 
 Copyright (c) 2026 UNITED GLOBAL VENTURES PRIVATE LIMITED (Lazynext)
@@ -22,9 +24,9 @@ SOFTWARE.
 
 ---
 
-NOTE FROM THE BUILDER (for founder review, not part of the license text):
+NOTE FROM THE BUILDER (not part of the license text):
 this MIT grant covers the original Lazynext-authored code in this directory
 only. It does NOT cover the five source projects listed in ATTRIBUTIONS.md,
 each of which retains its own MIT or Apache-2.0 license; nothing from those
-projects is copied verbatim into this codebase. Confirm Lazynext's open-source
-licensing and naming policy before any public release.
+projects is copied verbatim into this codebase. License confirmed by
+founder authorization on 2026-11-19 (UNITED GLOBAL VENTURES PRIVATE LIMITED).
