@@ -79,6 +79,57 @@ test("mutating SQL needs WHERE for UPDATE/DELETE", () => {
   );
 });
 
+test("CTE-prefixed writes are not reads", () => {
+  assert.equal(
+    classifySql("WITH c AS (SELECT 1) DELETE FROM task_log WHERE id > 0"),
+    "mutate",
+  );
+  assert.equal(
+    classifySql("WITH c AS (SELECT 1) DELETE FROM task_log"),
+    "forbidden",
+  );
+  // WHERE only inside the CTE must not authorize an unconstrained DELETE.
+  assert.equal(
+    classifySql("WITH c AS (SELECT 1 WHERE 1) DELETE FROM task_log"),
+    "forbidden",
+  );
+  assert.equal(
+    classifySql(
+      "WITH c AS (DELETE FROM task_log WHERE id > 0 RETURNING *) SELECT 1",
+    ),
+    "mutate",
+  );
+  assert.equal(
+    classifySql("WITH c AS (DELETE FROM task_log RETURNING *) SELECT 1"),
+    "forbidden",
+  );
+  assert.equal(
+    classifySql(
+      "WITH c AS (SELECT 1) INSERT INTO task_log (task_id) VALUES ('x')",
+    ),
+    "mutate",
+  );
+  assert.equal(
+    classifySql(
+      "WITH c AS (INSERT INTO task_log (task_id) VALUES ('x') RETURNING task_id) SELECT task_id FROM c",
+    ),
+    "mutate",
+  );
+  assert.equal(
+    classifySql("SELECT replace(name, 'a', 'b') FROM task_log"),
+    "read",
+  );
+  assert.equal(
+    classifySql(
+      "UPDATE task_log SET error_log = json_insert('{}', '$.a', 1) WHERE task_id = ?",
+    ),
+    "mutate",
+  );
+  assert.equal(classifySql("SELECT 'DELETE FROM task_log'"), "read");
+  assert.equal(classifySql("SELECT 1 /* DELETE FROM task_log */"), "read");
+  assert.equal(classifySql("EXPLAIN DELETE FROM task_log"), "read");
+});
+
 test("DDL and multi-statement are forbidden", () => {
   assert.equal(classifySql("DROP TABLE task_log"), "forbidden");
   assert.equal(classifySql("ALTER TABLE task_log ADD COLUMN x TEXT"), "forbidden");
