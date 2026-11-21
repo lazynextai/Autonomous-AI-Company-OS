@@ -1,0 +1,19 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "com.lazynext/ai-slop-checker",
+  "title": "Lazynext AI Slop Checker",
+  "description": "Detect AI slop in text, HTML, pages, and project folders. Free, no API key.",
+  "repository": {
+    "url": "https://github.com/lazynextai/Autonomous-AI-Company-OS",
+    "source": "github",
+    "subfolder": "ai-slop-checker"
+  },
+  "version": "1.4.4",
+  "websiteUrl": "https://slop-checker.lazynext.com",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://slop-checker.lazynext.com/mcp"
+    }
+  ]
+}
