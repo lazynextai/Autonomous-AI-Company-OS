@@ -24,10 +24,25 @@ changes live in the "Unreleased" section until tagged.
 ### Local render farm
 - **`scripts/render-farm.js`** plus `fixtures/render-farm/` and
   `src/render-farm-plan.js`. Skips without Playwright. Fails when
-  `RENDER_FARM_REQUIRED=1`. `ci/render-farm.workflow.yml` is the devops
-  copy for `.github/`; that directory was not edited.
+  `RENDER_FARM_REQUIRED=1`.
 - **`src/collect-render.js`** accepts `opts.channel` so a system Chrome
   can launch without a downloaded Playwright browser.
+
+### GitHub render-farm job
+- **`.github/workflows/ai-slop-checker-render-farm.yml`** runs the farm on
+  pushes and pull requests that touch the product. Playwright is installed
+  with `--no-save` in that job only. A missing browser is a green skip
+  (job summary). Fixture failures still fail the job. The quality workflow
+  is unchanged.
+
+### A2A Durable Object room
+- **`api/a2a-task-room.js`** plus the `A2aTaskRoom` export and the
+  `A2A_TASKS` binding (SQLite, migration `v1-a2a-task-room`). One room
+  named `a2a-recent` is the cross-isolate copy: a put is visible to the
+  next isolate when the send's write resolves. KV `RECENT` stays the
+  eventual fallback. A room error or a 4s timeout does not fail the send.
+  Local memory still wins a timestamp tie. `ASSETS` and `RECENT` bindings
+  are unchanged.
 
 ## v1.4.4 — 2026-11-19 (web Review tab folder-judge path shipped)
 

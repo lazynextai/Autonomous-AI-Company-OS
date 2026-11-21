@@ -13,8 +13,21 @@
  * registers.
  *
  * Keep the exported keys in lockstep with module.exports in api/worker.js.
+ *
+ * A2aTaskRoom is the single strongly-consistent recent-task room. It is a
+ * named export so wrangler can bind it. The handler has no node:* imports.
  */
 import core from "./worker.js";
+import room from "./a2a-task-room.js";
+
+export class A2aTaskRoom {
+  constructor(ctx) {
+    this.storage = ctx.storage;
+  }
+  fetch(request) {
+    return room.handleTaskRoomRequest(this.storage, request);
+  }
+}
 
 export default {
   fetch: core.fetch,

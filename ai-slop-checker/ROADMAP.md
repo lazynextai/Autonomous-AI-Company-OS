@@ -70,12 +70,13 @@ themselves:
   <url>`, and a "Design reviews" panel in the web checker (paste a
   snapshot → in-browser checks). 34 tests over hand-crafted snapshots
   (fire + non-fire per check), no browser.
-- **Local render farm shipped; GitHub job not installed.**
+- **Local render farm and the GitHub job.**
   `node scripts/render-farm.js` serves `fixtures/render-farm/` to the
   Playwright collector and checks `src/render-farm-plan.js`. It skips
   when Playwright is absent and fails when `RENDER_FARM_REQUIRED=1`.
-  The job devops would copy is `ci/render-farm.workflow.yml`. `.github/`
-  was not edited. The checks themselves stay deterministic.
+  Pull-request CI runs `.github/workflows/ai-slop-checker-render-farm.yml`
+  (Playwright installed only in that job). A missing browser is a green
+  skip. The checks themselves stay deterministic.
 
 ## Theme catalog
 
@@ -151,7 +152,8 @@ analogue (`npm run check`) as a hard-fail gate:
   normal CI notifications.
 
 The **local render farm** is `node scripts/render-farm.js`. The GitHub
-job is proposed at `ci/render-farm.workflow.yml` and is not part of
+job is `.github/workflows/ai-slop-checker-render-farm.yml` (source copy
+`ci/render-farm.workflow.yml`). It is not part of
 `.github/workflows/ai-slop-checker.yml`. The pure checks stay covered
 without a browser.
 
@@ -188,18 +190,17 @@ deliverable).
   Lazynext-authored open product has not been confirmed by the founder
   (see the note in ATTRIBUTIONS). Ship shape is ready (LICENSE, package
   metadata, `files` allowlist); the license decision is a founder call.
-- **Real-browser render CI on GitHub** — the local farm ships
-  (`scripts/render-farm.js`, `fixtures/render-farm/`,
-  `ci/render-farm.workflow.yml`). Installing that job under `.github/`
-  is a devops copy, not done in this pass. The pure checks stay tested
+- **Real-browser render CI on GitHub** — installed as
+  `.github/workflows/ai-slop-checker-render-farm.yml` (the quality
+  workflow is separate). Playwright is installed only in that job.
+  A missing browser is a green skip. The pure checks stay tested
   without a browser.
-- **A2A multi-worker KV** — each isolate keeps its own memory map
-  (`createTaskStore`). A shared KV is the cross-isolate copy. Replay
-  prefers a local task view when its timestamp is newer than or equal to
-  the KV copy, and prefers KV when another isolate wrote a later
-  timestamp. KV that has not become visible yet is still a miss; strong
-  consistency would need a Durable Object and a worker.js edit, which
-  this pass did not do.
+- **A2A cross-isolate replay** — each isolate keeps its own memory map.
+  The Worker binds one SQLite Durable Object room (`A2A_TASKS`,
+  name `a2a-recent`) so a put is visible to the next isolate when the
+  send's write resolves. KV `RECENT` remains the eventual fallback when
+  the room call throws or times out (4s). A local view still wins a
+  timestamp tie.
 - **rules_url accepts JSON only** over the network — remote JS execution is
   deliberately not offered (arbitrary-code risk); local `--rules` supports
   `.js` modules.

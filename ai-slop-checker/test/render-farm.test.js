@@ -99,10 +99,19 @@ test("render farm: a clean snapshot must not include the slop ids", () => {
   assert.equal(result.ok, true);
 });
 
-test("render farm: the devops workflow is a proposal outside .github", () => {
-  const proposal = path.join(ROOT, "ci", "render-farm.workflow.yml");
-  const text = fs.readFileSync(proposal, "utf8");
+test("render farm: the GitHub job is installed beside the quality workflow", () => {
+  const installed = path.join(ROOT, "..", ".github", "workflows", "ai-slop-checker-render-farm.yml");
+  const quality = path.join(ROOT, "..", ".github", "workflows", "ai-slop-checker.yml");
+  const source = path.join(ROOT, "ci", "render-farm.workflow.yml");
+  const text = fs.readFileSync(installed, "utf8");
   assert.match(text, /RENDER_FARM_REQUIRED=1/);
   assert.match(text, /scripts\/render-farm\.js/);
-  assert.equal(fs.existsSync(path.join(ROOT, "..", ".github", "workflows", "render-farm.yml")), false);
+  assert.match(text, /npm install --no-save playwright/);
+  assert.match(text, /exit 2/);
+  assert.match(fs.readFileSync(source, "utf8"), /ai-slop-checker-render-farm\.yml/);
+  const qualityText = fs.readFileSync(quality, "utf8");
+  assert.equal(qualityText.includes("playwright"), false);
+  assert.equal(qualityText.includes("render-farm.js"), false);
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
+  assert.equal(JSON.stringify(pkg).includes("playwright"), false);
 });

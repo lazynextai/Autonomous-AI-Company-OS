@@ -11,10 +11,13 @@
  * tasks/send, tasks/get. The task id IS the request id; results are
  * replayed from a pluggable recent-task store via tasks/get and the REST
  * shortcut GET /a2a/tasks/:id. Default (local Node server / any deploy
- * without the binding): a bounded in-memory store (30-min TTL). When a
- * `RECENT` KV binding is present on the Worker, sends write through to KV
- * (a2atask:{id}, 30-min TTL) and reads are KV-first with a memory
- * fallback — so a replay survives an isolate recycle.
+ * without the binding): a bounded in-memory store (30-min TTL). When the
+ * Worker's `A2A_TASKS` Durable Object is bound, sends also write a single
+ * shared room (`idFromName("a2a-recent")`) and reads merge that room by
+ * timestamp — one object, so another isolate sees the put as soon as the
+ * send's write resolves. `RECENT` KV stays the eventual copy (and the
+ * fallback when the room call throws or times out). A local task view
+ * still wins a timestamp tie.
  *
  * Discovery: GET /.well-known/agent.json (the AGENT_CARD) and widget.js
  * (WIDGET_JS, a shadow-DOM embeddable widget that runs the engine
@@ -139,20 +142,25 @@ const AGENT_CARD = {
 // ── Recent-task store (A2A) — pluggable, one memory map per isolate ────
 // Task id == request id; results live in a bounded recent-task store.
 // Default: in-memory (hard cap + TTL) — the honest analogue for the
-// plain-Node server, which has no KV. When a KV store is bound (the
-// Worker's optional `RECENT` namespace), sends write through to KV.
+// plain-Node server, which has no KV and no Durable Object. When a KV
+// store is bound (the Worker's optional `RECENT` namespace), sends write
+// through to KV. When a Durable Object stub is bound (one shared room),
+// sends also await that room so the next isolate can read the put.
 //
-// Multi-worker edge: each isolate has its own Map, and KV is the only
-// shared copy. KV reads can be stale (eventual consistency, or a get that
-// lands before the other isolate's put is visible). A valid local task
-// view is preferred when its status.timestamp is newer than or equal to
-// the KV copy, so a stale KV value cannot hide the write this isolate
-// just made. A newer KV timestamp wins, so another isolate's later write
-// is not stuck behind local memory. Two isolates are modeled by
-// createTaskStore() — the production handlers use the default store.
+// Multi-worker edge: each isolate has its own Map. KV is an eventually
+// consistent shared copy. The room is the strongly consistent copy: every
+// isolate names the same object, and storage puts are visible to the next
+// request once this write resolves. A valid local task view is preferred
+// when its status.timestamp is newer than or equal to a remote copy, so a
+// stale read cannot hide the write this isolate just made. A newer remote
+// timestamp wins. A room or KV error falls through; it does not fail the
+// send. Two isolates are modeled by createTaskStore() — the production
+// handlers use the default store.
 const RECENT_MAX = 200;
 const RECENT_TTL_MS = 30 * 60 * 1000;
 const RECENT_TTL_S = 30 * 60; // KV expirationTtl is in seconds
+const DO_TIMEOUT_MS = 4000;
+const DO_ROOM_NAME = "a2a-recent";
 
 function isTaskView(view) {
   return !!(
@@ -176,13 +184,50 @@ function parseKvValue(raw) {
   return isTaskView(value) ? value : null;
 }
 
+function stubFromNamespace(ns) {
+  if (!ns || typeof ns.idFromName !== "function" || typeof ns.get !== "function") return null;
+  try {
+    const stub = ns.get(ns.idFromName(DO_ROOM_NAME));
+    return stub && typeof stub.fetch === "function" ? stub : null;
+  } catch {
+    return null;
+  }
+}
+
+function withTimeout(promise, ms) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("durable room timed out")), ms);
+    Promise.resolve(promise).then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
+
+/** A remote task view replaces the current one only when its timestamp is strictly newer. */
+function newerOrCurrent(incoming, current) {
+  if (!isTaskView(incoming)) return current;
+  if (!isTaskView(current)) return incoming;
+  const inAt = taskStamp(incoming);
+  const curAt = taskStamp(current);
+  if (inAt !== null && (curAt === null || curAt < inAt)) return incoming;
+  return current;
+}
+
 /**
- * One isolate's task memory plus an optional KV binding. Two calls share
- * nothing except a KV object the caller passes to both.
+ * One isolate's task memory plus optional KV and Durable Object bindings.
+ * Two calls share nothing except the objects the caller passes to both.
  */
 function createTaskStore() {
   const recent = new Map(); // id -> { value, at }
   let kvStore = null;
+  let doStub = null;
 
   function setKvStore(kv) {
     kvStore = kv && typeof kv.put === "function" && typeof kv.get === "function" ? kv : null;
@@ -192,6 +237,22 @@ function createTaskStore() {
   }
   function getKvStore() {
     return kvStore;
+  }
+  function setDoStub(stub) {
+    doStub = stub && typeof stub.fetch === "function" ? stub : null;
+  }
+  function setDurableNamespace(ns) {
+    doStub = stubFromNamespace(ns);
+  }
+  function clearDurableNamespace() {
+    doStub = null;
+  }
+  function getDoStub() {
+    return doStub;
+  }
+
+  function roomUrl(key) {
+    return "https://a2a-task-room/task/" + encodeURIComponent(key);
   }
 
   function rememberTask(id, value) {
@@ -203,15 +264,34 @@ function createTaskStore() {
       if (oldest !== undefined) recent.delete(oldest);
     }
     recent.set(key, { value, at: Date.now() });
+    const writes = [];
+    if (doStub) {
+      // Awaited by the send path. A throw (including a sync throw) or a
+      // non-2xx is swallowed so the send still returns the in-memory view.
+      writes.push(
+        withTimeout(
+          Promise.resolve().then(() =>
+            doStub.fetch(new Request(roomUrl(key), { method: "PUT", body: JSON.stringify(value) }))
+          ),
+          DO_TIMEOUT_MS
+        )
+          .then((res) => {
+            if (!res || !res.ok) throw new Error("durable room put failed");
+          })
+          .catch(() => {})
+      );
+    }
     if (kvStore) {
       // Write-through: KV gets the SAME view object's JSON (identical-view
       // property — one view per task, replay is deep-identical). Failures
       // are swallowed so a transient KV error never breaks a send.
-      return kvStore
-        .put("a2atask:" + key, JSON.stringify(value), { expirationTtl: RECENT_TTL_S })
-        .catch(() => {});
+      writes.push(
+        kvStore
+          .put("a2atask:" + key, JSON.stringify(value), { expirationTtl: RECENT_TTL_S })
+          .catch(() => {})
+      );
     }
-    return null;
+    return writes.length ? Promise.all(writes) : null;
   }
 
   function recallTask(id) {
@@ -224,16 +304,33 @@ function createTaskStore() {
     return hit.value;
   }
 
+  async function readDo(key) {
+    const res = await withTimeout(
+      Promise.resolve().then(() => doStub.fetch(new Request(roomUrl(key), { method: "GET" }))),
+      DO_TIMEOUT_MS
+    );
+    if (!res || res.status === 404) return null;
+    if (!res.ok) throw new Error("durable room get failed");
+    return parseKvValue(await res.text());
+  }
+
   /**
-   * KV and this isolate's memory, merged by task timestamp.
-   * - stale or equal KV loses to a local task view (read-your-writes)
-   * - a strictly newer KV view wins (the other isolate wrote later)
-   * - corrupt KV / a throwing get falls through to memory
-   * - a non-task memory value is still returned when KV misses (tests and
-   *   the pre-KV helpers depend on that)
+   * Durable Object, KV, and this isolate's memory, merged by timestamp.
+   * - a remote view wins only when its timestamp is strictly newer
+   * - equal timestamps keep the local task view (read-your-writes, same object)
+   * - a throwing room or KV get falls through
+   * - a non-task memory value is still returned when both remotes miss
    */
   async function recallTaskDurable(id) {
     const key = String(id);
+    let doView = null;
+    if (doStub) {
+      try {
+        doView = await readDo(key);
+      } catch {
+        doView = null;
+      }
+    }
     let kvView = null;
     if (kvStore) {
       try {
@@ -242,15 +339,10 @@ function createTaskStore() {
         kvView = null;
       }
     }
-    const mem = recallTask(key);
-    if (isTaskView(kvView) && isTaskView(mem)) {
-      const kvAt = taskStamp(kvView);
-      const memAt = taskStamp(mem);
-      if (kvAt !== null && (memAt === null || memAt < kvAt)) return kvView;
-      return mem;
-    }
-    if (isTaskView(kvView)) return kvView;
-    return mem;
+    let chosen = recallTask(key);
+    chosen = newerOrCurrent(kvView, chosen);
+    chosen = newerOrCurrent(doView, chosen);
+    return chosen;
   }
 
   function clearTaskStore() {
@@ -262,6 +354,10 @@ function createTaskStore() {
     setKvStore,
     clearKvStore,
     getKvStore,
+    setDoStub,
+    setDurableNamespace,
+    clearDurableNamespace,
+    getDoStub,
     rememberTask,
     recallTask,
     recallTaskDurable,
@@ -274,6 +370,10 @@ const recent = defaultTaskStore.recent;
 const setKvStore = (kv) => defaultTaskStore.setKvStore(kv);
 const clearKvStore = () => defaultTaskStore.clearKvStore();
 const getKvStore = () => defaultTaskStore.getKvStore();
+const setDoStub = (stub) => defaultTaskStore.setDoStub(stub);
+const setDurableNamespace = (ns) => defaultTaskStore.setDurableNamespace(ns);
+const clearDurableNamespace = () => defaultTaskStore.clearDurableNamespace();
+const getDoStub = () => defaultTaskStore.getDoStub();
 const rememberTask = (id, value) => defaultTaskStore.rememberTask(id, value);
 const recallTask = (id) => defaultTaskStore.recallTask(id);
 const recallTaskDurable = (id) => defaultTaskStore.recallTaskDurable(id);
@@ -600,6 +700,10 @@ module.exports = {
   setKvStore,
   clearKvStore,
   getKvStore,
+  setDoStub,
+  setDurableNamespace,
+  clearDurableNamespace,
+  getDoStub,
   handleMcpBody,
   handleMcpMessage,
   handleA2aBody,

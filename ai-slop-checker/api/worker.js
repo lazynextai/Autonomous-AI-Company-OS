@@ -26,9 +26,9 @@
  *   POST /scan-project     -> 400 (local filesystem only)
  *   POST /mcp              JSON-RPC 2.0 (initialize/ping/tools/list/tools/call)
  *   POST /a2a              JSON-RPC 2.0 (message/send, tasks/send, tasks/get)
- *   GET  /a2a/tasks/:id    replay a task result (KV-backed when the
- *                          optional RECENT binding is present; in-memory
- *                          bounded store otherwise)
+ *   GET  /a2a/tasks/:id    replay a task result (Durable Object room when
+ *                          A2A_TASKS is bound, else KV when RECENT is bound,
+ *                          else the in-memory bounded store)
  *   GET  /.well-known/agent.json   agent card
  *   GET  /widget.js        embeddable in-browser widget
  *   GET  /openapi.json     OpenAPI 3.1 contract
@@ -479,12 +479,13 @@ async function handleRenderScan(req, env, ctx) {
 module.exports = {
   version,
   fetch: async (req, env, ctx) => {
-    // Optional A2A durable store: when the RECENT KV binding is present,
-    // tasks/send write through to KV and tasks/get + GET /a2a/tasks/:id
-    // read KV first with an in-memory fallback (see api/agent-surfaces.js).
-    // Unbound deploys / unit envs keep the in-memory bounded store —
-    // setKvStore(undefined) is a cheap per-fetch no-op that clears it.
+    // Optional A2A durable store. RECENT (KV) is the eventual copy.
+    // A2A_TASKS is one Durable Object room shared by every isolate; a
+    // missing or unusable binding clears the stub so a previous request
+    // cannot leak it. Neither call touches the room until an A2A send/get.
+    // See api/agent-surfaces.js. Unbound deploys keep the in-memory store.
     agentSurfaces.setKvStore(env && env.RECENT);
+    agentSurfaces.setDurableNamespace(env && env.A2A_TASKS);
     const url = new URL(req.url);
     const { pathname } = url;
 

@@ -72,6 +72,7 @@ async function a2aGet(id) {
 
 test.afterEach(() => {
   agentSurfaces.clearKvStore();
+  agentSurfaces.clearDurableNamespace();
   agentSurfaces.clearTaskStore();
 });
 
