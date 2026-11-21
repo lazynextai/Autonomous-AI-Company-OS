@@ -47,6 +47,20 @@ run_worker_first = true
 binding = "RECENT"
 id = "dd4afa72fb3d4b638e71119c42b0b830"
 
-# Resource hints (no paid features used).
+# One SQLite Durable Object for A2A task replay across isolates.
+# Every isolate addresses the same name ("a2a-recent"), so a put is
+# visible to the next isolate when the send's write resolves. KV above
+# stays the eventual fallback. Health and scan never call this object.
+# The migration tag is permanent — do not rename the class or drop this
+# block on a later deploy (a missing class fails the upload; the previous
+# version stays). ASSETS and RECENT above are unchanged.
+[[durable_objects.bindings]]
+name = "A2A_TASKS"
+class_name = "A2aTaskRoom"
+
+[[migrations]]
+tag = "v1-a2a-task-room"
+new_sqlite_classes = [ "A2aTaskRoom" ]
+
 # [observability]
 # enabled = true

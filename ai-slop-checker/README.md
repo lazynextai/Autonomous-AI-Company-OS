@@ -257,7 +257,7 @@ const hiEsMerged = loadRules("data/rules.hi.js,data/rules.es.js"); // Hindi + Sp
 | `/render-scan` | POST | `{snapshot}` · `{url}` · `{profile?}` | rendered-tier r-* checks over a computed snapshot (pure, no browser); `{url}` collects first and needs the optional playwright collector (501 when absent) |
 | `/mcp` | POST | JSON-RPC 2.0 | MCP: `initialize`/`ping`/`tools/list`/`tools/call` — tools `list_rules`, `scan_text`, `scan_html`, `scan_project`, `scan_render`, `rewrite_text`, `judge`; GET is 405 (no SSE) |
 | `/a2a` | POST | JSON-RPC 2.0 | lightweight A2A: `message/send`, `tasks/send`, `tasks/get`; task id == request id |
-| `/a2a/tasks/{id}` | GET | — | replay a completed A2A task (KV when `RECENT` is bound, else the in-memory store, 30-min TTL) |
+| `/a2a/tasks/{id}` | GET | — | replay a completed A2A task (Durable Object room when `A2A_TASKS` is bound, else KV when `RECENT` is bound, else the in-memory store, 30-min TTL) |
 | `/.well-known/agent.json` | GET | — | agent discovery card |
 | `/widget.js` | GET | — | embeddable shadow-DOM widget (runs the engine in-browser) |
 | `/openapi.json` | GET | — | OpenAPI 3.1 contract for every route |
@@ -438,7 +438,7 @@ ai-slop-checker/
   indices stay valid, and never re-scans/invents. When in doubt, it offers
   the match's human fix instead.
 - **Agent surfaces** (`api/agent-surfaces.js`) — MCP (JSON-RPC 2.0 over
-  `POST /mcp`), lightweight A2A (`POST /a2a`, per-isolate memory plus optional KV), the
+  `POST /mcp`), lightweight A2A (`POST /a2a`, per-isolate memory, optional KV, and one shared Durable Object room when `A2A_TASKS` is bound), the
   agent card, and the embeddable widget — are shared by the Node server and
   the Workers entry, so the two deployments can't drift.
 - **Browser** — the engine files are UMD modules (IIFE-wrapped) so the
@@ -514,10 +514,11 @@ live-check of the deployed worker.
   alerts through the normal CI channels.
 
 The local real-browser render farm is `node scripts/render-farm.js`. It
-needs the optional Playwright package and skips without it. The GitHub
-job that would run it on pull requests is proposed in
-`ci/render-farm.workflow.yml` and is not installed under `.github/`. The
-pure rendered-tier checks stay covered without a browser.
+needs the optional Playwright package and skips without it. Pull-request
+CI runs it from `.github/workflows/ai-slop-checker-render-farm.yml`
+(Playwright installed only in that job; a missing browser is a green
+skip). The source copy is `ci/render-farm.workflow.yml`. The pure
+rendered-tier checks stay covered without a browser.
 
 ## Roadmap
 

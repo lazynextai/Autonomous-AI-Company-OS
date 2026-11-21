@@ -150,3 +150,13 @@ not a rewrite of sections 1–5.
     the whole surface — health, rules manifest, scan contract, MCP
     handshake, SSRF guard, asset gating, sibling-host isolation — against
     the real origin and exits non-zero on any failure.
+
+0.6 **A2A room binding** — `wrangler.toml` keeps three bindings: `[assets]`
+    `ASSETS`, KV `RECENT` (`dd4afa72fb3d4b638e71119c42b0b830`), and Durable
+    Object `A2A_TASKS` class `A2aTaskRoom` (SQLite migration tag
+    `v1-a2a-task-room`, which is permanent). The class is a named export of
+    `api/worker-module.mjs`. Do not drop `ASSETS` or `RECENT` when editing
+    the file. A room call that throws does not fail `/health` or `/scan`;
+    those routes never call the object. If a deploy that introduces the
+    migration is rejected, the previous worker version stays live — do not
+    delete the script to retry (that is the 522 domain-binding trap).

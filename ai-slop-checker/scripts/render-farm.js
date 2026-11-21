@@ -9,9 +9,8 @@
  *
  * Playwright is not a runtime dependency. Without it this process exits 0
  * and prints SKIP, unless RENDER_FARM_REQUIRED=1, in which case it exits 2.
- * That is the switch the devops workflow uses. The workflow file itself
- * lives at ci/render-farm.workflow.yml and is not installed under .github/
- * (that directory is devops-owned).
+ * The installed job is .github/workflows/ai-slop-checker-render-farm.yml.
+ * That job treats exit 2 as a green skip. Fixture failures still exit 1.
  *
  *   node scripts/render-farm.js
  *   RENDER_FARM_REQUIRED=1 node scripts/render-farm.js

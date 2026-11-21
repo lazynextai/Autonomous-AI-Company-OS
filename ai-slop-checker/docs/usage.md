@@ -189,9 +189,12 @@ curl -s -X POST localhost:8787/mcp -H 'content-type: application/json' \
 ## A2A (`POST /a2a`, JSON-RPC 2.0)
 
 Methods: `message/send`, `tasks/send`, `tasks/get`. The task id IS the
-JSON-RPC request id; results replay from an in-memory recent store
-(200 entries, 30-min TTL) via `tasks/get` or `GET /a2a/tasks/:id`
-(404 when missing/expired).
+JSON-RPC request id; results replay via `tasks/get` or `GET /a2a/tasks/:id`
+(404 when missing/expired). The local server uses an in-memory store
+(200 entries, 30-min TTL). The Worker also writes the `A2A_TASKS` Durable
+Object room when that binding is present (one shared object, so another
+isolate can read the put as soon as the send finishes) and keeps the
+`RECENT` KV namespace as the eventual fallback.
 
 ```sh
 curl -s -X POST localhost:8787/a2a -H 'content-type: application/json' \

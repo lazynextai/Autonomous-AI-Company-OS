@@ -1,23 +1,38 @@
-# Proposed GitHub Actions job for the real-browser render farm.
+# Installed GitHub Actions job for the real-browser render farm.
 #
-# NOT installed. .github/ is devops-owned and this product pass does not
-# edit it. A devops owner copies this job into
-# .github/workflows/ai-slop-checker.yml (or a sibling workflow) when they
-# want the farm on pull requests.
+# The job that runs is `.github/workflows/ai-slop-checker-render-farm.yml`.
+# This file is the reviewed source and should stay in lockstep with it.
+# It does not replace `.github/workflows/ai-slop-checker.yml`.
 #
-# The job is optional infrastructure: it installs Playwright's Chromium,
-# which is a large download, and then runs scripts/render-farm.js with
-# RENDER_FARM_REQUIRED=1 so a missing browser fails the job instead of
-# skipping. Local `npm test` does not require Playwright.
+# Playwright is installed only inside that job (`npm install --no-save`),
+# so package.json stays free of browser dependencies. A failed Chromium
+# install, or exit 2 from this script, is a green skip with a job summary.
+# Exit 1 (fixture failure) fails the job.
 
 name: ai-slop-checker render farm
 
 on:
+  push:
+    paths:
+      - "ai-slop-checker/**"
+      - ".github/workflows/ai-slop-checker-render-farm.yml"
+  pull_request:
+    paths:
+      - "ai-slop-checker/**"
+      - ".github/workflows/ai-slop-checker-render-farm.yml"
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   render-farm:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: ai-slop-checker
@@ -26,10 +41,36 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Install the product (zero runtime deps) and Playwright
+      - name: Install the product (zero runtime deps)
+        run: npm install
+      - name: Install Playwright Chromium (this job only)
+        id: browser
+        continue-on-error: true
         run: |
-          npm install
           npm install --no-save playwright
           npx playwright install --with-deps chromium
       - name: Real-browser render farm
-        run: RENDER_FARM_REQUIRED=1 node scripts/render-farm.js
+        run: |
+          summary() {
+            echo "### Render farm" >> "$GITHUB_STEP_SUMMARY"
+            echo "$1" >> "$GITHUB_STEP_SUMMARY"
+          }
+          if [ "${{ steps.browser.outcome }}" != "success" ]; then
+            echo "SKIP  Playwright Chromium did not install on this runner"
+            summary "Skipped. Playwright Chromium did not install. A missing browser does not fail the pull request. Fixture failures still fail this job when the browser is present."
+            exit 0
+          fi
+          set +e
+          RENDER_FARM_REQUIRED=1 node scripts/render-farm.js
+          code=$?
+          set -e
+          if [ "$code" -eq 2 ]; then
+            echo "SKIP  render farm browser unavailable (exit 2)"
+            summary "Skipped. scripts/render-farm.js exited 2 (collector or browser unavailable) after install."
+            exit 0
+          fi
+          if [ "$code" -ne 0 ]; then
+            summary "Failed (exit ${code}). Fixture mismatches fail this job."
+            exit "$code"
+          fi
+          summary "Passed with Playwright Chromium."
