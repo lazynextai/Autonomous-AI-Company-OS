@@ -8,7 +8,7 @@
     "source": "github",
     "subfolder": "ai-slop-checker"
   },
-  "version": "1.4.4",
+  "version": "1.4.5",
   "websiteUrl": "https://slop-checker.lazynext.com",
   "remotes": [
     {
