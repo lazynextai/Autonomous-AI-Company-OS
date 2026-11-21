@@ -28,6 +28,12 @@ class LazynextApiClient:
         r.raise_for_status()
         return r.json()
 
+    def health(self) -> dict:
+        """Public liveness probe. No API key required."""
+        r = httpx.get(f"{self.base_url}/api/v1/health", timeout=15)
+        r.raise_for_status()
+        return r.json()
+
     def status(self) -> dict:
         return self._get("/api/v1/status")
 

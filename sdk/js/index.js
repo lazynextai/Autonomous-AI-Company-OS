@@ -17,10 +17,10 @@ export class Lazynext {
     return r.json();
   }
 
-  async _post(path, body) {
+  async _post(path, body, extraHeaders = {}) {
     const r = await fetch(this.baseUrl + path, {
       method: "POST",
-      headers: { "content-type": "application/json", ...this._headers() },
+      headers: { "content-type": "application/json", ...this._headers(), ...extraHeaders },
       body: JSON.stringify(body),
     });
     if (!r.ok) throw new Error(`lazynext ${r.status}: ${await r.text()}`);
@@ -37,14 +37,44 @@ export class Lazynext {
   listBriefings(limit = 20) { return this._get("/api/v1/briefings", { limit }).then((d) => d.briefings); }
   getBriefing(id) { return this._get(`/api/v1/briefings/${id}`).then((d) => d.briefing); }
   listTasks(limit = 50) { return this._get("/api/v1/tasks", { limit }).then((d) => d.tasks); }
-  createTask(description, { channel = "cto.tasks", priority = 0 } = {}) {
-    return this._post("/api/v1/tasks", { description, channel, priority });
+  createTask(description, { channel = "cto.tasks", priority = 0, acceptanceCriteria = [] } = {}) {
+    return this._post("/api/v1/tasks", {
+      description,
+      channel,
+      priority,
+      acceptance_criteria: acceptanceCriteria,
+    });
   }
-  searchKnowledge(query, topK = 5) { return this._post("/api/v1/knowledge/search", { query, topK }); }
+  // Result list, matching the Python client. The API envelope is {"results":[...]}.
+  searchKnowledge(query, topK = 5, vector) {
+    const body = { query, topK };
+    if (Array.isArray(vector)) body.vector = vector;
+    return this._post("/api/v1/knowledge/search", body).then((d) => {
+      if (!Array.isArray(d?.results)) throw new Error("lazynext: knowledge search missing results");
+      return d.results;
+    });
+  }
   listAgents() { return this._get("/api/v1/agents").then((d) => d.agents); }
-  mcpTools() { return this._post("/mcp", { jsonrpc: "2.0", id: 1, method: "tools/list" }).then((d) => d.result?.tools); }
+  mcpTools() {
+    return this._mcp({ jsonrpc: "2.0", id: 1, method: "tools/list" }).then((d) => d.result?.tools);
+  }
   mcpCall(name, args = {}) {
-    return this._post("/mcp", { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args } });
+    return this._mcp({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: { name, arguments: args },
+    });
+  }
+  mcpToolCall(name, args = {}) {
+    return this.mcpCall(name, args).then((d) => {
+      if (!d?.result || typeof d.result !== "object") throw new Error("lazynext: mcp tool call missing result");
+      return d.result;
+    });
+  }
+
+  _mcp(body) {
+    return this._post("/mcp", body, { "MCP-Protocol-Version": "2026-07-28" });
   }
 }
 
