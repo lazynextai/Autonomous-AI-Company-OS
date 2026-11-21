@@ -10,10 +10,11 @@ export declare class Lazynext {
   listBriefings(limit?: number): Promise<unknown[]>;
   getBriefing(id: number): Promise<unknown>;
   listTasks(limit?: number): Promise<unknown[]>;
-  createTask(description: string, opts?: { channel?: string; priority?: number }): Promise<unknown>;
-  searchKnowledge(query: string, topK?: number): Promise<unknown>;
+  createTask(description: string, opts?: { channel?: string; priority?: number; acceptanceCriteria?: string[] }): Promise<unknown>;
+  searchKnowledge(query: string, topK?: number, vector?: number[]): Promise<unknown[]>;
   listAgents(): Promise<unknown[]>;
   mcpTools(): Promise<unknown[]>;
   mcpCall(name: string, args?: Record<string, unknown>): Promise<unknown>;
+  mcpToolCall(name: string, args?: Record<string, unknown>): Promise<unknown>;
 }
 export default Lazynext;
