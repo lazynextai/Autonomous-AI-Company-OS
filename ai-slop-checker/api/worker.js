@@ -175,10 +175,13 @@ function resolveStaticAssetPath(pathname) {
  * literal IPs in private, loopback, link-local, CGNAT, multicast or
  * broadcast space — including IPv6 loopback/link-local/ULA/multicast and
  * IPv4-mapped IPv6 (e.g. [::ffff:169.254.169.254] cloud metadata).
- * Ordinary DNS names that resolve to private ranges cannot be detected
- * without a resolver on the edge (resolution happens in Cloudflare's
- * network, where fetch already enforces platform policy); literal hosts
- * are checked directly.
+ * WHATWG URL parsing rewrites that metadata literal to [::ffff:a9fe:a9fe]
+ * before fetchRemote sees it, so the hex form, the deprecated
+ * IPv4-compatible form [::a9fe:a9fe], 6to4 (2002:) and NAT64 (64:ff9b::/96)
+ * embeddings are checked too. Ordinary DNS names that resolve to private
+ * ranges cannot be detected without a resolver on the edge (resolution
+ * happens in Cloudflare's network, where fetch already enforces platform
+ * policy); literal hosts are checked directly.
  */
 function isBlockedHost(hostname) {
   const h = String(hostname || "").toLowerCase().replace(/\.$/, "");
@@ -216,17 +219,63 @@ function isBlockedIpv4([a, b, c, d]) {
   return false;
 }
 
+function expandIpv6(addr) {
+  // Dotted-decimal forms are classified before this. Anything still
+  // containing a dot, or more than one "::", is not a hex literal we can
+  // trust — the caller fails closed.
+  if (addr.includes(".") || addr.split("::").length > 2) return null;
+  const sides = addr.split("::");
+  const parseSide = (side) => {
+    if (side === "") return [];
+    const groups = side.split(":");
+    const out = [];
+    for (const group of groups) {
+      if (!/^[0-9a-f]{1,4}$/.test(group)) return null;
+      out.push(parseInt(group, 16));
+    }
+    return out;
+  };
+  const left = parseSide(sides[0]);
+  if (!left) return null;
+  if (sides.length === 1) return left.length === 8 ? left : null;
+  const right = parseSide(sides[1]);
+  if (!right) return null;
+  if (left.length + right.length > 8) return null;
+  const zeros = new Array(8 - left.length - right.length).fill(0);
+  return left.concat(zeros, right);
+}
+
+function ipv4FromPair(hi, lo) {
+  const n = ((hi << 16) | lo) >>> 0;
+  return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255];
+}
+
 function isBlockedIpv6(addr) {
-  // IPv4-mapped ([::ffff:a.b.c.d] and similar) — check the embedded v4.
+  // IPv4-mapped / compatible written with dotted decimals
+  // ([::ffff:a.b.c.d], [::a.b.c.d]) — check the embedded v4.
   const mapped = addr.match(/(?:^|:)((?:\d{1,3}\.){3}\d{1,3})$/);
   if (mapped && mapped[1].split(".").every((o) => /^\d{1,3}$/.test(o))) {
     const n = mapped[1].split(".").map(Number);
     if (!n.some((o) => o > 255)) return isBlockedIpv4(n);
+    return true; // octet out of range — not a public host
   }
-  if (addr === "::" || addr === "::1") return true; // unspecified / loopback
-  if (/^f[cd]/.test(addr)) return true; // fc00::/7 unique-local (fc00–fdff)
-  if (/^fe[89ab]/.test(addr)) return true; // fe80::/10 link-local (fe80–febf)
-  if (/^ff/.test(addr)) return true; // multicast
+  const h = expandIpv6(addr);
+  if (!h) return true;
+  const prefixZero = (n) => h.slice(0, n).every((part) => part === 0);
+  if (h.every((part) => part === 0) || (prefixZero(7) && h[7] === 1)) return true; // :: / ::1
+  if ((h[0] & 0xffc0) === 0xfe80) return true; // fe80::/10 link-local
+  if ((h[0] & 0xfe00) === 0xfc00) return true; // fc00::/7 unique-local
+  if ((h[0] & 0xffc0) === 0xfec0) return true; // fec0::/10 deprecated site-local
+  if ((h[0] & 0xff00) === 0xff00) return true; // ff00::/8 multicast
+  // ::ffff:0:0/96 — WHATWG normalizes [::ffff:169.254.169.254] to this hex form.
+  if (prefixZero(5) && h[5] === 0xffff) return isBlockedIpv4(ipv4FromPair(h[6], h[7]));
+  // Deprecated IPv4-compatible ::/96 ([::169.254.169.254] → [::a9fe:a9fe]).
+  if (prefixZero(6)) return true;
+  // 6to4 (2002::/16) and well-known NAT64 (64:ff9b::/96) embed an IPv4.
+  if (h[0] === 0x2002) return isBlockedIpv4(ipv4FromPair(h[1], h[2]));
+  if (h[0] === 0x0064 && h[1] === 0xff9b && h[2] === 0 && h[3] === 0 && h[4] === 0 && h[5] === 0) {
+    return isBlockedIpv4(ipv4FromPair(h[6], h[7]));
+  }
   return false;
 }
 
@@ -266,20 +315,32 @@ function scanRateLimited(ip) {
 }
 
 async function fetchRemote(urlString, opts = {}) {
-  const parsed = new URL(urlString);
-  if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("url must be http(s)");
-  if (isBlockedHost(parsed.hostname)) {
-    throw new Error("url host is not allowed (private/local/link-local/multicast hosts are blocked)");
+  // redirect:follow would re-check only the first host. A public URL that
+  // 302s to a metadata literal must be stopped on the Location, not fetched.
+  let current = urlString;
+  for (let hop = 0; hop < 4; hop++) {
+    const parsed = new URL(current);
+    if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("url must be http(s)");
+    if (isBlockedHost(parsed.hostname)) {
+      throw new Error("url host is not allowed (private/local/link-local/multicast hosts are blocked)");
+    }
+    const res = await fetch(current, {
+      signal: AbortSignal.timeout(URL_TIMEOUT_MS),
+      headers: { "User-Agent": "LazynextSlopChecker/1.2 (+https://lazynext.com)", Accept: opts.jsonOnly ? "application/json,text/json,text/plain" : "text/html,application/xhtml+xml" },
+      redirect: "manual",
+    });
+    if (res.status >= 300 && res.status < 400) {
+      const loc = res.headers.get("location");
+      if (!loc) throw new Error("redirect missing location");
+      current = new URL(loc, parsed).toString();
+      continue;
+    }
+    if (!res.ok) throw new Error(`upstream http ${res.status}`);
+    const html = await res.text();
+    if (html.length > 2_000_000) throw new Error("upstream document too large");
+    return opts.jsonOnly ? { html } : { html, text: extractText(html) };
   }
-  const res = await fetch(urlString, {
-    signal: AbortSignal.timeout(URL_TIMEOUT_MS),
-    headers: { "User-Agent": "LazynextSlopChecker/1.2 (+https://lazynext.com)", Accept: opts.jsonOnly ? "application/json,text/json,text/plain" : "text/html,application/xhtml+xml" },
-    redirect: "follow",
-  });
-  if (!res.ok) throw new Error(`upstream http ${res.status}`);
-  const html = await res.text();
-  if (html.length > 2_000_000) throw new Error("upstream document too large");
-  return opts.jsonOnly ? { html } : { html, text: extractText(html) };
+  throw new Error("url redirected too many times");
 }
 
 /**

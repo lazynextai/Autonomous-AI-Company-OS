@@ -54,6 +54,7 @@ const REQUIRED_CHECKS = [
   ["HEAD", "/health", "head-parity"],
   ["POST", "/scan", "ssrf-guard"], // http://169.254.169.254/latest/meta-data
   ["POST", "/scan", "ssrf-guard"], // http://127.0.0.1:9/
+  ["POST", "/scan", "ssrf-guard"], // http://[::ffff:169.254.169.254]/latest/meta-data
   ["GET", "/test/live-check.test.js", "gated-404"],
   ["GET", "/docs/DEPLOYMENT.md", "gated-404"],
   ["GET", "/src/project-scanner-browser.js", "asset-200"],
@@ -91,11 +92,15 @@ test("CHECK_SPEC: every entry has id/method/path/kind/expected/verify", () => {
   }
 });
 
-test("CHECK_SPEC: the two SSRF guards target the meta-data and loopback URLs", () => {
+test("CHECK_SPEC: SSRF guards target loopback, dotted metadata, and the normalized IPv6 form", () => {
   const guards = CHECK_SPEC.filter((s) => s.kind === "ssrf-guard");
-  assert.equal(guards.length, 2);
+  assert.equal(guards.length, 3);
   const urls = guards.map((g) => g.body && g.body.url).sort();
-  assert.deepEqual(urls, ["http://127.0.0.1:9/", "http://169.254.169.254/latest/meta-data"]);
+  assert.deepEqual(urls, [
+    "http://127.0.0.1:9/",
+    "http://169.254.169.254/latest/meta-data",
+    "http://[::ffff:169.254.169.254]/latest/meta-data",
+  ]);
 });
 
 test("CHECK_SPEC: gating checks hit exactly the protected paths", () => {
@@ -186,7 +191,7 @@ test("verify: web-index body must contain the doctype", () => {
 });
 
 test("verify: ssrf-guard passes any >=400 answer, fails 200", () => {
-  for (const id of ["ssrf-169", "ssrf-127"]) {
+  for (const id of ["ssrf-169", "ssrf-127", "ssrf-v6mapped"]) {
     assert.equal(verify(id, 502, { error: "could not fetch url: url host is not allowed" }).ok, true);
     assert.equal(verify(id, 500, { error: "boom" }).ok, true);
     assert.equal(verify(id, 400, { error: "url must be an http(s) URL" }).ok, true);

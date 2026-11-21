@@ -24,7 +24,13 @@ const raw = block.slice(0, end);
 // ternary `? a : b` inside the function body.
 let js = raw
   .replace("function isSafeDocUrl(raw: string): boolean {", "function isSafeDocUrl(raw) {")
-  .replace("  let u: URL;", "  let u;");
+  .replace("  let u: URL;", "  let u;")
+  .replace("function publicIpv4(octs: number[]): boolean {", "function publicIpv4(octs) {")
+  .replace("function publicIpv6(addr: string): boolean {", "function publicIpv6(addr) {")
+  .replace("(side: string): number[] | null", "(side)")
+  .replace("const out: number[] = [];", "const out = [];")
+  .replace("(n: number)", "(n)")
+  .replace("(hi: number, lo: number)", "(hi, lo)");
 
 // eslint-disable-next-line no-new-func
 const isSafeDocUrl = new Function("URL", `${js}; return isSafeDocUrl;`)(URL);
@@ -96,4 +102,43 @@ test("SSRF guard blocks IPv4-mapped IPv6 (metadata vector)", () => {
   ]) {
     assert.equal(isSafeDocUrl(url), false, url);
   }
+});
+
+test("SSRF guard blocks metadata after WHATWG IPv6 normalization", () => {
+  // new URL() rewrites these before the guard sees the hostname. The dotted
+  // forms above stay blocked; these are the strings fetch actually classifies.
+  for (const url of [
+    "http://[::ffff:a9fe:a9fe]/latest/meta-data", // [::ffff:169.254.169.254]
+    "http://[::ffff:7f00:1]/",                    // [::ffff:127.0.0.1]
+    "http://[::ffff:a00:1]/",                     // [::ffff:10.0.0.1]
+    "http://[::a9fe:a9fe]/",                      // [::169.254.169.254] compatible
+    "http://[2002:a9fe:a9fe::]/",                 // 6to4 embedding
+    "http://[64:ff9b::a9fe:a9fe]/",               // NAT64 embedding
+    "http://[fc00::1]/",
+    "http://[fd00::1]/",
+    "http://[fe90::1]/",                          // fe80::/10, not just fe80::
+    "http://[fec0::1]/",
+    "http://[ff02::1]/",
+    "http://[::]/",
+  ]) {
+    assert.equal(isSafeDocUrl(url), false, url);
+  }
+});
+
+test("SSRF guard still allows public IPv6 and public embeddings", () => {
+  for (const url of [
+    "http://[2606:4700:4700::1111]/",
+    "http://[2001:4860:4860::8888]/",
+    "http://[::ffff:8.8.8.8]/",
+    "http://[2002:0808:0808::]/",
+    "http://[64:ff9b::808:808]/",
+  ]) {
+    assert.equal(isSafeDocUrl(url), true, url);
+  }
+});
+
+test("doc snapshot follows redirects manually and re-checks the Location", () => {
+  const snap = src.slice(src.indexOf("async function snapshotDoc"));
+  assert.match(snap, /redirect:\s*"manual"/);
+  assert.doesNotMatch(snap.slice(0, snap.indexOf("async function notifySigner")), /redirect:\s*"follow"/);
 });
