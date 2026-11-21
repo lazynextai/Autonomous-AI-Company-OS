@@ -17,7 +17,7 @@
 
 **One-line pitch.** A fast, private, bilingual-by-design quality gate that finds, explains, and rewrites AI-slop artifacts in anything you paste, point it at, or ship from a repo — no account, no API key, no cost.
 
-**What the founder needs to know.** Twelve product PRs merged through the v1.4.4 release (#92→#103), the service is live and monitored every 15 minutes, and all quality gates pass. The four gates named in the original Section 6 were closed after this snapshot: MIT confirmation (#106), npm publish of `@lazynext/ai-slop-checker@1.4.4` (#107), the status-page row (#108), and the CI quality gate (#109). Section 6 records that correction. Three optional roadmap items remain open (real-browser CI farm, A2A multi-worker KV edge case, soft-tell auto-scoring).
+**What the founder needs to know.** Twelve product PRs merged through the v1.4.4 release (#92→#103), the service is live and monitored every 15 minutes, and all quality gates pass. The four gates named in the original Section 6 were closed after this snapshot: MIT confirmation (#106), npm publish of `@lazynext/ai-slop-checker@1.4.4` (#107), the status-page row (#108), and the CI quality gate (#109). Section 6 records that correction. The three roadmap items that were still open on 2026-11-21 are updated in Section 8: a local render farm (the GitHub job is not installed), A2A per-isolate KV replay, and an advisory soft-tell score that does not move the deterministic score.
 
 ---
 
@@ -159,7 +159,7 @@ Corrected 2026-11-21. The table below is the current state. On 2026-11-19, when 
 | 1 | **MIT license confirmation** | CLOSED 2026-11-19 (#106) | Founder authorized MIT. `LICENSE` opens with "License confirmed by founder authorization on 2026-11-19 (UNITED GLOBAL VENTURES PRIVATE LIMITED)." | None |
 | 2 | **npm publish `@lazynext/ai-slop-checker`** | PUBLISHED 2026-11-19 (#107) | Registry latest is `1.4.4`, license MIT, `private` false (versions `0.0.0-stage` and `1.4.4`). Rechecked 2026-11-21 against `registry.npmjs.org`. | None |
 | 3 | **CI gate** (`.github/`) | LIVE (#109) | Founder granted full authority for this `.github/` item on 2026-11-19. Workflow `.github/workflows/ai-slop-checker.yml` runs the quality gate on `ai-slop-checker/**` pushes and pull requests, plus a daily live-check. | None for the gate itself |
-| 4 | **Optional roadmap items** | PARTLY CLOSED | Status-page row shipped in #108 and is on the live page `https://lazynext.com/status` (200, contains `slop-checker.lazynext.com`, rechecked 2026-11-21). Still open: real-browser CI farm, A2A multi-worker KV edge case, soft-tell auto-scoring (soft-tell scoring stays out of the deterministic score). | Founder prioritizes the three remaining items in `ROADMAP.md` |
+| 4 | **Optional roadmap items** | UPDATED 2026-11-21 | Status-page row shipped in #108 and is on `https://lazynext.com/status`. Section 8 is the current state of the three items that were still open here: local render farm shipped, GitHub browser job parked, A2A multi-isolate replay shipped, soft-tell advisory score shipped and kept out of the deterministic score. | None for the code that landed. Devops copies `ci/render-farm.workflow.yml` into `.github/` if the farm should run in CI. |
 
 ---
 
@@ -190,3 +190,15 @@ Corrected 2026-11-21. The table below is the current state. On 2026-11-19, when 
 All claims in this document verified true as of 2026-11-19.
 
 Section 6 statuses were updated on 2026-11-21. The stamp above is the 2026-11-19 re-run. MIT, npm, the CI workflow, and the status-page row closed in #106–#109 and stayed marked open in this file until this correction.
+
+## 8. Roadmap advance — 2026-11-21
+
+The three items Section 6 left open. Version stays 1.4.4 (`package.json` was not edited).
+
+| Item | What landed | What is still parked |
+|---|---|---|
+| Real-browser CI farm | `scripts/render-farm.js` serves `fixtures/render-farm/` through `src/collect-render.js` and checks `src/render-farm-plan.js`. Missing Playwright skips (exit 0). `RENDER_FARM_REQUIRED=1` fails (exit 2). `src/collect-render.js` accepts `channel` so system Chrome can launch. Unit tests cover the plan with hand-built snapshots. Local run 2026-11-21 with system Chrome (`RENDER_FARM_CHANNEL=chrome`): slop fixture `r-glued-arrow,r-marquee`; clean fixture no ids. | The GitHub job is `ci/render-farm.workflow.yml` only. `.github/` was not edited, so pull-request CI does not run a browser. Playwright is not a runtime dependency. |
+| A2A multi-worker KV | `createTaskStore()` gives each isolate its own memory map. Replay compares `status.timestamp`: local view wins when it is newer or equal (a stale KV read cannot hide the write this isolate just made); KV wins when its timestamp is later (the other isolate wrote afterwards). A KV `get` that returns an object instead of a string still replays. Tests use two stores and a KV that hides puts until `flush()`. | A put that has not become visible to the other isolate is still a miss. Durable Objects would make that read-your-writes across isolates. That needs a worker binding edit, which this pass did not make. |
+| Soft-tell auto-scoring | `src/soft-tells.js` scores sentence spread, paragraph shape, and parallel clauses. `judgeReport(...).softTells.advisoryScore` is 0 or 34 per signal (cap 100). `drivesDeterministicScore` and `appliedToVerdict` are false, and tests lock the scan score and the PASS \| REVIEW \| REFUSE verdict. Precision is 1 on the labeled positives. Every bench file whose path contains `negative`, plus `demo/clean.txt`, fires zero signals. The browser judge inlines the same source. The Review tab draws the block from script. | The advisory number is not added to the 0–100 scan score. Doing that would change the checklist contract. Project judge leaves `advisoryScore` null because project reports do not keep source text. |
+
+SaaSHub was not retried. `.env` mtime was still 2026-11-06 05:36:31, the same file that already failed login. See `docs/LISTINGS-2026-11-20.md`.

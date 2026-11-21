@@ -70,11 +70,12 @@ themselves:
   <url>`, and a "Design reviews" panel in the web checker (paste a
   snapshot → in-browser checks). 34 tests over hand-crafted snapshots
   (fire + non-fire per check), no browser.
-- **Remaining (deferred):** a real-browser CI harness proving the
-  *collector* against live pages (see CI gate below — `.github/`-gated
-  and devops-owned per house rules, so it wasn't created in this
-  deliverable). The checks are deterministic; the collection pass remains
-  the only non-deterministic input.
+- **Local render farm shipped; GitHub job not installed.**
+  `node scripts/render-farm.js` serves `fixtures/render-farm/` to the
+  Playwright collector and checks `src/render-farm-plan.js`. It skips
+  when Playwright is absent and fails when `RENDER_FARM_REQUIRED=1`.
+  The job devops would copy is `ci/render-farm.workflow.yml`. `.github/`
+  was not edited. The checks themselves stay deterministic.
 
 ## Theme catalog
 
@@ -100,10 +101,14 @@ review (purpose/audience/decision/variety/defaults) with machine-flagged
 signals, the craft-floor gate mapped from real evidence (non-machineable
 items stay human checkboxes), refusal scaffolds, and a machine-computed
 PASS | REVIEW | REFUSE verdict over only the machine-verifiable parts.
-Kept out of the deterministic *score* until structural heuristics reach
-precision that beats recall: a full `judge` that auto-scores sentence
-spread, paragraph shape, and parallel-clause detectors remains future
-work, deliberately outside the score.
+**Advisory soft-tell score shipped** (`src/soft-tells.js`, wired through
+`judgeReport` as `softTells`). Sentence-spread, paragraph-shape, and
+parallel-clause detectors produce an advisory score. That score does
+not change the scan score and does not change PASS | REVIEW | REFUSE.
+Precision on the pinned positives is 1, and the clean bench corpus
+(every `negative` file plus `demo/clean.txt`) fires zero signals.
+Folding the advisory number into the deterministic score stays parked:
+that would change a contract the checklist judge promises not to move.
 
 ## Non-English built-ins (i18n corpus)
 
@@ -145,10 +150,10 @@ analogue (`npm run check`) as a hard-fail gate:
   `url` scans, asset-gating, sibling hosts). Site down → job fails →
   normal CI notifications.
 
-The **real-browser render CI harness** (playwright collector against live
-fixtures, `src/collect-render.js`) remains a separate deferred item: it
-needs a browser farm, and the pure checks are fully covered by tests
-(34 hand-crafted snapshot tests + the hostile-snapshot fuzz battery).
+The **local render farm** is `node scripts/render-farm.js`. The GitHub
+job is proposed at `ci/render-farm.workflow.yml` and is not part of
+`.github/workflows/ai-slop-checker.yml`. The pure checks stay covered
+without a browser.
 
 ## Package publishing
 
@@ -183,14 +188,18 @@ deliverable).
   Lazynext-authored open product has not been confirmed by the founder
   (see the note in ATTRIBUTIONS). Ship shape is ready (LICENSE, package
   metadata, `files` allowlist); the license decision is a founder call.
-- **Real-browser render CI** — the collector (`src/collect-render.js`)
-  needs playwright + a browser farm; that lives under `.github/` which is
-  devops-gated. The pure checks are fully tested without a browser
-  (34 hand-crafted snapshot tests + the hostile-snapshot fuzz battery).
-- **A2A is deliberately lightweight** — task results replay from an
-  in-memory store (bounded, 30-min TTL), not persistent KV/files, because
-  the plain-Node server has no KV. Production persistence for A2A tasks is a
-  follow-up if a hosted deployment lands.
+- **Real-browser render CI on GitHub** — the local farm ships
+  (`scripts/render-farm.js`, `fixtures/render-farm/`,
+  `ci/render-farm.workflow.yml`). Installing that job under `.github/`
+  is a devops copy, not done in this pass. The pure checks stay tested
+  without a browser.
+- **A2A multi-worker KV** — each isolate keeps its own memory map
+  (`createTaskStore`). A shared KV is the cross-isolate copy. Replay
+  prefers a local task view when its timestamp is newer than or equal to
+  the KV copy, and prefers KV when another isolate wrote a later
+  timestamp. KV that has not become visible yet is still a miss; strong
+  consistency would need a Durable Object and a worker.js edit, which
+  this pass did not do.
 - **rules_url accepts JSON only** over the network — remote JS execution is
   deliberately not offered (arbitrary-code risk); local `--rules` supports
   `.js` modules.
@@ -198,8 +207,6 @@ deliverable).
   single-POST subset; streaming needs a hosted upgrade.
 - **Theme catalog stays a human guide** — shipped as documentation
   (`docs/design-review-guide.md`), never as machine-applied code.
-- **Judgement soft-tell heuristics** — a full auto-scored judge (sentence
-  spread, paragraph shape, parallel-clause detectors driving the score)
-  is still out of the deterministic core until precision beats recall;
-  v1.4.1 ships the deterministic *checklist* judge instead (see the
-  Judgement tells section).
+- **Judgement soft-tell heuristics** — the detectors and an advisory
+  score ship (see Judgement tells). They do not drive the deterministic
+  scan score or the checklist verdict.

@@ -339,6 +339,9 @@ textarea { resize: vertical; min-height: 140px; font-family: ui-monospace, SFMon
 }
 .floor-human-step input[type="checkbox"] { flex: 0 0 auto; margin-top: 3px; }
 
+.soft-tells-list { margin: 8px 0 0; padding-left: 20px; font-size: 0.88rem; }
+.soft-tells-list code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; color: var(--brand-blue); }
+
 .refusal-text {
   margin: 6px 0 0;
   font-size: 0.88rem;
