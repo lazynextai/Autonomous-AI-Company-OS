@@ -28,7 +28,7 @@ test("worker: GET /health returns ok", async () => {
   assert.equal(res.status, 200);
   const d = await res.json();
   assert.equal(d.ok, true);
-  assert.equal(d.version, "1.4.4");
+  assert.equal(d.version, "1.4.5");
 });
 
 test("worker: GET /rules returns the manifest", async () => {
@@ -57,7 +57,7 @@ test("worker: MCP initialize handshake", async () => {
   assert.equal(res.status, 200);
   const d = await res.json();
   assert.equal(d.result.serverInfo.name, "lazynext-ai-slop-checker");
-  assert.equal(d.result.serverInfo.version, "1.4.4");
+  assert.equal(d.result.serverInfo.version, "1.4.5");
 });
 
 test("worker: POST /judge text works on the edge entry", async () => {

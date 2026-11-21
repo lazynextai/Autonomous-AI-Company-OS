@@ -5,6 +5,15 @@ changes live in the "Unreleased" section until tagged.
 
 ## Unreleased
 
+## v1.4.5 — 2026-11-21 (soft-tell advisory, A2A Durable Object, render-farm CI)
+
+Patch, not 1.5.0. #116 and #117 had already merged with these notes still
+under Unreleased and `package.json` left at 1.4.4. The advisory score is
+additive and does not change the scan score or the PASS | REVIEW | REFUSE
+verdict. The Durable Object room keeps the existing A2A replay contract.
+The render-farm job is CI only. The 1.4 line already shipped features as
+patches (1.4.2 through 1.4.4).
+
 ### Advisory soft-tell score
 - **`src/soft-tells.js`** — sentence-spread, paragraph-shape, and
   parallel-clause detectors. `advisoryScore` is separate from the scan

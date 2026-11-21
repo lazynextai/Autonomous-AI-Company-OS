@@ -1,7 +1,7 @@
 # Lazynext AI Slop Checker — Product State & Founder Handoff
 
 **Date:** 2026-11-19
-**Version:** v1.4.4 (repo == prod at `69d8537`)
+**Version:** v1.4.5 (closeout cut 2026-11-21 for #116 and #117). The 2026-11-19 snapshot remains v1.4.4 at `69d8537`.
 **Author:** Lazynext OS
 **Status:** LIVE — consolidated founder handoff
 
@@ -13,11 +13,11 @@
 
 **Where.** LIVE at **https://slop-checker.lazynext.com** (worker `lazynext-ai-slop-checker`; workers.dev mirror `lazynext-ai-slop-checker.dry-hall-6a50.workers.dev`). Health spot-checked 2026-11-19: `{"ok":true,"engine":"lazynext-ai-slop-checker","version":"1.4.4"}`.
 
-**Version.** v1.4.4 — 425/425 tests, corpus integrity 446 patterns / 32 categories, eval gate F1 1.000 across 16 families, 0.0% false-positive on 20 clean negatives.
+**Version.** This tree's package and engine strings are v1.4.5. Live health was still `1.4.4` at the start of the closeout; the worker deploy after this release is what moves production. The 2026-11-19 handoff measured v1.4.4 at 425/425 tests, corpus integrity 446 patterns / 32 categories, eval gate F1 1.000 across 16 families, 0.0% false-positive on 20 clean negatives. Those corpus figures are unchanged by this cut.
 
 **One-line pitch.** A fast, private, bilingual-by-design quality gate that finds, explains, and rewrites AI-slop artifacts in anything you paste, point it at, or ship from a repo — no account, no API key, no cost.
 
-**What the founder needs to know.** Twelve product PRs merged through the v1.4.4 release (#92→#103), the service is live and monitored every 15 minutes, and all quality gates pass. The four gates named in the original Section 6 were closed after this snapshot: MIT confirmation (#106), npm publish of `@lazynext/ai-slop-checker@1.4.4` (#107), the status-page row (#108), and the CI quality gate (#109). Section 6 records that correction. Section 8 is the current state of the optional roadmap: the GitHub render-farm job is installed, A2A replay uses one Durable Object room plus the existing KV fallback, and the advisory soft-tell score still does not move the deterministic score.
+**What the founder needs to know.** Twelve product PRs merged through the v1.4.4 release (#92→#103), the service is live and monitored every 15 minutes, and all quality gates pass. The four gates named in the original Section 6 were closed after this snapshot: MIT confirmation (#106), npm publish of `@lazynext/ai-slop-checker@1.4.4` (#107), the status-page row (#108), and the CI quality gate (#109). Section 6 records that correction. Section 8 is the current state of the optional roadmap: the GitHub render-farm job is installed (#117), A2A replay uses one Durable Object room plus the existing KV fallback (#117), and the advisory soft-tell score still does not move the deterministic score (#116). Those three shipped while the package string stayed 1.4.4; the closeout cuts v1.4.5.
 
 ---
 
@@ -40,7 +40,7 @@
 - **`--judge` CLI + Review tab + folder-judge.** CLI judging via `api/cli.js`/`src/judge.js` + browser bridge `src/judge-browser.js` / `src/node-bridge.js`; in-browser "Review" tab shipping a judgement checklist (5Q = 5, craft floor = 6, floor MET on the live smoke); folder-judge gates Project review on a folder scan (disabled → plain scan; enabled → full Project review with machine-checked floor answers).
 - **Agent surfaces.** MCP server with 7 tools, A2A endpoints with **durable task persistence across isolates** (KV `AI_SLOP_RECENT`, RECENT binding, 30-min TTL, replay-safe), widget, OpenAPI 3.1 (`api/openapi.json`), `llms.txt`, and `agent.json`. All in `api/agent-surfaces.js`.
 - **PWA shell** (`web/`): four tabs — Text / URL / Folder / Review — with `sw.js` service worker, manifest, and icons. Brand colors `#0468F8` / `#04B4FC`.
-- **Packaging.** `package.json` v1.4.4, **zero runtime dependencies**; scripts: `test` / `check` / `e2e` / `live` / `eval` / `gen:assets` (verified from the tree this session). `npm pack --dry-run`: 40 files, 3.6 MB.
+- **Packaging.** `package.json` v1.4.5, **zero runtime dependencies**; scripts: `test` / `check` / `e2e` / `live` / `eval` / `gen:assets`. The 2026-11-19 dry-run of v1.4.4 was 40 files, 3.6 MB.
 
 ### Tree map (abridged)
 ```
@@ -61,7 +61,7 @@ ai-slop-checker/
 │         design-review-guide.md,eval-report.md,dogfood-report.md,
 │         RELEASE-2026-11-17.md}
 ├── CHANGELOG.md · ROADMAP.md · ATTRIBUTIONS.md · README.md · LICENSE (MIT — confirmed 2026-11-19, PR #106)
-└── package.json                     # v1.4.4, zero-deps
+└── package.json                     # v1.4.5, zero-deps
 ```
 
 ---
@@ -157,7 +157,7 @@ Corrected 2026-11-21. The table below is the current state. On 2026-11-19, when 
 | # | Item | Status | One-line reason | Next action |
 |---|---|---|---|---|
 | 1 | **MIT license confirmation** | CLOSED 2026-11-19 (#106) | Founder authorized MIT. `LICENSE` opens with "License confirmed by founder authorization on 2026-11-19 (UNITED GLOBAL VENTURES PRIVATE LIMITED)." | None |
-| 2 | **npm publish `@lazynext/ai-slop-checker`** | PUBLISHED 2026-11-19 (#107) | Registry latest is `1.4.4`, license MIT, `private` false (versions `0.0.0-stage` and `1.4.4`). Rechecked 2026-11-21 against `registry.npmjs.org`. | None |
+| 2 | **npm publish `@lazynext/ai-slop-checker`** | PUBLISHED 2026-11-19 (#107); v1.4.5 cut 2026-11-21 | Registry `latest` was `1.4.4` on the 2026-11-21 recheck (versions `0.0.0-stage` and `1.4.4`, license MIT, `private` false). v1.4.5 is the closeout version cut. | Publish `1.4.5` after this release merges |
 | 3 | **CI gate** (`.github/`) | LIVE (#109) | Founder granted full authority for this `.github/` item on 2026-11-19. Workflow `.github/workflows/ai-slop-checker.yml` runs the quality gate on `ai-slop-checker/**` pushes and pull requests, plus a daily live-check. | None for the gate itself |
 | 4 | **Optional roadmap items** | UPDATED 2026-11-21 | Status-page row shipped in #108 and is on `https://lazynext.com/status`. Section 8: GitHub render-farm job installed as its own workflow, A2A cross-isolate replay uses one SQLite Durable Object room (KV remains the fallback), soft-tell advisory score stays out of the deterministic score. | None for those three. SaaSHub stays founder-needed until `SAASHUB_PASSWORD` is replaced. |
 
@@ -193,7 +193,7 @@ Section 6 statuses were updated on 2026-11-21. The stamp above is the 2026-11-19
 
 ## 8. Roadmap advance — 2026-11-21
 
-The three items Section 6 left open. Version stays 1.4.4 (`package.json` was not edited).
+The three items Section 6 left open shipped in #116 and #117 and stayed tagged 1.4.4 because `package.json` was not edited. This closeout cuts **v1.4.5** (patch, not 1.5.0): the advisory score does not change the scan score or the PASS | REVIEW | REFUSE verdict, the Durable Object room keeps the existing A2A replay contract, and the render-farm job is CI only. The 1.4 line already shipped features as patches.
 
 | Item | What landed | What is still parked |
 |---|---|---|
