@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Status — Lazynext</title>
-<meta name="description" content="Live availability across the Lazynext platform — API, product, and agent surfaces, with 90-day uptime and recent changes."/>
+<meta name="description" content="Live availability across the Lazynext platform — API, product, and agent surfaces. Checks run in the browser; this page does not store a 90-day uptime history."/>
 <link rel="canonical" href="https://lazynext.com/status"/>
 <meta property="og:title" content="Status — Lazynext"/>
 <meta property="og:description" content="Live availability across the Lazynext platform — API, product, and agent surfaces."/>
@@ -23,18 +23,21 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:28px 0
 .logo{font-size:20px;font-weight:700}.logo span{color:var(--accentSoft)}
 nav a.btn{padding:9px 18px;border-radius:10px;border:1.5px solid #6B7280;font-size:13px;font-weight:700}
 header{padding:60px 0 32px;text-align:center}
-.badge{display:inline-flex;align-items:center;gap:8px;padding:8px 20px;border-radius:999px;background:var(--okBg);color:var(--ok);font-size:14px;font-weight:700}
-.badge .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);animation:pulse 2s infinite}
-@keyframes pulse{50%{opacity:.4}}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:8px 20px;border-radius:999px;background:var(--accentBg);color:var(--accentSoft);font-size:14px;font-weight:700}
+.badge .dot{width:8px;height:8px;border-radius:50%;background:var(--accentSoft)}
+.badge.ok{background:var(--okBg);color:var(--ok)}
+.badge.ok .dot{background:var(--ok)}
+.badge.warn{background:#241F10;color:var(--warn)}
+.badge.warn .dot{background:var(--warn)}
 h1{font-size:34px;font-weight:800;margin:20px 0 8px}
 .sub{color:var(--muted);font-size:15px}
 .svc{display:flex;justify-content:space-between;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 22px;margin-bottom:10px}
 .svc .name{font-size:15px;font-weight:600}
 .svc .desc{font-size:12px;color:var(--muted);margin-top:2px}
-.pill{padding:5px 14px;border-radius:999px;font-size:12px;font-weight:700;background:var(--okBg);color:var(--ok)}
+.pill{padding:5px 14px;border-radius:999px;font-size:12px;font-weight:700;background:var(--accentBg);color:var(--accentSoft)}
+.pill.ok{background:var(--okBg);color:var(--ok)}
 .pill.warn{background:#241F10;color:var(--warn)}
-.bars{display:flex;gap:3px;margin:8px 0 40px}
-.bars i{flex:1;height:28px;background:var(--ok);border-radius:3px;opacity:.85}
+.note{color:var(--muted);font-size:14px;line-height:1.5;margin:-4px 0 22px}
 section{padding:16px 0 60px}
 h2{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px}
 footer{border-top:1px solid var(--border);padding:28px 0;color:var(--muted);font-size:12px;text-align:center}
@@ -60,18 +63,29 @@ footer a{display:inline-block;min-height:24px;padding:9px 6px;margin:-9px -2px;t
 </nav>
 <main id="main">
 <header>
-  <div class="badge"><span class="dot"></span> All systems operational</div>
+  <div class="badge" id="overall" role="status"><span class="dot" aria-hidden="true"></span> <span id="overall-text">Live status needs JavaScript</span></div>
   <h1>Lazynext Status</h1>
   <p class="sub">Live availability across the platform — API, product, and agent surfaces.</p>
   <p class="agentready">Agent-ready: MCP · A2A · OpenAPI 3.1 · agent.json · llms.txt · GitHub Action · REST</p>
 </header>
 
 <section>
-  <h2>90-day uptime</h2>
-  <div class="bars" id="bars"></div>
+  <h2>Live checks</h2>
+  <p class="note">Each service is checked in your browser when this page loads. This page does not keep a 90-day history, so it does not draw an uptime chart.</p>
   <h2>Services</h2>
-  <div id="services"></div>
+  <div id="services">
+    <div class="svc"><div><div class="name">Dashboard</div><div class="desc">dashboard.lazynext.com</div></div><span class="pill" data-check="https://dashboard.lazynext.com">needs JavaScript</span></div>
+    <div class="svc"><div><div class="name">API</div><div class="desc">ai-company.lazynext.com/api/v1</div></div><span class="pill" data-check="https://ai-company.lazynext.com/api/v1/health">needs JavaScript</span></div>
+    <div class="svc"><div><div class="name">Marketing</div><div class="desc">lazynext.com</div></div><span class="pill" data-check="https://lazynext.com">needs JavaScript</span></div>
+    <div class="svc"><div><div class="name">Accessibility Checker API</div><div class="desc">checker.lazynext.com/health</div></div><span class="pill" data-check="https://checker.lazynext.com/health">needs JavaScript</span></div>
+    <div class="svc"><div><div class="name">Public scan API</div><div class="desc">api.lazynext.com/health</div></div><span class="pill" data-check="https://api.lazynext.com/health">needs JavaScript</span></div>
+    <div class="svc"><div><div class="name">Accessibility Checker</div><div class="desc">checker.lazynext.com</div></div><span class="pill" data-check="https://checker.lazynext.com/">needs JavaScript</span></div>
+    <div class="svc"><div><div class="name">AI Slop Checker</div><div class="desc">slop-checker.lazynext.com</div></div><span class="pill" data-check="https://slop-checker.lazynext.com/">needs JavaScript</span></div>
+    <div class="svc"><div><div class="name">Agent surfaces</div><div class="desc">MCP · A2A · agent.json · llms.txt</div></div><span class="pill" data-check="https://checker.lazynext.com/.well-known/agent.json">needs JavaScript</span></div>
+    <div class="svc"><div><div class="name">Design (Penpot)</div><div class="desc">penpot.lazynext.com</div></div><span class="pill" data-check="https://penpot.lazynext.com">needs JavaScript</span></div>
+  </div>
   <h2>Recent changes</h2>
+  <p class="note" id="history-note">Recent commits appear here when JavaScript can reach GitHub. Nothing is listed until that request succeeds.</p>
   <div id="history"></div>
 </section>
 
@@ -79,52 +93,46 @@ footer a{display:inline-block;min-height:24px;padding:9px 6px;margin:-9px -2px;t
 <footer>◆ Lazynext · Status · lazynext.com · <a href="/sitemap.xml" style="color:var(--muted)">Sitemap</a><a href="https://www.directree.io" target="_blank" rel="noopener"><img src="https://www.directree.io/badge/directree-badge-lightmode.svg" alt="Verified on directree" width="200" height="37" style="display:block;margin:14px auto 0;opacity:.9" /></a> </footer>
 </div>
 <script>
-const services=[
- {name:'Dashboard',desc:'dashboard.lazynext.com',url:'https://dashboard.lazynext.com'},
- {name:'API',desc:'ai-company.lazynext.com/api/v1',url:'https://ai-company.lazynext.com/api/v1/health'},
- {name:'Marketing',desc:'lazynext.com',url:'https://lazynext.com'},
- {name:'Accessibility Checker API',desc:'checker.lazynext.com/health',url:'https://checker.lazynext.com/health'},
- {name:'Public scan API',desc:'api.lazynext.com/health',url:'https://api.lazynext.com/health'},
- {name:'Accessibility Checker',desc:'checker.lazynext.com',url:'https://checker.lazynext.com/'},
- {name:'AI Slop Checker',desc:'slop-checker.lazynext.com',url:'https://slop-checker.lazynext.com/'},
- {name:'Agent surfaces',desc:'MCP · A2A · agent.json · llms.txt',url:'https://checker.lazynext.com/.well-known/agent.json'},
- {name:'Design (Penpot)',desc:'penpot.lazynext.com',url:'https://penpot.lazynext.com'},
-];
-// uptime bars — 90 days, all green (seeded; real history accumulates over time)
-const bars=document.getElementById('bars');
-for(let i=0;i<90;i++){bars.appendChild(document.createElement('i'))}
-const host=document.getElementById('services');
-services.forEach(s=>{
- const d=document.createElement('div');d.className='svc';
- d.innerHTML=`<div><div class="name">${s.name}</div><div class="desc">${s.desc}</div></div><span class="pill" data-check="${s.url}">checking…</span>`;
- host.appendChild(d);
-});
-// live checks — CORS mode first (detects real errors); fall back to
-// no-cors reachability. Shows latency.
-document.querySelectorAll('[data-check]').forEach(async el=>{
+const overall=document.getElementById('overall');
+const overallText=document.getElementById('overall-text');
+overallText.textContent='Checking live status';
+// Live checks — CORS first (detects real errors); fall back to no-cors
+// reachability. The summary stays "checking" until every row has settled,
+// and it never claims operational before that.
+const checks=[...document.querySelectorAll('[data-check]')];
+checks.forEach(el=>{el.textContent='checking…'});
+Promise.all(checks.map(async el=>{
  const url=el.dataset.check;
  const t0=performance.now();
  try{
   const r=await fetch(url,{mode:'cors',cache:'no-store'});
   const ms=Math.round(performance.now()-t0);
   el.textContent=r.ok?`operational · ${ms}ms`:`degraded · ${r.status}`;
-  if(!r.ok)el.classList.add('warn');
+  el.classList.add(r.ok?'ok':'warn');
  }catch{
   try{
    await fetch(url,{mode:'no-cors',cache:'no-store'});
    el.textContent=`operational · ${Math.round(performance.now()-t0)}ms`;
+   el.classList.add('ok');
   }catch{el.textContent='down';el.classList.add('warn')}
  }
+})).then(()=>{
+ const bad=checks.some(el=>el.classList.contains('warn'));
+ overall.classList.add(bad?'warn':'ok');
+ overallText.textContent=bad?'Some services need attention':'All systems operational';
 });
 // status history — real recent platform changes from the public repo
 fetch("https://api.github.com/repos/lazynextai/Autonomous-AI-Company-OS/commits?per_page=5")
  .then(r=>r.json()).then(cs=>{
   const h=document.getElementById('history');
-  (Array.isArray(cs)?cs:[]).forEach(c=>{
+  const rows=Array.isArray(cs)?cs:[];
+  if(!rows.length) return;
+  document.getElementById('history-note')?.remove();
+  rows.forEach(c=>{
    const d=document.createElement('div');d.className='svc';
    d.innerHTML=`<div><div class="name">${c.commit.message.split("\n")[0].replace(/</g,"&lt;")}</div>
     <div class="desc">${c.commit.author.date.slice(0,10)} · <a href="${c.html_url}" style="color:var(--accentSoft)">${c.sha.slice(0,7)}</a></div></div>
-    <span class="pill">shipped</span>`;
+    <span class="pill ok">shipped</span>`;
    h.appendChild(d);
   });
  }).catch(()=>{});
