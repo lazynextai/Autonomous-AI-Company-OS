@@ -15,8 +15,8 @@ Two surfaces exist:
 
 ```sh
 cd ai-slop-checker
-docker build -t lazynext/ai-slop-checker:1.4.4 .
-docker run --rm -p 3000:3000 -e PORT=3000 lazynext/ai-slop-checker:1.4.4
+docker build -t lazynext/ai-slop-checker:1.4.5 .
+docker run --rm -p 3000:3000 -e PORT=3000 lazynext/ai-slop-checker:1.4.5
 curl -s http://localhost:3000/health   # {"ok":true,"engine":"lazynext-ai-slop-checker",...}
 ```
 
