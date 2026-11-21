@@ -17,7 +17,7 @@
 
 **One-line pitch.** A fast, private, bilingual-by-design quality gate that finds, explains, and rewrites AI-slop artifacts in anything you paste, point it at, or ship from a repo — no account, no API key, no cost.
 
-**What the founder needs to know.** Twelve product PRs merged (#92→#103), the service is live and monitored every 15 minutes, all quality gates pass, and four decisions remain founder-gated (MIT license confirmation, npm publish, CI gate ownership, and optional roadmap items) — see Section 6.
+**What the founder needs to know.** Twelve product PRs merged through the v1.4.4 release (#92→#103), the service is live and monitored every 15 minutes, and all quality gates pass. The four gates named in the original Section 6 were closed after this snapshot: MIT confirmation (#106), npm publish of `@lazynext/ai-slop-checker@1.4.4` (#107), the status-page row (#108), and the CI quality gate (#109). Section 6 records that correction. Three optional roadmap items remain open (real-browser CI farm, A2A multi-worker KV edge case, soft-tell auto-scoring).
 
 ---
 
@@ -60,7 +60,7 @@ ai-slop-checker/
 ├── docs/{DEPLOYMENT.md,DEPLOYMENT-PLAN-2026-11-17.md,usage.md,
 │         design-review-guide.md,eval-report.md,dogfood-report.md,
 │         RELEASE-2026-11-17.md}
-├── CHANGELOG.md · ROADMAP.md · ATTRIBUTIONS.md · README.md · LICENSE (MIT — founder UNCONFIRMED)
+├── CHANGELOG.md · ROADMAP.md · ATTRIBUTIONS.md · README.md · LICENSE (MIT — confirmed 2026-11-19, PR #106)
 └── package.json                     # v1.4.4, zero-deps
 ```
 
@@ -150,14 +150,16 @@ All numbers below come from real command runs; spot-checks re-run live on 2026-1
 
 ---
 
-## 6. Founder decision checklist (4 gated items)
+## 6. Founder decision checklist
+
+Corrected 2026-11-21. The table below is the current state. On 2026-11-19, when this handoff was written, these four rows were still open (MIT unconfirmed, npm unpublished, no CI workflow, status page not yet listed). #106–#109 closed the first three and the status-page part of the fourth the same day. The verification stamp at the bottom is that day's re-run and was accurate then.
 
 | # | Item | Status | One-line reason | Next action |
 |---|---|---|---|---|
-| 1 | **MIT license confirmation** | FILE PRESENT, founder UNCONFIRMED | `LICENSE` ships MIT but the founder has not confirmed adoption | Confirm MIT (or choose another) — then update `LICENSE` + metadata if changed |
-| 2 | **npm publish `@lazynext/ai-slop-checker`** | READY, not published | Pack shape verified (40 files, 3.6 MB, zero-deps) but publishing needs founder authorization + npm org access | Authorize publish; run `npm publish --dry-run` → live publish |
-| 3 | **CI gate** (`.github/`) | NOT CREATED | House rule: `.github/` is devops-owned only | Devops adds the CI workflow when scheduled — do not create from product side |
-| 4 | **Optional roadmap items** | OPEN | Status-page entry, real-browser CI farm, A2A multi-worker KV edge case, soft-tell auto-scoring — all deliberate deferrals (soft-tell scoring stays out of the deterministic score) | Founder prioritizes or closes; tracked in `ROADMAP.md` |
+| 1 | **MIT license confirmation** | CLOSED 2026-11-19 (#106) | Founder authorized MIT. `LICENSE` opens with "License confirmed by founder authorization on 2026-11-19 (UNITED GLOBAL VENTURES PRIVATE LIMITED)." | None |
+| 2 | **npm publish `@lazynext/ai-slop-checker`** | PUBLISHED 2026-11-19 (#107) | Registry latest is `1.4.4`, license MIT, `private` false (versions `0.0.0-stage` and `1.4.4`). Rechecked 2026-11-21 against `registry.npmjs.org`. | None |
+| 3 | **CI gate** (`.github/`) | LIVE (#109) | Founder granted full authority for this `.github/` item on 2026-11-19. Workflow `.github/workflows/ai-slop-checker.yml` runs the quality gate on `ai-slop-checker/**` pushes and pull requests, plus a daily live-check. | None for the gate itself |
+| 4 | **Optional roadmap items** | PARTLY CLOSED | Status-page row shipped in #108 and is on the live page `https://lazynext.com/status` (200, contains `slop-checker.lazynext.com`, rechecked 2026-11-21). Still open: real-browser CI farm, A2A multi-worker KV edge case, soft-tell auto-scoring (soft-tell scoring stays out of the deterministic score). | Founder prioritizes the three remaining items in `ROADMAP.md` |
 
 ---
 
@@ -186,3 +188,5 @@ All numbers below come from real command runs; spot-checks re-run live on 2026-1
 | 10 | Hygiene | worktree clean, 8792/8793 free, fleet running, main tree = 13 pre-existing untracked only |
 
 All claims in this document verified true as of 2026-11-19.
+
+Section 6 statuses were updated on 2026-11-21. The stamp above is the 2026-11-19 re-run. MIT, npm, the CI workflow, and the status-page row closed in #106–#109 and stayed marked open in this file until this correction.
