@@ -6,20 +6,22 @@
  * (https://slop-checker.lazynext.com by default) over real HTTP and exits
  * non-zero on ANY failure. Against production it is strictly read-only:
  * GET/HEAD probes plus the POSTs the service exists for (/scan text,
- * /mcp initialize) and two deliberately-blocked SSRF-guard url scans that
+ * /mcp initialize) and three deliberately-blocked SSRF-guard url scans that
  * return guarded errors (no real upstream is ever touched). Sibling hosts
  * are only HEAD/GET-probed at their root — the guard never reaches
  * through to scan their content.
  *
- * Checks (CHECK_SPEC below, 16 fixed + one per --hosts entry):
+ * Checks (CHECK_SPEC below, 17 fixed + one per --hosts entry):
  *   service surface  GET /health /rules /openapi.json /.well-known/agent.json
  *                    /llms.txt / /web/index.html /data/slop-patterns.js and
  *                    HEAD /health (HEAD parity)
  *   scan contract    POST /scan {"text": "We must leverage this robust solution."}
  *                    -> 200, score > 0, w-leverage fired
  *   MCP handshake    POST /mcp initialize -> 200, jsonrpc 2.0
- *   SSRF guard       POST /scan {"url":"http://169.254.169.254/..."} and
- *                    POST /scan {"url":"http://127.0.0.1:9/"} -> >= 400
+ *   SSRF guard       POST /scan {"url":"http://169.254.169.254/..."},
+ *                    POST /scan {"url":"http://127.0.0.1:9/"}, and
+ *                    POST /scan {"url":"http://[::ffff:169.254.169.254]/..."}
+ *                    (the form the URL parser rewrites metadata into) -> >= 400
  *   asset gating     /test/... and /docs/... -> 404; allowed /src/... -> 200
  *   sibling hosts    HEAD/GET on each --hosts host -> 2xx or 301/302
  *
@@ -53,6 +55,8 @@ const SLOP_TEXT = "We must leverage this robust solution.";
 const SSRF_TARGETS = [
   { id: "ssrf-169", url: "http://169.254.169.254/latest/meta-data" },
   { id: "ssrf-127", url: "http://127.0.0.1:9/" },
+  // WHATWG URL parsing rewrites this to [::ffff:a9fe:a9fe] before the host check.
+  { id: "ssrf-v6mapped", url: "http://[::ffff:169.254.169.254]/latest/meta-data" },
 ];
 const GATED_PATHS = ["/test/live-check.test.js", "/docs/DEPLOYMENT.md"];
 
@@ -243,6 +247,18 @@ const CHECK_SPEC = [
     kind: "ssrf-guard",
     expected: ">=400 blocked",
     body: { url: SSRF_TARGETS[1].url },
+    verify: ({ status }) => {
+      if (status >= 400) return ok(`blocked (${status})`);
+      return fail(`expected >= 400, got ${status}`);
+    },
+  },
+  {
+    id: SSRF_TARGETS[2].id,
+    method: "POST",
+    path: "/scan",
+    kind: "ssrf-guard",
+    expected: ">=400 blocked",
+    body: { url: SSRF_TARGETS[2].url },
     verify: ({ status }) => {
       if (status >= 400) return ok(`blocked (${status})`);
       return fail(`expected >= 400, got ${status}`);

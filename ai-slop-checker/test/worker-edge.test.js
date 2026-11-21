@@ -157,6 +157,13 @@ test("edge: SSRF guard blocks private/loopback/link-local/CGNAT/multicast + loca
     "fc00::1", "[fc00::1]", "fd12:3456::1", "ff00::1", "example.local", "foo.internal",
     "host.local.", "[::ffff:127.0.0.1]", "[::ffff:169.254.169.254]",
     "::ffff:10.0.0.1", "[::FFFF:192.168.0.1]",
+    // WHATWG URL normalizes the dotted metadata literal to hex before
+    // fetchRemote checks parsed.hostname.
+    "[::ffff:a9fe:a9fe]", "::ffff:a9fe:a9fe", "[::ffff:7f00:1]", "::ffff:a00:1",
+    "[::ffff:c0a8:1]", "[::a9fe:a9fe]", "::a9fe:a9fe",
+    "[2002:a9fe:a9fe::]", "2002:a9fe:a9fe::",
+    "[64:ff9b::a9fe:a9fe]", "64:ff9b::a9fe:a9fe",
+    "[fe90::1]", "[fec0::1]", "[ff02::1]",
   ];
   for (const h of blocked) {
     assert.equal(worker.isBlockedHost(h), true, `${h} should be blocked`);
@@ -164,7 +171,8 @@ test("edge: SSRF guard blocks private/loopback/link-local/CGNAT/multicast + loca
   const allowed = [
     "example.com", "lazynext.com", "checker.lazynext.com", "203.0.113.5", "8.8.8.8",
     "1.1.1.1", "93.184.216.34", "EXAMPLE.COM", "[2001:4860:4860::8888]", "2606:4700::1111",
-    "2001:4860:4860::8888", "myhost.example.internal-not-really", "subdomain.lazynext.com",
+    "2001:4860:4860::8888", "[::ffff:808:808]", "[2002:0808:0808::]", "[64:ff9b::808:808]",
+    "myhost.example.internal-not-really", "subdomain.lazynext.com",
     // ".internal"/".local" are reserved TLDs — only names ENDING in them are
     // blocked. "my.internal.host" has the public .host TLD and is allowed.
     "my.internal.host",
@@ -175,12 +183,50 @@ test("edge: SSRF guard blocks private/loopback/link-local/CGNAT/multicast + loca
 });
 
 test("edge: /scan url against a blocked host returns 502 without any upstream call", async () => {
-  for (const url of ["http://127.0.0.1:1/", "http://localhost:9/x", "http://169.254.169.254/latest/meta-data", "http://[::1]/"]) {
-    const res = await call("/scan", { method: "POST", body: { url } });
-    assert.equal(res.status, 502, `${url} should 502`);
-    const d = await res.json();
-    assert.match(d.error, /could not fetch url/);
-    assert.match(d.error, /not allowed|blocked/);
+  const urls = [
+    "http://127.0.0.1:1/",
+    "http://localhost:9/x",
+    "http://169.254.169.254/latest/meta-data",
+    "http://[::1]/",
+    // These hostnames are what new URL() produces for the dotted forms.
+    "http://[::ffff:169.254.169.254]/latest/meta-data",
+    "http://[::ffff:127.0.0.1]/",
+    "http://[::169.254.169.254]/",
+    "http://[2002:a9fe:a9fe::]/",
+    "http://[64:ff9b::169.254.169.254]/",
+  ];
+  const orig = globalThis.fetch;
+  let fetches = 0;
+  globalThis.fetch = async () => {
+    fetches += 1;
+    return new Response("should not be fetched", { status: 200, headers: { "Content-Type": "text/html" } });
+  };
+  try {
+    for (const url of urls) {
+      const res = await call("/scan", { method: "POST", body: { url } });
+      assert.equal(res.status, 502, `${url} should 502`);
+      const d = await res.json();
+      assert.match(d.error, /could not fetch url/);
+      assert.match(d.error, /not allowed|blocked/);
+    }
+    assert.equal(fetches, 0, "blocked hosts must not reach fetch");
+
+    const seen = [];
+    globalThis.fetch = async (url, init) => {
+      seen.push({ url: String(url), redirect: init && init.redirect });
+      return new Response(null, {
+        status: 302,
+        headers: { Location: "http://[::ffff:169.254.169.254]/latest/meta-data" },
+      });
+    };
+    const redirected = await call("/scan", { method: "POST", body: { url: "https://example.com/doc" } });
+    assert.equal(redirected.status, 502);
+    const body = await redirected.json();
+    assert.match(body.error, /not allowed|blocked/);
+    assert.equal(seen.length, 1, "the metadata Location must not be fetched");
+    assert.equal(seen[0].redirect, "manual");
+  } finally {
+    globalThis.fetch = orig;
   }
 });
 

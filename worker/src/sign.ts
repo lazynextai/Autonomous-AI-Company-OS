@@ -22,11 +22,72 @@ const DOC_TYPES = new Set(["text/html", "text/plain"]);
 
 /** SSRF guard for doc_url: only http(s), and only public-routable hosts.
  *  Blocks private (10/8, 172.16/12, 192.168/16), loopback (127/8, ::1),
- *  link-local (169.254/16), CGNAT (100.64/10), multicast, and literal
- *  hostnames that resolve internally (localhost, *.internal, *.local).
- *  Cloud metadata (169.254.169.254) is the highest-value target this kills.
+ *  link-local (169.254/16, fe80::/10), CGNAT (100.64/10), multicast, ULA
+ *  (fc00::/7), and literal hostnames that resolve internally (localhost,
+ *  *.internal, *.local). Cloud metadata (169.254.169.254) is the
+ *  highest-value target this kills, including the forms the URL parser
+ *  rewrites it into: [::ffff:a9fe:a9fe], [::a9fe:a9fe], 6to4 and NAT64.
  */
 function isSafeDocUrl(raw: string): boolean {
+  function publicIpv4(octs: number[]): boolean {
+    const [a, b] = octs;
+    if (octs.some((o) => o > 255)) return false;
+    if (a === 0 || a === 10 || a === 127) return false;
+    if (a === 169 && b === 254) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a === 192 && b === 168) return false;
+    if (a === 100 && b >= 64 && b <= 127) return false;
+    if (a >= 224) return false;
+    return true;
+  }
+
+  function publicIpv6(addr: string): boolean {
+    const dotted = addr.match(/(?:^|:)((?:\d{1,3}\.){3}\d{1,3})$/);
+    if (dotted) {
+      const n = dotted[1].split(".").map(Number);
+      if (n.some((o) => o > 255)) return false;
+      return publicIpv4(n);
+    }
+    if (addr.includes(".")) return false;
+    const sides = addr.split("::");
+    if (sides.length > 2) return false;
+    const parseSide = (side: string): number[] | null => {
+      if (side === "") return [];
+      const out: number[] = [];
+      for (const group of side.split(":")) {
+        if (!/^[0-9a-f]{1,4}$/.test(group)) return null;
+        out.push(parseInt(group, 16));
+      }
+      return out;
+    };
+    const left = parseSide(sides[0]);
+    if (!left) return false;
+    let h = left;
+    if (sides.length === 2) {
+      const right = parseSide(sides[1]);
+      if (!right || left.length + right.length > 8) return false;
+      h = left.concat(new Array(8 - left.length - right.length).fill(0), right);
+    }
+    if (h.length !== 8) return false;
+    const prefixZero = (n: number) => h.slice(0, n).every((part) => part === 0);
+    if (h.every((part) => part === 0) || (prefixZero(7) && h[7] === 1)) return false;
+    if ((h[0] & 0xffc0) === 0xfe80) return false;
+    if ((h[0] & 0xfe00) === 0xfc00) return false;
+    if ((h[0] & 0xffc0) === 0xfec0) return false;
+    if ((h[0] & 0xff00) === 0xff00) return false;
+    const pair = (hi: number, lo: number) => {
+      const n = ((hi << 16) | lo) >>> 0;
+      return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255];
+    };
+    if (prefixZero(5) && h[5] === 0xffff) return publicIpv4(pair(h[6], h[7]));
+    if (prefixZero(6)) return false;
+    if (h[0] === 0x2002) return publicIpv4(pair(h[1], h[2]));
+    if (h[0] === 0x0064 && h[1] === 0xff9b && h[2] === 0 && h[3] === 0 && h[4] === 0 && h[5] === 0) {
+      return publicIpv4(pair(h[6], h[7]));
+    }
+    return true;
+  }
+
   let u: URL;
   try {
     u = new URL(raw);
@@ -36,24 +97,18 @@ function isSafeDocUrl(raw: string): boolean {
   if (u.protocol !== "https:" && u.protocol !== "http:") return false;
   const host = u.hostname.toLowerCase();
   if (host === "localhost" || host.endsWith(".local") || host.endsWith(".internal")) return false;
-  // Resolve the host once through the same lookup Cloudflare uses for fetch.
-  // We can't do DNS from a Worker easily, so also block by IP literal.
+  // We can't do DNS from a Worker easily, so block by IP literal. The URL
+  // parser rewrites [::ffff:169.254.169.254] to [::ffff:a9fe:a9fe] before
+  // this runs, so the hex form has to be classified too.
   const ipv4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
   if (ipv4) {
-    const [a, b, c, d] = ipv4.slice(1).map(Number);
-    if (a > 255 || b > 255 || c > 255 || d > 255) return false;
-    if (a === 0 || a === 10) return false;
-    if (a === 127) return false;
-    if (a === 169 && b === 254) return false;
-    if (a === 172 && b >= 16 && b <= 31) return false;
-    if (a === 192 && b === 168) return false;
-    if (a === 100 && b >= 64 && b <= 127) return false;
-    if (a >= 224) return false; // multicast + reserved
+    const octs = ipv4.slice(1).map(Number);
+    if (!publicIpv4(octs)) return false;
   }
   if (host.startsWith("[") || host.includes(":")) {
-    const bare = host.startsWith("[") && host.endsWith("]") ? host.slice(1, -1) : host;
-    if (bare === "::1" || bare.toLowerCase().startsWith("fe80") || /^::ffff:/.test(bare))
-      return false; // loopback, link-local, or IPv4-mapped IPv6 (incl. metadata via ::ffff:a9fe:a9fe)
+    const wrapped = host.startsWith("[") && host.endsWith("]") ? host.slice(1, -1) : host;
+    const bare = wrapped.split("%")[0];
+    if (!publicIpv6(bare)) return false;
   }
   return true;
 }
@@ -102,9 +157,29 @@ async function snapshotDoc(env: Env, pid: string, docUrl: string, docHtml: strin
   } else if (docText) {
     bytes = new TextEncoder().encode(`<pre style="font-family:system-ui;white-space:pre-wrap;padding:2rem">${esc(docText)}</pre>`);
   } else if (docUrl) {
-    if (!isSafeDocUrl(docUrl)) return { error: "doc_url must be a public http(s) URL" };
-    const r = await fetch(docUrl, { signal: AbortSignal.timeout(15000) }).catch(() => null);
-    if (!r?.ok) return { error: `could not fetch doc_url (${r?.status ?? "unreachable"})` };
+    // Manual redirects: a public URL that 302s to a metadata literal must
+    // be rejected on the Location, not followed.
+    let current = docUrl;
+    let r: Response | null = null;
+    for (let hop = 0; hop < 4; hop++) {
+      if (!isSafeDocUrl(current)) return { error: "doc_url must be a public http(s) URL" };
+      r = await fetch(current, { redirect: "manual", signal: AbortSignal.timeout(15000) }).catch(() => null);
+      if (!r) return { error: "could not fetch doc_url (unreachable)" };
+      if (r.status >= 300 && r.status < 400) {
+        const loc = r.headers.get("location");
+        let next: URL;
+        try {
+          next = new URL(loc || "", current);
+        } catch {
+          return { error: "doc_url must be a public http(s) URL" };
+        }
+        current = next.toString();
+        continue;
+      }
+      break;
+    }
+    if (!r || (r.status >= 300 && r.status < 400)) return { error: "doc_url redirected too many times" };
+    if (!r.ok) return { error: `could not fetch doc_url (${r.status})` };
     if (!DOC_TYPES.has((r.headers.get("content-type") ?? "").split(";")[0].trim()))
       return { error: "doc_url must serve text/html or text/plain" };
     const ab = await r.arrayBuffer();
