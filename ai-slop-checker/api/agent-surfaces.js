@@ -136,91 +136,148 @@ const AGENT_CARD = {
   ],
 };
 
-// ── Recent-task store (A2A) — pluggable ────────────────────────────────
+// ── Recent-task store (A2A) — pluggable, one memory map per isolate ────
 // Task id == request id; results live in a bounded recent-task store.
 // Default: in-memory (hard cap + TTL) — the honest analogue for the
 // plain-Node server, which has no KV. When a KV store is bound (the
-// Worker's optional `RECENT` namespace), sends write through to KV and
-// reads are KV-first with a memory fallback, so a replay survives an
-// isolate recycle on the edge. The memory path stays byte-for-byte the
-// same when no binding is present (tests + local behavior unchanged).
+// Worker's optional `RECENT` namespace), sends write through to KV.
+//
+// Multi-worker edge: each isolate has its own Map, and KV is the only
+// shared copy. KV reads can be stale (eventual consistency, or a get that
+// lands before the other isolate's put is visible). A valid local task
+// view is preferred when its status.timestamp is newer than or equal to
+// the KV copy, so a stale KV value cannot hide the write this isolate
+// just made. A newer KV timestamp wins, so another isolate's later write
+// is not stuck behind local memory. Two isolates are modeled by
+// createTaskStore() — the production handlers use the default store.
 const RECENT_MAX = 200;
 const RECENT_TTL_MS = 30 * 60 * 1000;
 const RECENT_TTL_S = 30 * 60; // KV expirationTtl is in seconds
-const recent = new Map(); // id -> { value, at }
-let kvStore = null; // optional KVNamespace-shaped { put, get }
+
+function isTaskView(view) {
+  return !!(
+    view &&
+    typeof view === "object" &&
+    !Array.isArray(view) &&
+    typeof view.id === "string" &&
+    Array.isArray(view.artifacts)
+  );
+}
+
+function taskStamp(view) {
+  const t = view && view.status && view.status.timestamp;
+  const ms = typeof t === "string" ? Date.parse(t) : NaN;
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function parseKvValue(raw) {
+  if (raw === null || raw === undefined || raw === "") return null;
+  const value = typeof raw === "string" ? JSON.parse(raw) : raw;
+  return isTaskView(value) ? value : null;
+}
 
 /**
- * Bind (or unbind) the KV-backed recent-task store. `kv` should be shaped
- * like a Workers KVNamespace (put/get functions); anything else — including
- * undefined/null and an env without the binding — falls back to the
- * in-memory store. Wired by api/worker.js from env.RECENT per fetch; the
- * local Node server never binds and keeps the memory path unchanged.
+ * One isolate's task memory plus an optional KV binding. Two calls share
+ * nothing except a KV object the caller passes to both.
  */
-function setKvStore(kv) {
-  kvStore = kv && typeof kv.put === "function" && typeof kv.get === "function" ? kv : null;
-}
-function clearKvStore() {
-  kvStore = null;
-}
-function getKvStore() {
-  return kvStore;
-}
+function createTaskStore() {
+  const recent = new Map(); // id -> { value, at }
+  let kvStore = null;
 
-function rememberTask(id, value) {
-  const key = String(id);
-  if (recent.size >= RECENT_MAX) {
-    // Evict oldest entry (Map iterates in insertion order).
-    const oldest = recent.keys().next().value;
-    if (oldest !== undefined) recent.delete(oldest);
+  function setKvStore(kv) {
+    kvStore = kv && typeof kv.put === "function" && typeof kv.get === "function" ? kv : null;
   }
-  recent.set(key, { value, at: Date.now() });
-  if (kvStore) {
-    // Write-through: KV gets the SAME view object's JSON (identical-view
-    // property — one view per task, replay is deep-identical). Fire the
-    // put but surface it to callers that await; failures are swallowed so
-    // a transient KV error never breaks a send (memory still holds it).
-    return kvStore
-      .put("a2atask:" + key, JSON.stringify(value), { expirationTtl: RECENT_TTL_S })
-      .catch(() => {});
+  function clearKvStore() {
+    kvStore = null;
   }
-  return null;
-}
-function recallTask(id) {
-  const hit = recent.get(String(id));
-  if (!hit) return null;
-  if (Date.now() - hit.at > RECENT_TTL_MS) {
-    recent.delete(String(id));
+  function getKvStore() {
+    return kvStore;
+  }
+
+  function rememberTask(id, value) {
+    const key = String(id);
+    // Replacing an existing id must not evict some other task just because
+    // the map is already at the cap.
+    if (!recent.has(key) && recent.size >= RECENT_MAX) {
+      const oldest = recent.keys().next().value;
+      if (oldest !== undefined) recent.delete(oldest);
+    }
+    recent.set(key, { value, at: Date.now() });
+    if (kvStore) {
+      // Write-through: KV gets the SAME view object's JSON (identical-view
+      // property — one view per task, replay is deep-identical). Failures
+      // are swallowed so a transient KV error never breaks a send.
+      return kvStore
+        .put("a2atask:" + key, JSON.stringify(value), { expirationTtl: RECENT_TTL_S })
+        .catch(() => {});
+    }
     return null;
   }
-  return hit.value;
-}
-/**
- * Durable recall: KV-first when a store is bound, memory fallback on miss.
- * Invalid/corrupt KV JSON (or a well-formed object that is not a task
- * view) is treated as a miss — the memory store is the fallback, and if
- * that misses too the caller reports task-not-found exactly as before.
- */
-async function recallTaskDurable(id) {
-  const key = String(id);
-  if (kvStore) {
-    try {
-      const raw = await kvStore.get("a2atask:" + key);
-      if (raw !== null && raw !== undefined) {
-        const parsed = JSON.parse(String(raw));
-        if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && typeof parsed.id === "string" && Array.isArray(parsed.artifacts)) {
-          return parsed;
-        }
-      }
-    } catch {
-      // KV read/parse failure -> fall through to the memory store.
+
+  function recallTask(id) {
+    const hit = recent.get(String(id));
+    if (!hit) return null;
+    if (Date.now() - hit.at > RECENT_TTL_MS) {
+      recent.delete(String(id));
+      return null;
     }
+    return hit.value;
   }
-  return recallTask(key);
+
+  /**
+   * KV and this isolate's memory, merged by task timestamp.
+   * - stale or equal KV loses to a local task view (read-your-writes)
+   * - a strictly newer KV view wins (the other isolate wrote later)
+   * - corrupt KV / a throwing get falls through to memory
+   * - a non-task memory value is still returned when KV misses (tests and
+   *   the pre-KV helpers depend on that)
+   */
+  async function recallTaskDurable(id) {
+    const key = String(id);
+    let kvView = null;
+    if (kvStore) {
+      try {
+        kvView = parseKvValue(await kvStore.get("a2atask:" + key));
+      } catch {
+        kvView = null;
+      }
+    }
+    const mem = recallTask(key);
+    if (isTaskView(kvView) && isTaskView(mem)) {
+      const kvAt = taskStamp(kvView);
+      const memAt = taskStamp(mem);
+      if (kvAt !== null && (memAt === null || memAt < kvAt)) return kvView;
+      return mem;
+    }
+    if (isTaskView(kvView)) return kvView;
+    return mem;
+  }
+
+  function clearTaskStore() {
+    recent.clear();
+  }
+
+  return {
+    recent,
+    setKvStore,
+    clearKvStore,
+    getKvStore,
+    rememberTask,
+    recallTask,
+    recallTaskDurable,
+    clearTaskStore,
+  };
 }
-function clearTaskStore() {
-  recent.clear();
-}
+
+const defaultTaskStore = createTaskStore();
+const recent = defaultTaskStore.recent;
+const setKvStore = (kv) => defaultTaskStore.setKvStore(kv);
+const clearKvStore = () => defaultTaskStore.clearKvStore();
+const getKvStore = () => defaultTaskStore.getKvStore();
+const rememberTask = (id, value) => defaultTaskStore.rememberTask(id, value);
+const recallTask = (id) => defaultTaskStore.recallTask(id);
+const recallTaskDurable = (id) => defaultTaskStore.recallTaskDurable(id);
+const clearTaskStore = () => defaultTaskStore.clearTaskStore();
 
 // ── JSON-RPC helpers ─────────────────────────────────────────────────────
 const rpcErr = (id, code, message) => ({ jsonrpc: "2.0", id: id ?? null, error: { code, message } });
@@ -539,6 +596,7 @@ module.exports = {
   WIDGET_JS,
   PROTOCOL_VERSION,
   recentStore: recent,
+  createTaskStore,
   setKvStore,
   clearKvStore,
   getKvStore,

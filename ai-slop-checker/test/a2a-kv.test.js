@@ -213,3 +213,91 @@ test("A2A unbound path unchanged: no KV -> memory store, full send->get->REST co
   agentSurfaces.rememberTask("sync-1", { marker: "sync" });
   assert.deepEqual(agentSurfaces.recallTask("sync-1"), { marker: "sync" });
 });
+
+function taskFixture(id, iso, marker) {
+  return {
+    id: String(id),
+    status: { state: "completed", timestamp: iso },
+    artifacts: [{ name: "slop-report", parts: [{ type: "data", data: { marker } }] }],
+  };
+}
+
+/** Shared KV whose puts stay invisible until flush() — the other isolate. */
+function makeLagKv() {
+  const visible = new Map();
+  const pending = new Map();
+  return {
+    async put(key, value, options) {
+      pending.set(key, { value: String(value), options });
+    },
+    async get(key) {
+      return visible.has(key) ? visible.get(key) : null;
+    },
+    flush() {
+      for (const [key, entry] of pending) visible.set(key, entry.value);
+      pending.clear();
+    },
+  };
+}
+
+test("A2A multi-worker: a stale KV view loses to this isolate's newer write", async () => {
+  const older = taskFixture("rw-1", "2026-11-21T00:00:00.000Z", "old");
+  const newer = taskFixture("rw-1", "2026-11-21T00:00:01.000Z", "new");
+  const kv = makeMockKv({ [kvKey("rw-1")]: JSON.stringify(older) });
+  agentSurfaces.setKvStore(kv);
+  await agentSurfaces.rememberTask("rw-1", newer);
+  // Drop the write-through so KV stays on the stale copy.
+  kv.entries.set(kvKey("rw-1"), JSON.stringify(older));
+
+  const got = await agentSurfaces.recallTaskDurable("rw-1");
+  assert.deepEqual(got, newer, "local newer timestamp wins over a stale KV copy");
+});
+
+test("A2A multi-worker: a newer KV view wins over this isolate's older memory", async () => {
+  const older = taskFixture("rw-2", "2026-11-21T00:00:00.000Z", "old");
+  const newer = taskFixture("rw-2", "2026-11-21T00:00:05.000Z", "remote");
+  const kv = makeMockKv({ [kvKey("rw-2")]: JSON.stringify(newer) });
+  agentSurfaces.setKvStore(kv);
+  await agentSurfaces.rememberTask("rw-2", older);
+  kv.entries.set(kvKey("rw-2"), JSON.stringify(newer));
+
+  const got = await agentSurfaces.recallTaskDurable("rw-2");
+  assert.deepEqual(got, newer, "the other isolate's later write is the one replayed");
+});
+
+test("A2A multi-worker: KV get that already parsed an object still replays", async () => {
+  const view = taskFixture("obj-1", "2026-11-21T01:00:00.000Z", "object");
+  const kv = {
+    async put() {},
+    async get() {
+      return view;
+    },
+  };
+  agentSurfaces.setKvStore(kv);
+  const got = await agentSurfaces.recallTaskDurable("obj-1");
+  assert.deepEqual(got, view);
+});
+
+test("A2A multi-worker: two isolates share KV and do not share memory", async () => {
+  const kv = makeLagKv();
+  const workerA = agentSurfaces.createTaskStore();
+  const workerB = agentSurfaces.createTaskStore();
+  workerA.setKvStore(kv);
+  workerB.setKvStore(kv);
+
+  const first = taskFixture("iso-1", "2026-11-21T02:00:00.000Z", "first");
+  await workerA.rememberTask("iso-1", first);
+  assert.equal(await workerB.recallTaskDurable("iso-1"), null, "B cannot see A's put until KV makes it visible");
+  assert.deepEqual(workerA.recallTask("iso-1"), first, "A still has the task in its own memory");
+
+  kv.flush();
+  assert.deepEqual(await workerB.recallTaskDurable("iso-1"), first, "after KV visibility, B replays A's view with an empty memory");
+
+  const second = taskFixture("iso-1", "2026-11-21T02:00:02.000Z", "second");
+  await workerA.rememberTask("iso-1", second);
+  assert.deepEqual(await workerA.recallTaskDurable("iso-1"), second, "A reads its own newer write while KV is still stale");
+  assert.deepEqual(await workerB.recallTaskDurable("iso-1"), first, "B still has the previous KV copy");
+
+  kv.flush();
+  assert.deepEqual(await workerB.recallTaskDurable("iso-1"), second, "B picks up the rewrite once KV shows it");
+});

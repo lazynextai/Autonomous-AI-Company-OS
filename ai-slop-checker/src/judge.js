@@ -30,11 +30,16 @@
  * fails, REVIEW when machine objections are found, PASS only when
  * neither fires. A machine PASS is still labelled as requiring the human
  * checklist below. Deterministic: same input, same report, no LLM.
+ *
+ * Soft tells (sentence spread, paragraph shape, parallel clauses) are
+ * attached as `softTells`. That advisory score never changes `scan.score`
+ * and never changes the verdict.
  */
 
 const { scanText, scanHtml } = require("./scanner.js");
 const { scanProject } = require("./project-scanner.js");
 const corpus = require("../data/slop-patterns.js");
+const { scoreInput, formatSoftTellLines } = require("./soft-tells.js");
 
 const ENGINE_NAME = "lazynext-ai-slop-checker-judge";
 const CLEAN_THRESHOLD = 9;
@@ -354,6 +359,8 @@ function judgeReport(input) {
     reasons.push("no machine-verifiable floor violations and no machine objections");
   }
 
+  const softTells = scoreInput({ text, html });
+
   const summary = {
     verdict,
     reasons,
@@ -380,6 +387,7 @@ function judgeReport(input) {
     craftFloor,
     craftFloorMet,
     refusalScaffolds: REFUSAL_SCAFFOLDS,
+    softTells,
     summary,
   };
 }
@@ -424,6 +432,9 @@ function formatJudgeLines(r) {
   for (const s of r.refusalScaffolds) {
     lines.push(` · ${s.name}: ${s.text}`);
   }
+
+  lines.push("");
+  for (const line of formatSoftTellLines(r.softTells)) lines.push(line);
 
   lines.push("");
   lines.push(`VERDICT: ${r.summary.verdict}`);

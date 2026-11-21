@@ -670,6 +670,8 @@ low-hanging fruit. Let's dive in!`;
       els.judgeFloor.appendChild(li);
     }
 
+    renderSoftTells(report);
+
     // Refusal scaffolds
     els.judgeRefusals.innerHTML = "";
     for (const s of report.refusalScaffolds) {
@@ -686,6 +688,60 @@ low-hanging fruit. Let's dive in!`;
       text.textContent = s.text;
       li.appendChild(text);
       els.judgeRefusals.appendChild(li);
+    }
+  }
+
+  /**
+   * Advisory soft tells. The section is created here so the page shell
+   * (index.html) stays unchanged. The advisory score is not the verdict.
+   */
+  function renderSoftTells(report) {
+    const refusalSection = els.judgeRefusals.closest("section");
+    let host = els.judgeResults.querySelector("[data-soft-tells]");
+    if (!host) {
+      host = document.createElement("section");
+      host.className = "panel";
+      host.dataset.softTells = "1";
+      const heading = document.createElement("h3");
+      heading.textContent = "Soft tells ";
+      const chip = document.createElement("span");
+      chip.className = "judge-chip";
+      chip.textContent = "advisory";
+      heading.appendChild(chip);
+      host.appendChild(heading);
+      const note = document.createElement("p");
+      note.className = "hint soft-tells-note";
+      host.appendChild(note);
+      const list = document.createElement("ul");
+      list.className = "soft-tells-list";
+      host.appendChild(list);
+      refusalSection.parentElement.insertBefore(host, refusalSection);
+    }
+    const note = host.querySelector(".soft-tells-note");
+    const list = host.querySelector(".soft-tells-list");
+    list.textContent = "";
+    const soft = report.softTells;
+    if (!soft) {
+      host.hidden = true;
+      return;
+    }
+    host.hidden = false;
+    if (soft.skipped) {
+      note.textContent = soft.skipped;
+      return;
+    }
+    if (!soft.signals || soft.signals.length === 0) {
+      note.textContent = `No structural soft tells. Advisory score ${soft.advisoryScore}. This number is not part of the scan score or the verdict.`;
+      return;
+    }
+    note.textContent = `Advisory score ${soft.advisoryScore}/100. Not added to the scan score. The verdict above does not use these signals.`;
+    for (const s of soft.signals) {
+      const li = document.createElement("li");
+      const code = document.createElement("code");
+      code.textContent = s.id;
+      li.appendChild(code);
+      li.appendChild(document.createTextNode(` ${s.detail}`));
+      list.appendChild(li);
     }
   }
 

@@ -161,3 +161,10 @@ test("project-judge: wiring — folder scan START clears the report, finish stor
   // The Review-tab action passes the pre-scanned OBJECT — never a path.
   assert.match(appSrc, /judgeEngine\.judgeReport\(\{ project: lastProjectReport \}\)/, "the judge receives the in-memory report object (object-only contract)");
 });
+
+test("review tab: soft-tell advisory is rendered from the report and labelled as not the verdict", () => {
+  assert.match(appSrc, /function renderSoftTells\(report\)/, "the review renderer has a soft-tell section");
+  assert.match(appSrc, /data-soft-tells/, "the section is created in script, not by editing index.html");
+  assert.match(appSrc, /Not added to the scan score/, "the advisory score is labelled as outside the scan score");
+  assert.match(appSrc, /does not use these signals/, "the verdict is stated to ignore soft tells");
+});

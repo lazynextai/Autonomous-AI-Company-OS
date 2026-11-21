@@ -257,7 +257,7 @@ const hiEsMerged = loadRules("data/rules.hi.js,data/rules.es.js"); // Hindi + Sp
 | `/render-scan` | POST | `{snapshot}` · `{url}` · `{profile?}` | rendered-tier r-* checks over a computed snapshot (pure, no browser); `{url}` collects first and needs the optional playwright collector (501 when absent) |
 | `/mcp` | POST | JSON-RPC 2.0 | MCP: `initialize`/`ping`/`tools/list`/`tools/call` — tools `list_rules`, `scan_text`, `scan_html`, `scan_project`, `scan_render`, `rewrite_text`, `judge`; GET is 405 (no SSE) |
 | `/a2a` | POST | JSON-RPC 2.0 | lightweight A2A: `message/send`, `tasks/send`, `tasks/get`; task id == request id |
-| `/a2a/tasks/{id}` | GET | — | replay a completed A2A task result (in-memory recent store, 30-min TTL) |
+| `/a2a/tasks/{id}` | GET | — | replay a completed A2A task (KV when `RECENT` is bound, else the in-memory store, 30-min TTL) |
 | `/.well-known/agent.json` | GET | — | agent discovery card |
 | `/widget.js` | GET | — | embeddable shadow-DOM widget (runs the engine in-browser) |
 | `/openapi.json` | GET | — | OpenAPI 3.1 contract for every route |
@@ -438,7 +438,7 @@ ai-slop-checker/
   indices stay valid, and never re-scans/invents. When in doubt, it offers
   the match's human fix instead.
 - **Agent surfaces** (`api/agent-surfaces.js`) — MCP (JSON-RPC 2.0 over
-  `POST /mcp`), lightweight A2A (`POST /a2a`, in-memory task store), the
+  `POST /mcp`), lightweight A2A (`POST /a2a`, per-isolate memory plus optional KV), the
   agent card, and the embeddable widget — are shared by the Node server and
   the Workers entry, so the two deployments can't drift.
 - **Browser** — the engine files are UMD modules (IIFE-wrapped) so the
@@ -513,9 +513,11 @@ live-check of the deployed worker.
   the quality job, so it never runs on a red tree; a site-down failure
   alerts through the normal CI channels.
 
-The real-browser render harness (playwright collector) remains a separate
-devops-gated follow-up; the pure rendered-tier checks are already covered by
-34 hand-crafted snapshot tests plus the hostile-snapshot fuzz battery.
+The local real-browser render farm is `node scripts/render-farm.js`. It
+needs the optional Playwright package and skips without it. The GitHub
+job that would run it on pull requests is proposed in
+`ci/render-farm.workflow.yml` and is not installed under `.github/`. The
+pure rendered-tier checks stay covered without a browser.
 
 ## Roadmap
 
@@ -529,14 +531,15 @@ shipped the judgement checklist (`--judge`/`POST /judge`/MCP `judge`), the
 (regression-locked in `test/app.test.js`), the corpus quality benchmark
 (`bench/eval.js` — per-family precision/recall/F1 against original labelled
 samples with a ≤5% negative-corpus FP gate), and the French + German i18n
-corpora (`data/rules.fr.js` / `data/rules.de.js`); the real-browser render
-CI harness remains a devops-gated follow-up (the CI gate itself shipped
-2026-11-19 — see [## CI](#ci)).
+corpora (`data/rules.fr.js` / `data/rules.de.js`). The CI quality gate
+shipped 2026-11-19 — see [## CI](#ci). The local render farm and the
+advisory soft-tell score shipped later; see [`ROADMAP.md`](ROADMAP.md).
 
-Deferred from this deliverable, consciously: no real-browser CI harness
-(playwright collector — `.github/`-gated and devops-owned per house rules,
-not created here), no
-LLM-based scoring (the engine is deliberately deterministic), and no
+Deferred from this deliverable, consciously: the GitHub-hosted browser
+job (the local farm and its workflow proposal exist; `.github/` was not
+edited), no
+LLM-based scoring (the engine is deliberately deterministic; soft tells
+are an advisory score beside it), and no
 deployment of the worker, API, or container (run books in
 `docs/DEPLOYMENT.md`, not executed).
 

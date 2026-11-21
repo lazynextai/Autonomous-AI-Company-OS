@@ -180,7 +180,10 @@ const COLLECTOR_FN_SOURCE = function collectComputedSnapshot() {
  * collectRender(url, opts) — open a headless browser, capture the computed
  * snapshot of the page, and return it in the render-checks contract.
  *
- * opts: { width?, height?, browser?: "chromium"|"firefox"|"webkit", waitMs? }
+ * opts: { width?, height?, browser?: "chromium"|"firefox"|"webkit", channel?, waitMs? }
+ * `channel` is forwarded to Playwright's launch (for example "chrome") so a
+ * machine with a system browser can run the collector without a downloaded
+ * Playwright browser build.
  *
  * Throws the opt-in error when playwright is not installed. Never part of
  * the engine's dependency chain — require this module lazily.
@@ -196,7 +199,9 @@ async function collectRender(urlString, opts = {}) {
   const browserName = opts.browser || "chromium";
   const browserType = pw[browserName];
   if (!browserType) throw new Error(`playwright browser "${browserName}" not available`);
-  const browser = await browserType.launch({ headless: true });
+  const launchOpts = { headless: true };
+  if (opts.channel) launchOpts.channel = opts.channel;
+  const browser = await browserType.launch(launchOpts);
   try {
     const page = await browser.newPage({
       viewport: { width: opts.width || 1280, height: opts.height || 800 },

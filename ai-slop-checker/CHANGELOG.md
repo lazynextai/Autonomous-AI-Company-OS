@@ -3,6 +3,32 @@
 All notable changes to the Lazynext AI Slop Checker. SemVer; unreleased
 changes live in the "Unreleased" section until tagged.
 
+## Unreleased
+
+### Advisory soft-tell score
+- **`src/soft-tells.js`** — sentence-spread, paragraph-shape, and
+  parallel-clause detectors. `advisoryScore` is separate from the scan
+  score. `drivesDeterministicScore` and `appliedToVerdict` are false.
+  The clean bench corpus fires zero signals. The browser judge inlines
+  the same source. The Review tab renders the advisory block in script
+  so `web/index.html` stays unchanged.
+
+### A2A multi-isolate KV replay
+- **`api/agent-surfaces.js`** — `createTaskStore()` is one isolate's
+  memory. A replay prefers the local task view when its timestamp is
+  newer than or equal to the KV copy, and prefers KV when the stored
+  timestamp is later. A KV value that is already an object (not a JSON
+  string) still replays. Two isolates sharing one lagging KV are covered
+  in `test/a2a-kv.test.js`.
+
+### Local render farm
+- **`scripts/render-farm.js`** plus `fixtures/render-farm/` and
+  `src/render-farm-plan.js`. Skips without Playwright. Fails when
+  `RENDER_FARM_REQUIRED=1`. `ci/render-farm.workflow.yml` is the devops
+  copy for `.github/`; that directory was not edited.
+- **`src/collect-render.js`** accepts `opts.channel` so a system Chrome
+  can launch without a downloaded Playwright browser.
+
 ## v1.4.4 — 2026-11-19 (web Review tab folder-judge path shipped)
 
 ### Review tab: judge a scanned project in-browser (folder-judge path)

@@ -1,0 +1,35 @@
+# Proposed GitHub Actions job for the real-browser render farm.
+#
+# NOT installed. .github/ is devops-owned and this product pass does not
+# edit it. A devops owner copies this job into
+# .github/workflows/ai-slop-checker.yml (or a sibling workflow) when they
+# want the farm on pull requests.
+#
+# The job is optional infrastructure: it installs Playwright's Chromium,
+# which is a large download, and then runs scripts/render-farm.js with
+# RENDER_FARM_REQUIRED=1 so a missing browser fails the job instead of
+# skipping. Local `npm test` does not require Playwright.
+
+name: ai-slop-checker render farm
+
+on:
+  workflow_dispatch:
+
+jobs:
+  render-farm:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-slop-checker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install the product (zero runtime deps) and Playwright
+        run: |
+          npm install
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Real-browser render farm
+        run: RENDER_FARM_REQUIRED=1 node scripts/render-farm.js
