@@ -21,12 +21,18 @@ export function hasMutateConfirm(headers: {
  * - read: SELECT / WITH…SELECT / EXPLAIN (no confirm)
  * - mutate: INSERT / UPDATE|DELETE with WHERE / REPLACE — needs confirm
  * - forbidden: DDL, multi-statement, unconstrained UPDATE/DELETE, etc.
+ *
+ * A leading CTE does not make the statement a read. SQLite accepts
+ * `WITH c AS (SELECT 1) DELETE …` and data-modifying CTEs
+ * (`WITH c AS (DELETE … RETURNING *) SELECT …`). Both must take the
+ * mutate path. A WHERE that appears only inside the CTE does not
+ * satisfy the WHERE requirement on a later UPDATE/DELETE.
  */
 export function classifySql(sql: unknown): SqlKind {
   if (typeof sql !== "string" || !sql.trim()) return "forbidden";
-  const stripped = sql.trim().replace(/;+\s*$/, "");
+  const stripped = stripSqlNoise(sql).trim().replace(/;+\s*$/, "");
   // One statement only — a trailing `;` is fine; a second statement is not.
-  if (stripped.includes(";")) return "forbidden";
+  if (!stripped || stripped.includes(";")) return "forbidden";
 
   // DDL / dangerous SQLite ops — never via the dashboard proxy.
   if (
@@ -41,22 +47,124 @@ export function classifySql(sql: unknown): SqlKind {
     return "forbidden";
   }
 
-  if (
-    /^\s*EXPLAIN\b/i.test(stripped) ||
-    /^\s*(WITH\b[\s\S]+)?SELECT\b/i.test(stripped)
-  ) {
-    return "read";
-  }
+  // EXPLAIN never executes the statement it describes.
+  if (/^\s*EXPLAIN\b/i.test(stripped)) return "read";
 
-  if (/^\s*(INSERT|REPLACE)\b/i.test(stripped)) return "mutate";
-
-  if (/^\s*(UPDATE|DELETE)\b/i.test(stripped)) {
-    // Unconstrained row wipes amplify a stolen session — require WHERE.
-    if (!/\bWHERE\b/i.test(stripped)) return "forbidden";
+  const marks = collectWrites(stripped);
+  const writes = marks.filter((m) => /^(INSERT|REPLACE|UPDATE|DELETE)\|/.test(m));
+  if (writes.length) {
+    // Unconstrained row wipes amplify a stolen session — require WHERE
+    // on each UPDATE/DELETE, not merely somewhere in the string.
+    if (writes.some((m) => /^(UPDATE|DELETE)\|0$/.test(m))) return "forbidden";
     return "mutate";
   }
+  if (marks.some((m) => m.startsWith("SELECT|"))) return "read";
 
   return "forbidden";
+}
+
+/** Drop comments and quoted literals so keywords inside them are not verbs. */
+function stripSqlNoise(sql: string): string {
+  let out = "";
+  let i = 0;
+  while (i < sql.length) {
+    const c = sql[i];
+    const n = sql[i + 1];
+    if (c === "-" && n === "-") {
+      const nl = sql.indexOf("\n", i);
+      i = nl < 0 ? sql.length : nl;
+      out += " ";
+      continue;
+    }
+    if (c === "/" && n === "*") {
+      const end = sql.indexOf("*/", i + 2);
+      i = end < 0 ? sql.length : end + 2;
+      out += " ";
+      continue;
+    }
+    if (c === "'" || c === '"' || c === "`" || c === "[") {
+      const q = c === "[" ? "]" : c;
+      i++;
+      while (i < sql.length) {
+        if (sql[i] === q && q !== "]" && sql[i + 1] === q) {
+          i += 2;
+          continue;
+        }
+        if (sql[i] === q) {
+          i++;
+          break;
+        }
+        i++;
+      }
+      out += " '' ";
+      continue;
+    }
+    out += c;
+    i++;
+  }
+  return out;
+}
+
+/**
+ * Statement verbs that actually run.
+ * Each mark is `VERB|1` when that UPDATE/DELETE has a WHERE at its own
+ * depth, otherwise `VERB|0`. SELECT is recorded so a pure read still
+ * classifies as read. Subquery SELECTs are ignored. INSERT/UPDATE/DELETE/
+ * REPLACE at the start of a parenthesized group are data-modifying CTEs.
+ * `replace()` after SELECT is a function, not a REPLACE statement.
+ */
+function collectWrites(sql: string): string[] {
+  const tokens: string[] = [];
+  const re = /[A-Za-z_][A-Za-z0-9_]*|\(|\)/g;
+  let depth = 0;
+  let m = re.exec(sql);
+  while (m) {
+    const raw = m[0];
+    if (raw === "(") {
+      tokens.push("P|(|" + String(depth));
+      depth++;
+    } else if (raw === ")") {
+      depth = Math.max(0, depth - 1);
+      tokens.push("P|)|" + String(depth));
+    } else {
+      tokens.push("W|" + raw.toUpperCase() + "|" + String(depth));
+    }
+    m = re.exec(sql);
+  }
+
+  const writes: string[] = [];
+  let seenOuter = false;
+  const stmt = new Set(["SELECT", "INSERT", "UPDATE", "DELETE", "REPLACE", "EXPLAIN"]);
+  for (let i = 0; i < tokens.length; i++) {
+    const cur = tokens[i].split("|");
+    if (cur[0] !== "W" || !stmt.has(cur[1])) continue;
+    const word = cur[1];
+    const atDepth = Number(cur[2]);
+    const prev = i > 0 ? tokens[i - 1].split("|") : null;
+    const opens = prev !== null && prev[0] === "P" && prev[1] === "(";
+    if (opens && atDepth >= 1 && word !== "SELECT" && word !== "EXPLAIN") {
+      writes.push(word + "|" + (whereAfter(tokens, i, atDepth) ? "1" : "0"));
+      continue;
+    }
+    if (atDepth === 0 && !seenOuter) {
+      seenOuter = true;
+      const needsWhere = word === "UPDATE" || word === "DELETE";
+      writes.push(
+        word + "|" + (needsWhere && whereAfter(tokens, i, 0) ? "1" : "0"),
+      );
+    }
+  }
+  return writes;
+}
+
+function whereAfter(tokens: string[], start: number, atDepth: number): boolean {
+  for (let j = start + 1; j < tokens.length; j++) {
+    const parts = tokens[j].split("|");
+    const depth = Number(parts[2]);
+    if (parts[0] === "P" && parts[1] === ")" && depth < atDepth) return false;
+    if (parts[0] === "W" && parts[1] === "WHERE" && depth === atDepth) return true;
+  }
+  return false;
 }
 
 /**
