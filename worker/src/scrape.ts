@@ -2,6 +2,7 @@
 // main content for agent research.
 import puppeteer from "@cloudflare/puppeteer";
 import { Env, json } from "./gateway";
+import { isPublicHttpUrl } from "./urlguard";
 
 type Brw = Awaited<ReturnType<typeof puppeteer.launch>>;
 
@@ -30,7 +31,7 @@ async function releaseBrowser(browser: Brw | undefined) {
 
 export async function handleScrape(req: Request, env: Env): Promise<Response> {
   const { url, max_chars = 6000 } = (await req.json()) as { url?: string; max_chars?: number };
-  if (!url || !/^https?:\/\//i.test(url)) return json({ error: "valid url required" }, 400);
+  if (!url || !isPublicHttpUrl(url)) return json({ error: "url host not allowed" }, 400);
   if (!env.BROWSER) return json({ error: "browser binding not configured" }, 503);
 
   let browser;
@@ -69,7 +70,7 @@ export async function handleScrape(req: Request, env: Env): Promise<Response> {
 // Render a URL to PDF via Browser Rendering (page.pdf) — used for report exports.
 export async function handlePdf(req: Request, env: Env): Promise<Response> {
   const { url } = (await req.json()) as { url?: string };
-  if (!url || !/^https?:\/\//i.test(url)) return json({ error: "valid url required" }, 400);
+  if (!url || !isPublicHttpUrl(url)) return json({ error: "url host not allowed" }, 400);
   if (!env.BROWSER) return json({ error: "browser binding not configured" }, 503);
 
   let browser;
@@ -91,7 +92,7 @@ export async function handlePdf(req: Request, env: Env): Promise<Response> {
 // (post-CSS) instead of guessing from markup.
 export async function handleRender(req: Request, env: Env): Promise<Response> {
   const { url, viewport } = (await req.json()) as { url?: string; viewport?: string };
-  if (!url || !/^https?:\/\//i.test(url)) return json({ error: "valid url required" }, 400);
+  if (!url || !isPublicHttpUrl(url)) return json({ error: "url host not allowed" }, 400);
   if (!env.BROWSER) return json({ error: "browser binding not configured" }, 503);
   // Rendered scans emulate a mobile handset by default — the a11y failures
   // most users actually hit live in the mobile layout (hamburger menus, tap
@@ -717,6 +718,10 @@ export async function handleBrowse(req: Request, env: Env): Promise<Response> {
     for (const a of actions) {
       try {
         if (a.goto) {
+          if (!isPublicHttpUrl(a.goto)) {
+            results.push({ goto: a.goto, ok: false, error: "url host not allowed" });
+            continue;
+          }
           await page.goto(a.goto, { waitUntil: "domcontentloaded", timeout: 30000 });
           results.push({ goto: a.goto, ok: true });
         } else if (a.click) {
