@@ -21,7 +21,7 @@ python-dotenv = "^1.0"
 PyGithub = "^2.4"
 schedule = "^1.2"
 rich = "^14.0"
-sentence-transformers = "^2.7"
+sentence-transformers = "^6.2"
 pypdf = "^5.0"
 pyyaml = "^6.0"
 
