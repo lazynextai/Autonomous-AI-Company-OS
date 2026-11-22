@@ -55,3 +55,18 @@ No product work, no payment, no sign-in, no signature, no deploy.
 | 12 — Board minutes re #26153 | **Complete / user-side — founder handling personally** |
 | 13 — SaaSHub free listing (new row) | Founder resetting password (in progress); then agent completes the listing |
 | Secondary — Google security check | Founder-guided (in progress) |
+
+## Update — 2026-11-23: Google security check VERIFIED / COMPLETE (CLEAN)
+
+The founder's Google security check (item 6 above) is **complete and verified CLEAN**. Evidence
+was captured from the live Cursor browser 2026-11-23 ~02:10 IST, signed in as `support@lazynext.com`:
+
+- **Sessions:** 11 Mac Chrome sessions + 1 Honor 90 Android session, **all Karnataka India** —
+  consistent with the founder's own devices.
+- **Recent activity:** only **2 expected events** — 11 Nov Mac sign-in; 27 Oct Honor 90 Microsoft access.
+- **Verdict: CLEAN — no unknown devices, no foreign logins.**
+
+The secondary-watch row in `docs/ops/watch-calendar.md` now reads **VERIFIED / COMPLETE 2026-11-23**.
+No further action; do not re-open. The standing rule is unchanged: **agents must NOT retry Google
+re-auth at all** (2026-11-13 + 2026-11-21) — no Admin console, no Search Console, no sign-in probe.
+No payment, no sign-in, no account changes were made.
