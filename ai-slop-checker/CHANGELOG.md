@@ -5,6 +5,27 @@ changes live in the "Unreleased" section until tagged.
 
 ## Unreleased
 
+## v1.4.6 — 2026-11-25 (epoch-setting preamble soft tell)
+
+Patch, following the 1.4 line's convention. One additive advisory
+detector; the scan score and the PASS | REVIEW | REFUSE verdict are
+untouched.
+
+### `preamble-cliche` soft tell
+- **`src/soft-tells.js`** — new `preambleFamily()` detector for the
+  epoch-setting opener family ("in today's fast-paced world", "in
+  today's digital landscape", "in an ever-changing world"). Precision
+  first: every branch names a hype noun pair, so ordinary copy ("in
+  today's market", "in this world") stays silent, and only
+  hyphen/space/apostrophe variants are tolerated. Advisory only —
+  `drivesDeterministicScore` and `appliedToVerdict` stay false.
+- **`src/judge-browser.js`** — inlined source re-synced between the
+  `BEGIN/END SOFT-TELLS` markers so the browser judge stays
+  byte-identical to the Node module.
+- **`test/soft-tells.test.js`** — fires on four opener variants, stays
+  silent on five ordinary-scenery near-misses, and pins the advisory
+  contract. 448 tests pass.
+
 ## v1.4.5 — 2026-11-21 (soft-tell advisory, A2A Durable Object, render-farm CI)
 
 Patch, not 1.5.0. #116 and #117 had already merged with these notes still

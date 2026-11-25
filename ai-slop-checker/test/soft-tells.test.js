@@ -109,6 +109,37 @@ test("soft tells: judge attaches the advisory score without moving the verdict o
   assert.ok(project.summary.verdict === "PASS" || project.summary.verdict === "REVIEW" || project.summary.verdict === "REFUSE");
 });
 
+test("soft tells: epoch-setting preambles fire, near-miss scenery does not", () => {
+  // Fires on the classic slop opener family.
+  for (const text of [
+    "In today's fast-paced world, teams need a better way to work.",
+    "In today’s digital landscape, clarity decides who wins.",
+    "In an ever-changing world, only the adaptable survive.",
+    "in todays fast paced world everything moves quickly.",
+  ]) {
+    const hit = soft.preambleFamily(text);
+    assert.ok(hit, `expected a hit for: ${text}`);
+    assert.equal(hit.id, "preamble-cliche");
+  }
+
+  // Ordinary scenery must stay silent — this is the precision bar.
+  for (const text of [
+    "In today's market, buyers compare three vendors before they call.",
+    "In this world, most teams ship weekly.",
+    "The world is changing and our roadmap reflects that.",
+    "Today we shipped the new report view.",
+    "In an ever changing market we keep our pricing simple.",
+  ]) {
+    assert.equal(soft.preambleFamily(text), null, `expected silence for: ${text}`);
+  }
+
+  // The advisory layer must never touch the score or the verdict.
+  const report = soft.scoreSoftTells("In today's fast-paced world, we must move faster.");
+  assert.equal(report.drivesDeterministicScore, false);
+  assert.equal(report.appliedToVerdict, false);
+  assert.ok(report.signals.some((s) => s.id === "preamble-cliche"));
+});
+
 test("soft tells: judge-browser inlines the same source as src/soft-tells.js", () => {
   const source = fs.readFileSync(path.join(ROOT, "src", "soft-tells.js"), "utf8").trim();
   const browser = fs.readFileSync(path.join(ROOT, "src", "judge-browser.js"), "utf8");

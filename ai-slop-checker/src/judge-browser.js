@@ -37,8 +37,9 @@
  * Lazynext AI Slop Checker — soft-tell advisory scorer.
  *
  * Structural tells that a word list cannot see: sentences of almost equal
- * length, paragraphs poured into one mold, and three-part clauses (or three
- * sentences) that repeat one shape. These are advisory. They never change
+ * length, paragraphs poured into one mold, three-part clauses (or three
+ * sentences) that repeat one shape, and epoch-setting preambles
+ * ("in today's fast-paced world"). These are advisory. They never change
  * the deterministic scan score and never flip PASS | REVIEW | REFUSE.
  *
  * Thresholds are precision-first. A signal fires only on a tight shape.
@@ -180,6 +181,31 @@ function parallelClauses(text) {
   return null;
 }
 
+/**
+ * Epoch-setting preamble family: "in today's fast-paced world",
+ * "in today's digital landscape", "in an ever-changing world". The opener
+ * frames the sentence with scenery instead of making a claim, which is the
+ * tell — not the individual words. Precision first: every branch names a
+ * hype noun pair, so ordinary copy ("in today's market", "in this world")
+ * stays silent, and only hyphen/space/apostrophe variants are tolerated.
+ */
+function preambleFamily(text) {
+  const flat = String(text).replace(/\s+/g, " ");
+  const re =
+    /\bin\s+(?:today['’]?s\s+(?:fast[\s-]?paced\s+world|digital\s+landscape)|an\s+ever[\s-]?changing\s+world)\b/gi;
+  const hits = [];
+  let match;
+  while (hits.length < 8 && (match = re.exec(flat))) hits.push(match[0].replace(/\s+/g, " "));
+  if (hits.length === 0) return null;
+  const phrases = [...new Set(hits.map((h) => h.toLowerCase()))];
+  const shown = phrases.map((p) => `“${p}”`).join(", ");
+  return {
+    id: "preamble-cliche",
+    detail: `${hits.length === 1 ? "One epoch-setting opener" : `${hits.length} epoch-setting openers`} (${shown}): scenery before the claim.`,
+    evidence: { matches: hits.length, phrases },
+  };
+}
+
 function plainTextFromHtml(html) {
   return String(html)
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -201,7 +227,7 @@ function scoreSoftTells(text) {
   const source = typeof text === "string" ? text : "";
   const signals = [];
   if (source.trim()) {
-    for (const found of [sentenceSpread(source), paragraphShape(source), parallelClauses(source)]) {
+    for (const found of [sentenceSpread(source), paragraphShape(source), parallelClauses(source), preambleFamily(source)]) {
       if (found) signals.push(found);
     }
   }
@@ -261,6 +287,7 @@ return {
   sentenceSpread,
   paragraphShape,
   parallelClauses,
+  preambleFamily,
   DRIVES_DETERMINISTIC_SCORE,
 };
 });

@@ -1,6 +1,6 @@
 {
   "name": "@lazynext/ai-slop-checker",
-  "version": "1.4.5",
+  "version": "1.4.6",
   "description": "Lazynext AI Slop Checker — deterministic scanner for AI writing tells and AI-default visual design tics. Merge of the ideas behind no-ai-slop, stop-slop, impeccable, hallmark and kill-ai-slop.",
   "license": "MIT",
   "private": false,
