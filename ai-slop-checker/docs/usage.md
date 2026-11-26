@@ -1,6 +1,6 @@
 # Lazynext AI Slop Checker — usage reference
 
-Complete command-line, API, MCP, and error-code reference for v1.4.5. The
+Complete command-line, API, MCP, and error-code reference for v1.4.6. The
 engine is deterministic and zero-dependency: same input always gives the
 same score.
 
@@ -84,7 +84,7 @@ web checker; otherwise it returns the JSON service descriptor.
 |---|---|---|---|
 | `/` | GET | — | Service descriptor (JSON) or the web checker page (HTML) |
 | `/index.html` | GET | — | Web checker page (alias of `/`) |
-| `/health` | GET | — | `{"ok":true,"engine":"lazynext-ai-slop-checker","version":"1.4.5"}` |
+| `/health` | GET | — | `{"ok":true,"engine":"lazynext-ai-slop-checker","version":"1.4.6"}` |
 | `/rules` | GET | — | Corpus manifest: `{engine, version, count, categories[], rules[]}` |
 | `/scan` | POST | `{text}` · `{html}` | Scan report `{engine, version, input, score, verdict, clean, totalPoints, matches[], categories[]}` |
 | `/scan` | POST | `{url}` | Fetch (10s timeout) + scan; `source` includes fetched `url`/`html`/`text` |
@@ -107,7 +107,7 @@ web checker; otherwise it returns the JSON service descriptor.
 ```js
 {
   engine: "lazynext-ai-slop-checker",
-  version: "1.4.5",
+  version: "1.4.6",
   input: { type: "text", length: 412 },   // text | html | url | render-snapshot
   score: 63,               // 0 (clean) - 100 (max slop)
   verdict: "moderate",     // clean | light | moderate | heavy
@@ -123,7 +123,7 @@ web checker; otherwise it returns the JSON service descriptor.
 ```js
 {
   engine: "lazynext-ai-slop-checker-judge",
-  version: "1.4.5",
+  version: "1.4.6",
   input: { type: "text", length: 412 },   // text | html | project(dir, filesScanned)
   scan: { project, score, verdict, clean, matches, ... },   // pooled for project
   fiveQuestionReview: [
@@ -148,7 +148,7 @@ Verdict rules (machine-only boundary):
 ```js
 {
   engine: "lazynext-ai-slop-checker",
-  version: "1.4.5",
+  version: "1.4.6",
   root: "/abs/path",
   files: [{ file, kind, score, points, matches, verdict, report? }],
   summary: { filesScanned, filesWithHits, filesSkipped, totalMatches, totalPoints, score, verdict, verdictBands },
