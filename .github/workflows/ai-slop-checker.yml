@@ -103,9 +103,11 @@ jobs:
         working-directory: worker
         run: node --test test/copygate.test.mjs
 
+      # Install the project the same way ci.yml's python job does — the copy
+      # module's import chain reaches core/config.py, which needs pydantic.
       - name: Fleet copy gate — Python mirror against the shared fixtures
         run: |
-          pip install pytest
+          pip install -e . pytest
           PYTHONPATH=. pytest tests/unit/test_copy_quality.py -q
 
       - name: Shared fixture parity — both runtimes read one file
