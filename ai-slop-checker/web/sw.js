@@ -21,7 +21,7 @@
  * requests via the fetch event and never injects scripts.
  */
 
-const CACHE_NAME = "lazynext-slop-checker-v1";
+const CACHE_NAME = "lazynext-slop-checker-v2";
 const SHELL_ASSETS = [
   "./",
   "./index.html",
@@ -30,6 +30,8 @@ const SHELL_ASSETS = [
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
+  "./icons/maskable-512.png",
+  "../assets/icon-192.png",
 ];
 
 // Versioned engine modules (UMD, no cache-busting query strings — the file

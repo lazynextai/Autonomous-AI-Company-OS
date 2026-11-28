@@ -9,10 +9,14 @@
   --cardHover: #1A1A21;
   --border: #26262E;
   --input: #0E0E13;
-  --accent: #8B5CF6;
-  --accentSoft: #A78BFA;
-  --accentDim: #3B2A5E;
-  --accentBg: #1E1B2E;
+  /* Brand scale derived from the Lazynext mark: blue #0468F8, cyan #04B4FC.
+   * Contrast (WCAG 2.x, vs --bg #0A0A0B): --accent 4.09:1 (fills/borders and
+   * large text only), --accentSoft 8.42:1 (all text accents), --accentDim
+   * 3.83:1 (the 3:1 non-text floor), cyan-on-accentBg 7.00:1. */
+  --accent: #0468F8;
+  --accentSoft: #04B4FC;
+  --accentDim: #2563EB;
+  --accentBg: #0B2038;
   --muted: #9C9CAA;
   --ok: #22C55E;
   --okBg: #0E2A1E;
@@ -30,10 +34,14 @@
   --cardHover: #F4F4F5;
   --border: #E4E4E7;
   --input: #F4F4F5;
-  --accent: #7C3AED;
-  --accentSoft: #6D28D9;
-  --accentDim: #DDD6FE;
-  --accentBg: #EDE9FE;
+  /* Light theme brand scale. --accent darkens to #0356D0 so it clears 4.5:1
+   * on both #FAFAFA (6.20:1) and #FFFFFF (6.47:1); the brand blue #0468F8 is
+   * used for --accentSoft (4.64:1). --accentDim #2563EB clears the 3:1
+   * non-text floor at 4.95:1. */
+  --accent: #0356D0;
+  --accentSoft: #0468F8;
+  --accentDim: #2563EB;
+  --accentBg: #E8F1FE;
   --muted: #71717A;
   --ok: #16A34A;
   --okBg: #DCFCE7;
