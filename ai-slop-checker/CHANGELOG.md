@@ -5,6 +5,36 @@ changes live in the "Unreleased" section until tagged.
 
 ## Unreleased
 
+## v1.5.0 — 2026-11-28 (provenance audit, suppression, coverage, judge modes)
+
+The release that makes the licensing claim verifiable rather than asserted, and
+adds the two engine controls the product was missing.
+
+- **Verbatim provenance audit** (`scripts/verbatim-audit.mjs`,
+  `npm run verbatim-audit`) — slides a 14-word window over every tracked prose
+  segment and fails on any run that also appears in an upstream prose file.
+  Exit 0 clean, 1 hits, 2 unreachable (never treated as a pass). Wired into
+  `npm run check` as step 2 of 4. This replaces the previous prose claim that
+  nothing was copied verbatim, which measurement showed was false.
+- **`NOTICE.md`** — upstream copyright holders for all five source projects,
+  full MIT and Apache-2.0 texts, an Apache-2.0 §4(b) modifications statement,
+  and an explicit exclusion of impeccable's Pro/lease subsystem and its
+  MPL-2.0/OFL notice scope. `ATTRIBUTIONS.md` corrected to match.
+- **Suppression directives** — `slop-ignore-next-line: <rule-id> — <reason>`.
+  A suppressed finding is never dropped: it stays in `matches` flagged
+  `suppressed: true` with its reason and is excluded from scoring. A directive
+  without a reason suppresses nothing. `--no-suppress` disables the mechanism.
+- **Coverage report** — every scan now reports which rule ids were evaluated,
+  which fired, which stayed silent, and per-category totals, so a clean page
+  and a page with no applicable rules stop looking identical.
+- **Judge modes** — `audit`, `critique`, `craft-floor`, `polish`, `harden`,
+  `distill`: named review stances that change which checklist sections lead
+  and how the verdict is weighted.
+- **Macrostructure detection** — rendered scans report which page shape a
+  snapshot resembles (bento grid, stat-led, manifesto, catalogue, workbench,
+  and the rest of the set) from structural signals. It is evidence, not a
+  violation; the shape is only slop when it was nobody's decision.
+
 ## v1.4.6 — 2026-11-25 (epoch-setting preamble soft tell)
 
 Patch, following the 1.4 line's convention. One additive advisory
