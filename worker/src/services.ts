@@ -3075,6 +3075,35 @@ export async function dispatchSocialPost(env: Env, postId: number): Promise<Soci
     return "failed";
   }
 
+  // Copy quality gate — before any provider call and before the governance
+  // record, so a blocked post mutates nothing. The row is already claimed
+  // ('posting'), so a block must park it TERMINAL: the text is fixed at
+  // creation, and requeueing would retry the same copy forever. Mirrors how a
+  // breaker trip parks the row. Only a conformance/certification claim blocks —
+  // a style tell is not a legal risk, so warnings never stop a scheduled post.
+  let scheduledCopy = "";
+  try {
+    const p = JSON.parse(row.payload || "{}") as Record<string, unknown>;
+    scheduledCopy = [p.text, p.title, p.subject, p.body]
+      .filter((v): v is string => typeof v === "string")
+      .join("\n");
+  } catch {
+    scheduledCopy = ""; // malformed payload: the provider call will surface it
+  }
+  const postCopy = scheduledCopy ? lintCopy(scheduledCopy) : [];
+  const postBlocks = blockingFindings(postCopy);
+  if (postBlocks.length) {
+    const ruleIds = [...new Set(postBlocks.map((f) => f.rule_id))];
+    const reason = `copy gate: ${ruleIds.join(", ")} — ${describeCopyFindings(postBlocks)}`;
+    await env.DB.prepare(
+      "UPDATE social_posts SET status = 'failed', last_error = ? WHERE id = ?",
+    ).bind(reason.slice(0, 400), postId).run();
+    await recordDispatchAudit(env, row.connector, false, 422, "scheduled", {
+      error: "copy gate", rule_ids: ruleIds,
+    });
+    return "failed";
+  }
+
   // Circuit breaker gate — fail closed before the provider call. The row was
   // just claimed, so a blocked send is parked terminal ('failed') with the
   // reason attached; the claim/requeue machine is untouched (no retry loop

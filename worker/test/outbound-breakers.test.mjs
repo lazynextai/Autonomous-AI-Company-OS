@@ -13,6 +13,14 @@ import { capabilityOf } from "./helpers/caps.mjs";
 const jsonFn = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json" } });
 
+// The shipped copy gate, lifted once. dispatchSocialPost consults it before any
+// provider call, so this harness must supply the real rule table.
+const copyGate = loadModule(
+  "copygate.ts",
+  {},
+  ["lintCopy", "blockingFindings", "describeCopyFindings", "slopScore"],
+);
+
 const policy = (over = {}) => ({
   enabled: 1,
   volume_limit: 100,
@@ -184,6 +192,9 @@ const services = (deps) =>
       capabilityOf,
       breakerAdmin: async () => jsonFn({}),
       puppeteer: {},
+      lintCopy: (...a) => copyGate.lintCopy(...a),
+      blockingFindings: (...a) => copyGate.blockingFindings(...a),
+      describeCopyFindings: (...a) => copyGate.describeCopyFindings(...a),
     },
     ["dispatchSocialPost", "dispatchScheduledPosts", "queueSocialPost"],
   );

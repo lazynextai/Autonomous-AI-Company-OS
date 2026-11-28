@@ -76,3 +76,45 @@ jobs:
 
       - name: Live-check slop-checker.lazynext.com (read-only probes)
         run: npm run live
+
+  # Outbound copy quality — the gate that stops unsupported conformance claims
+  # reaching a customer, plus the marketing-page regression baseline. Kept as
+  # its own job so a copy failure is never mistaken for an engine failure.
+  copy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # worker deps first: the sequence check below transpiles the shipped
+      # copygate.ts with the worker's own esbuild, so esbuild must exist.
+      - name: Worker deps (esbuild ships with wrangler)
+        working-directory: worker
+        run: npm install
+
+      - name: Worker copy gate — TypeScript rule table
+        working-directory: worker
+        run: node --test test/copygate.test.mjs
+
+      - name: Fleet copy gate — Python mirror against the shared fixtures
+        run: |
+          pip install pytest
+          PYTHONPATH=. pytest tests/unit/test_copy_quality.py -q
+
+      - name: Shared fixture parity — both runtimes read one file
+        run: |
+          test -f worker/test/fixtures/copy-quality-cases.json
+          echo "fixtures present; parity is asserted by the two suites above"
+
+      - name: Marketing slop gate — regression vs the committed baseline
+        run: node scripts/slop_gate.mjs
+
+      - name: Campaign copy — production SEQUENCE still passes the gate
+        run: node scripts/copy_check_sequence.mjs
