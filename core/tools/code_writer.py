@@ -221,6 +221,49 @@ class CodeWriter:
                     unsourced_claims.append(f"{filename}: {claim_failure}")
                     continue
 
+                # Slop guard — a machine-written strategy/plan/report document is
+                # where the tells of generated prose surface most: empty filler,
+                # "not just X, it's Y", stacked hedges, puffery. Rejected with
+                # actionable feedback so the retry rewrites instead of resending
+                # the same text. Prose documents only — code and product copy are
+                # never scanned.
+                #
+                # Threshold 40: measured on the clean reference documents in the
+                # product's own bench corpus (all under 20) versus a
+                # deliberately slop-heavy control (well over 60). 40 leaves room
+                # for a dense doc that quotes a few stock phrases legally while
+                # still catching a paragraph that is nothing but tells.
+                try:
+                    from core.quality.copy_quality import (
+                        blocking_findings, format_copy_feedback, scan_copy, slop_score,
+                    )
+                    findings = scan_copy(code)
+                    blocks = blocking_findings(findings)
+                    score = slop_score(findings)
+                except Exception as gate_err:  # noqa: BLE001 — never block on gate bugs
+                    logger.warning("slop_gate_skipped", file=filename, error=str(gate_err))
+                    blocks, score = [], 0
+                if blocks or score >= 40:
+                    detail = (
+                        "unsupported conformance claim"
+                        if blocks
+                        else f"slop score {score} (>= 40)"
+                    )
+                    feedback = format_copy_feedback(blocks or findings)
+                    logger.warning(
+                        "slop_deliverable_rejected",
+                        file=filename,
+                        task_id=task_id,
+                        detail=detail,
+                        score=score,
+                    )
+                    skipped_protected.append(filename)
+                    unsourced_claims.append(
+                        f"{filename}: {detail}. Rewrite in plain prose: "
+                        f"{feedback}"
+                    )
+                    continue
+
             # Validate code before writing
             is_valid, error_msg, validation_details = self.validator.validate(code, language)
             if not is_valid:

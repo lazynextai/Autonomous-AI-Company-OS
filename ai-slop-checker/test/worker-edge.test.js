@@ -87,7 +87,12 @@ test("edge: static map serves the web checker through ASSETS (same-origin)", asy
     ["/src/rewriter.js", "/src/rewriter.js"],
     ["/src/project-scanner-browser.js", "/src/project-scanner-browser.js"],
     ["/assets/favicon.png", "/assets/favicon.png"],
-    ["/assets/lazynext-logo.jpg", "/assets/lazynext-logo.jpg"],
+    ["/assets/favicon.svg", "/assets/favicon.svg"],
+    ["/assets/icon-192.png", "/assets/icon-192.png"],
+    ["/assets/icon-512.png", "/assets/icon-512.png"],
+    ["/assets/maskable-512.png", "/assets/maskable-512.png"],
+    ["/assets/apple-touch-icon.png", "/assets/apple-touch-icon.png"],
+    ["/web/icons/maskable-512.png", "/web/icons/maskable-512.png"],
     ["/web/some-unknown-file.js", "/web/some-unknown-file.js"],
   ];
   for (const [pathname, assetPath] of cases) {

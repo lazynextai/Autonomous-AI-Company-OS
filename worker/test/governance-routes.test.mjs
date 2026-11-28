@@ -14,6 +14,15 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const jsonFn = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json" } });
 
+// The shipped copy gate, lifted once and shared by the services harness. A
+// scheduled post now consults it before any provider call, so the harness must
+// supply the real implementation rather than a stub that would hide a block.
+const copyGate = loadModule(
+  "copygate.ts",
+  {},
+  ["lintCopy", "blockingFindings", "describeCopyFindings", "slopScore"],
+);
+
 const calls = [];
 const services = (scopes, over = {}) =>
   loadModule(
@@ -43,6 +52,14 @@ const services = (scopes, over = {}) =>
       capabilityOf,
       breakerAdmin: async () => jsonFn({}),
       puppeteer: {},
+      lintCopy: (...a) => copyGate.lintCopy(...a),
+      blockingFindings: (...a) => copyGate.blockingFindings(...a),
+      describeCopyFindings: (...a) => copyGate.describeCopyFindings(...a),
+      // The outbound copy gate — lifted from the shipped copygate module so the
+      // scheduled-post path is exercised against the real rule table.
+      lintCopy: (...a) => copyGate.lintCopy(...a),
+      blockingFindings: (...a) => copyGate.blockingFindings(...a),
+      describeCopyFindings: (...a) => copyGate.describeCopyFindings(...a),
     },
     ["handleServices", "dispatchSocialPost"],
   );
@@ -200,6 +217,9 @@ test("a scheduled post blocked under approval scope parks failed with the missin
       capabilityOf,
       breakerAdmin: async () => jsonFn({}),
       puppeteer: {},
+      lintCopy: (...a) => copyGate.lintCopy(...a),
+      blockingFindings: (...a) => copyGate.blockingFindings(...a),
+      describeCopyFindings: (...a) => copyGate.describeCopyFindings(...a),
     },
     ["dispatchSocialPost"],
   );
@@ -256,6 +276,9 @@ test("a scheduled post carries a decision record and a ledger row", async () => 
       capabilityOf,
       breakerAdmin: async () => jsonFn({}),
       puppeteer: {},
+      lintCopy: (...a) => copyGate.lintCopy(...a),
+      blockingFindings: (...a) => copyGate.blockingFindings(...a),
+      describeCopyFindings: (...a) => copyGate.describeCopyFindings(...a),
     },
     ["dispatchSocialPost"],
   );
@@ -300,6 +323,9 @@ test("a scheduled post whose decision cannot be recorded is parked failed", asyn
       capabilityOf,
       breakerAdmin: async () => jsonFn({}),
       puppeteer: {},
+      lintCopy: (...a) => copyGate.lintCopy(...a),
+      blockingFindings: (...a) => copyGate.blockingFindings(...a),
+      describeCopyFindings: (...a) => copyGate.describeCopyFindings(...a),
     },
     ["dispatchSocialPost"],
   );

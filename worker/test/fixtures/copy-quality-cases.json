@@ -1,152 +1,250 @@
 {
-  "_comment": "Shared fixtures for the copy-quality gate. Both implementations read this file: worker/test/copygate.test.mjs (TypeScript, the worker path) and tests/unit/test_copy_quality.py (Python, the fleet path). A rule added to one runtime and not the other fails on the same fixture, which is the only defence against the two tables drifting. Rule text was written for this codebase; nothing is copied from a third-party rule set.",
+  "_comment": "Shared fixtures for the copy-quality gate. Both implementations read this file: worker/test/copygate.test.mjs (TypeScript, the worker path) and tests/unit/test_copy_quality.py (Python, the fleet path). A rule added to one runtime and not the other fails on the same fixture, which is the only defence against the two tables drifting. Rule text was written for this codebase; nothing is copied from a third-party rule set. Every case also pins `score`, the deterministic slop score, so the two scoring implementations cannot drift either.",
   "rules": [
-    { "id": "slop-empty-phrase", "severity": "warn" },
-    { "id": "slop-not-just-x-its-y", "severity": "warn" },
-    { "id": "claim-unsupported-conformance", "severity": "block" },
-    { "id": "claim-unsourced-superlative", "severity": "warn" },
-    { "id": "style-excess-exclamation", "severity": "warn" },
-    { "id": "style-hedge-stack", "severity": "warn" }
+    {
+      "id": "slop-empty-phrase",
+      "severity": "warn"
+    },
+    {
+      "id": "slop-not-just-x-its-y",
+      "severity": "warn"
+    },
+    {
+      "id": "slop-puffery",
+      "severity": "warn"
+    },
+    {
+      "id": "claim-unsupported-conformance",
+      "severity": "block"
+    },
+    {
+      "id": "claim-unsourced-superlative",
+      "severity": "warn"
+    },
+    {
+      "id": "style-excess-exclamation",
+      "severity": "warn"
+    },
+    {
+      "id": "style-hedge-stack",
+      "severity": "warn"
+    }
   ],
   "cases": [
     {
       "name": "slop sentence",
       "text": "In today's fast-paced world, we unlock the power of seamless integration.",
       "block": [],
-      "warn": ["slop-empty-phrase"]
+      "warn": [
+        "slop-empty-phrase"
+      ],
+      "score": 30
     },
     {
       "name": "not just x it's y",
       "text": "It's not just a scan, it's a complete audit.",
       "block": [],
-      "warn": ["slop-not-just-x-its-y"]
+      "warn": [
+        "slop-not-just-x-its-y"
+      ],
+      "score": 20
+    },
+    {
+      "name": "puffery adjective",
+      "text": "Our platform empowers every team and elevates the process.",
+      "block": [],
+      "warn": [
+        "slop-puffery"
+      ],
+      "score": 16
+    },
+    {
+      "name": "puffery is capped per rule",
+      "text": "Unleash synergy. Elevate the holistic paradigm shift. Empower the frictionless state-of-the-art effort.",
+      "block": [],
+      "warn": [
+        "slop-puffery"
+      ],
+      "score": 24
+    },
+    {
+      "name": "three empty phrases plus the not-just frame crosses the threshold",
+      "text": "In today's fast-paced world we unlock the power of the cutting-edge engine — it's not just a scan, it's a revolution.",
+      "block": [],
+      "warn": [
+        "slop-empty-phrase",
+        "slop-not-just-x-its-y"
+      ],
+      "score": 65
     },
     {
       "name": "wcag conformance claim",
       "text": "Our platform is WCAG 2.1 AA compliant.",
-      "block": ["claim-unsupported-conformance"],
-      "warn": []
+      "block": [
+        "claim-unsupported-conformance"
+      ],
+      "warn": [],
+      "score": 0
     },
     {
       "name": "blanket accessibility claim",
       "text": "The site is now fully accessible.",
-      "block": ["claim-unsupported-conformance"],
-      "warn": []
+      "block": [
+        "claim-unsupported-conformance"
+      ],
+      "warn": [],
+      "score": 0
     },
     {
       "name": "section 508 certification",
       "text": "This document is Section 508 certified.",
-      "block": ["claim-unsupported-conformance"],
-      "warn": []
+      "block": [
+        "claim-unsupported-conformance"
+      ],
+      "warn": [],
+      "score": 0
     },
     {
       "name": "honest scan copy passes",
       "text": "Scan any page and find WCAG 2.1 AA issues in seconds.",
       "block": [],
-      "warn": []
+      "warn": [],
+      "score": 0
     },
     {
       "name": "improve copy passes",
       "text": "Improve your WCAG 2.1 AA compliance with a scan.",
       "block": [],
-      "warn": []
+      "warn": [],
+      "score": 0
     },
     {
       "name": "negated claim passes",
       "text": "A scan does not make your site WCAG compliant.",
       "block": [],
-      "warn": []
+      "warn": [],
+      "score": 0
     },
     {
       "name": "disclaimer passes",
       "text": "A score is not a guarantee of accessibility.",
       "block": [],
-      "warn": []
+      "warn": [],
+      "score": 0
     },
     {
       "name": "uncited superlative",
       "text": "We are the best accessibility checker on the market.",
       "block": [],
-      "warn": ["claim-unsourced-superlative"]
+      "warn": [
+        "claim-unsourced-superlative"
+      ],
+      "score": 8
     },
     {
       "name": "cited superlative passes",
       "text": "We are the best accessibility checker — see https://lazynext.com/badge.",
       "block": [],
-      "warn": []
+      "warn": [],
+      "score": 0
     },
     {
       "name": "exclamation pile-up",
       "text": "Great news!!! We shipped it!!!",
       "block": [],
-      "warn": ["style-excess-exclamation"]
+      "warn": [
+        "style-excess-exclamation"
+      ],
+      "score": 5
     },
     {
       "name": "one exclamation per paragraph passes",
       "text": "Great news!\n\nWe shipped it!\n\nTry it now!",
       "block": [],
-      "warn": []
+      "warn": [],
+      "score": 0
     },
     {
       "name": "stacked hedges",
       "text": "This could potentially maybe improve your score.",
       "block": [],
-      "warn": ["style-hedge-stack"]
+      "warn": [
+        "style-hedge-stack"
+      ],
+      "score": 6
     },
     {
       "name": "quoted third-party claim passes",
       "text": "\"WCAG 2.1 AA compliant\" is what vendors claim.",
       "block": [],
-      "warn": []
+      "warn": [],
+      "score": 0
     },
     {
       "name": "code fence passes",
       "text": "```\nWCAG 2.1 AA compliant\n```",
       "block": [],
-      "warn": []
+      "warn": [],
+      "score": 0
     },
     {
       "name": "heading passes",
       "text": "## WCAG 2.1 AA compliant sites",
       "block": [],
-      "warn": []
+      "warn": [],
+      "score": 0
     },
     {
       "name": "compliance issues describe a check",
       "text": "WCAG 2.1 AA compliance issues are common.",
       "block": [],
-      "warn": []
+      "warn": [],
+      "score": 0
     },
     {
       "name": "tracking copy passes",
       "text": "Track WCAG 2.1 AA compliance over time.",
       "block": [],
-      "warn": []
+      "warn": [],
+      "score": 0
     },
     {
       "name": "compliance report passes",
       "text": "The WCAG 2.1 AA compliance report is ready.",
       "block": [],
-      "warn": []
+      "warn": [],
+      "score": 0
     },
     {
       "name": "best practice idiom passes",
       "text": "We follow best practices for every scan.",
       "block": [],
-      "warn": []
+      "warn": [],
+      "score": 0
     },
     {
       "name": "the only way idiom passes",
       "text": "The only way to know is to scan.",
       "block": [],
-      "warn": []
+      "warn": [],
+      "score": 0
     },
     {
       "name": "blocking finding reports its line",
       "text": "Line one is fine.\n\nWe are WCAG 2.1 AA compliant.",
-      "block": ["claim-unsupported-conformance"],
+      "block": [
+        "claim-unsupported-conformance"
+      ],
       "warn": [],
+      "score": 0,
       "line": 3
+    },
+    {
+      "name": "length alone cannot cross the threshold",
+      "text": "Scan your pages. Find the issues. Fix what matters. Re-scan to confirm.\n\nOur scanner renders the page so contrast and focus are measured as painted. Reports name the rule and the element, so a fix is a fix and not a guess.\n\nPro adds site crawls and daily monitoring with alerts delivered to your inbox.",
+      "block": [],
+      "warn": [],
+      "score": 0
     }
   ]
 }

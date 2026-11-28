@@ -174,7 +174,7 @@ lockfiles, and binaries are skipped.
 ```js
 {
   engine: "lazynext-ai-slop-checker",
-  version: "1.4.6",
+  version: "1.5.0",
   input: { type: "text", length: 412 },
   score: 63,                    // 0 (clean) - 100 (max slop)
   verdict: "moderate",          // clean | light | moderate | heavy
@@ -310,8 +310,8 @@ and was **not** executed for this deliverable:
 
 ```sh
 cd ai-slop-checker
-docker build -t lazynext/ai-slop-checker:1.4.6 .
-docker run --rm -p 3000:3000 lazynext/ai-slop-checker:1.4.6
+docker build -t lazynext/ai-slop-checker:1.5.0 .
+docker run --rm -p 3000:3000 lazynext/ai-slop-checker:1.5.0
 # or the Worker:
 export CLOUDFLARE_API_TOKEN="$CLOUDFLARE_DEPLOY_TOKEN"   # see docs/DEPLOYMENT.md
 wrangler deploy --name lazynext-ai-slop-checker

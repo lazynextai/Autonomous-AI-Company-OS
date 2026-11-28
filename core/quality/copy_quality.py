@@ -79,6 +79,11 @@ COPY_RULES: tuple[CopyRule, ...] = (
         "the 'not just X, it's Y' frame is a recognised machine-writing tell",
     ),
     CopyRule(
+        "slop-puffery",
+        WARN,
+        "an inflated adjective that asserts significance instead of describing the thing",
+    ),
+    CopyRule(
         "claim-unsupported-conformance",
         BLOCK,
         "a conformance/certification claim with no cited audit — never imply a site is compliant",
@@ -132,10 +137,34 @@ _NOT_JUST_X_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Puffery — inflated adjectives and verbs that assert significance instead of
+# describing the thing. A separate rule from ``slop-empty-phrase`` because
+# these are single words inside otherwise reasonable sentences, and separate
+# from ``claim-unsourced-superlative`` (a comparative claim about us). The two
+# lists deliberately do not overlap, so one sentence can never be counted by
+# two rules.
+PUFFERY_PHRASES: tuple[str, ...] = (
+    "unleash",
+    "elevate",
+    "next-generation",
+    "state-of-the-art",
+    "transformative",
+    "paradigm shift",
+    "synergy",
+    "frictionless",
+    "effortless",
+    "holistic",
+    "empower",
+)
+
 # The phrase list compiles to one alternation with an optional inflection
 # suffix ("revolutionize" also catches "revolutionizing").
 _SLOP_RE = re.compile(
     r"\b(?:" + "|".join(re.escape(p) for p in SLOP_PHRASES) + r")(?:s|es|ed|d|ing|ly)?\b",
+    re.IGNORECASE,
+)
+_PUFFERY_RE = re.compile(
+    r"\b(?:" + "|".join(re.escape(p) for p in PUFFERY_PHRASES) + r")(?:s|es|ed|d|ing)?\b",
     re.IGNORECASE,
 )
 
@@ -318,6 +347,8 @@ def _slop_findings(line_no: int, line: str) -> list[CopyFinding]:
         out.append(_finding("slop-empty-phrase", line_no, m.group(0)))
     for m in _NOT_JUST_X_RE.finditer(line):
         out.append(_finding("slop-not-just-x-its-y", line_no, m.group(0)))
+    for m in _PUFFERY_RE.finditer(line):
+        out.append(_finding("slop-puffery", line_no, m.group(0)))
     return out
 
 
@@ -453,6 +484,59 @@ def blocking_findings(findings: list[CopyFinding]) -> list[CopyFinding]:
 
 def warning_findings(findings: list[CopyFinding]) -> list[CopyFinding]:
     return [f for f in findings if f.severity == WARN]
+
+
+# --- slop score -------------------------------------------------------------
+# Port-for-port mirror of ``SLOP_WEIGHTS``/``SLOP_RULE_CAPS``/
+# ``SLOP_SCORE_THRESHOLD``/``slop_score`` in ``worker/src/copygate.ts`` — the
+# same numbers, derived only from the rules above. A score built from a second
+# vocabulary could never be pinned by the shared fixtures, so there is none.
+#
+# ``block`` findings carry NO weight on purpose: an unsupported conformance
+# claim is a legal risk, not a style score, and it is already handled by the
+# blocking path. Folding it in would let a style number imply a legal one.
+SLOP_WEIGHTS: dict[str, int] = {
+    "slop-empty-phrase": 15,
+    "slop-not-just-x-its-y": 20,
+    "slop-puffery": 8,
+    "claim-unsourced-superlative": 8,
+    "style-hedge-stack": 6,
+    "style-excess-exclamation": 5,
+}
+
+# Per-rule cap on counted findings — repetition adds evidence up to a point,
+# then the score stops climbing, which is what keeps length out of the number.
+SLOP_RULE_CAPS: dict[str, int] = {
+    "slop-empty-phrase": 3,
+    "slop-not-just-x-its-y": 2,
+    "slop-puffery": 3,
+    "claim-unsourced-superlative": 2,
+    "style-hedge-stack": 1,
+    "style-excess-exclamation": 1,
+}
+
+# The documented threshold (see the TS module for the full reasoning): 60.
+# Nothing in either runtime blocks on it — it is what CI compares against a
+# committed baseline, and what an operator watches.
+SLOP_SCORE_THRESHOLD = 60
+
+
+def slop_score(findings: list[CopyFinding]) -> int:
+    """Deterministic 0..100 AI-slop score for outbound copy.
+
+    Identical arithmetic to ``slopScore`` in ``worker/src/copygate.ts``: sum
+    ``weight * min(count, cap)`` over the weighted rules, clamped at 100.
+    """
+    counts: dict[str, int] = {}
+    for f in findings:
+        counts[f.rule_id] = counts.get(f.rule_id, 0) + 1
+    total = 0
+    for rule_id, count in counts.items():
+        weight = SLOP_WEIGHTS.get(rule_id)
+        if not weight:
+            continue
+        total += weight * min(count, SLOP_RULE_CAPS.get(rule_id, 1))
+    return min(100, total)
 
 
 def findings_to_dicts(findings: list[CopyFinding]) -> list[dict[str, object]]:

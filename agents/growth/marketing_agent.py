@@ -100,7 +100,36 @@ Return plain text with:
                     f"Turn this growth experiment into one {cid} post "
                     f"(<=270 chars, plain text):\n{plan[:3000]}",
                 )
-                result = await call_connector(cid, post.strip()[:3000])
+                body = post.strip()[:3000]
+                # Copy gate — the draft is machine-written, so it is exactly the
+                # text most likely to carry a conformance claim we cannot make
+                # ("our tool makes your site WCAG compliant"). The fleet calls
+                # providers directly, so it never reaches the worker-side gate;
+                # without this check that path posted ungated.
+                #
+                # Fail OPEN on a gate-internal error: an import or rule-table
+                # problem must not silence a working channel. Fail CLOSED only
+                # on a real blocking finding, and then skip just this post.
+                try:
+                    from core.quality.copy_quality import blocking_findings, scan_copy
+                    blocks = blocking_findings(scan_copy(body))
+                except Exception as gate_err:  # noqa: BLE001 — never break posting
+                    self.logger.warning("copy_gate_skipped", connector=cid, error=str(gate_err))
+                    blocks = []
+                if blocks:
+                    rule_ids = sorted({f.rule_id for f in blocks})
+                    self.logger.warning(
+                        "social_post_blocked_by_copy_gate",
+                        connector=cid,
+                        rule_ids=rule_ids,
+                        detail=blocks[0].why,
+                    )
+                    await self.episodic_memory.add_event(
+                        self.agent_id, "social_post_blocked",
+                        f"{cid}: blocked by copy gate {rule_ids}",
+                    )
+                    continue
+                result = await call_connector(cid, body)
                 self.logger.info("social_post_attempted", connector=cid, ok=result.get("ok"))
                 # Worker-side calls land in episodic_events via the connector
                 # route; local fleet calls hit the provider directly, so write

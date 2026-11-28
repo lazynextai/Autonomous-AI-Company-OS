@@ -31,16 +31,16 @@
     "url": "https://lazynext.com/",
     "logo": {
       "@type": "ImageObject",
-      "url": "https://lazynext.com/favicon.svg",
-      "width": 32,
-      "height": 32
+      "url": "https://lazynext.com/favicon.png",
+      "width": 128,
+      "height": 128
     }
   }
 }
 </script>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%238B5CF6'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='sans-serif'>◆</text></svg>"/>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"/><link rel="icon" type="image/png" sizes="128x128" href="/favicon.png"/><link rel="apple-touch-icon" href="/favicon.png"/>
 <style>
-:root{--bg:#0A0A0B;--card:#141419;--border:#26262E;--accent:#8B5CF6;--accentSoft:#A78BFA;--accentBg:#1E1B2E;--text:#FAFAFA;--muted:#9C9CAA}
+:root{--bg:#0A0A0B;--card:#141419;--border:#26262E;--accent:#0468F8;--accentSoft:#04B4FC;--accentBg:#0C1A33;--text:#FAFAFA;--muted:#9C9CAA}
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,sans-serif;line-height:1.8;-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}
@@ -50,7 +50,7 @@ p a:hover,li a:hover{color:var(--text)}
 a:focus-visible,button:focus-visible{outline:3px solid var(--accentSoft);outline-offset:3px;border-radius:4px}
 .wrap{max-width:760px;margin:0 auto;padding:0 24px}
 nav.top{display:flex;justify-content:space-between;align-items:center;padding:28px 0;border-bottom:1px solid var(--border)}
-.logo{font-size:20px;font-weight:700}.logo span{color:var(--accentSoft)}
+.logo{font-size:20px;font-weight:700;display:inline-flex;align-items:center;gap:8px}.logo-mark{width:24px;height:24px;border-radius:6px;display:block}
 nav.top a.btn{padding:9px 18px;border-radius:10px;border:1.5px solid #6B7280;font-size:13px;font-weight:700}
 header{padding:48px 0 24px}
 h1{font-size:34px;font-weight:800;margin-bottom:10px;line-height:1.2}
@@ -75,7 +75,7 @@ footer{border-top:1px solid var(--border);padding:28px 0;color:var(--muted);font
 footer a{color:var(--muted);text-decoration:underline;text-underline-offset:3px;display:inline-block;min-height:24px;padding:9px 6px;margin:-9px -2px}
 footer a:hover{color:var(--text)}
 pre{overflow-x:auto;max-width:100%}
-.skip{position:absolute;left:-9999px;top:0;background:#6D28D9;color:#fff;padding:10px 18px;border-radius:0 0 10px 0;font-size:13px;font-weight:700;z-index:999}.skip:focus{left:0}
+.skip{position:absolute;left:-9999px;top:0;background:#0468F8;color:#fff;padding:10px 18px;border-radius:0 0 10px 0;font-size:13px;font-weight:700;z-index:999}.skip:focus{left:0}
 @media(max-width:700px){h1{font-size:28px}}
 </style>
 </head>
@@ -84,7 +84,7 @@ pre{overflow-x:auto;max-width:100%}
 
 <div class="wrap">
 <nav class="top" aria-label="Primary">
-  <a class="logo" href="/"><span aria-hidden="true">◆</span> Lazynext</a>
+  <a class="logo" href="/"><img class="logo-mark" src="/favicon.svg" alt="" width="26" height="26"/> Lazynext</a>
   <a class="btn" href="https://dashboard.lazynext.com">Dashboard</a>
 </nav>
 
