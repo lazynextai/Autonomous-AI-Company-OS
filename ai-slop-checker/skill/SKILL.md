@@ -15,9 +15,9 @@ metadata:
 
 # Lazynext Slop Guard
 
-A hard floor against the defaults every model was trained into. Run it on
-anything an AI (or a tired person) wrote, and it will catch both the writing
-tells of AI prose and the visual tells of AI-generated UI.
+The bar is not "is this bad?" but "did anyone actually decide this?" Point it
+at anything a model (or a rushed person) produced and it names both kinds of
+tell: the phrases of AI prose and the visual habits of AI-generated UI.
 
 This skill is the agent-side twin of the Lazynext AI Slop Checker engine
 (see the repo root: `data/slop-patterns.js` is the machine-readable corpus,
@@ -41,8 +41,8 @@ named patterns are evidence the writer can act on.
 
 **Edit (default when given a draft to polish).** Apply the fixes below with
 the minimum effective edit. Preserve the writer's voice: their vocabulary,
-cadence, bluntness, humour, uncertainty and digressions. A rough draft with
-a real voice should still sound like the same person when you are done.
+cadence, bluntness, humour, uncertainty and digressions. If the draft already
+has a voice, your edit must leave the reader unable to tell it was touched.
 
 ## The writing tells
 
@@ -97,7 +97,8 @@ the moat" becomes "Distribution is the moat."
   family: "Not because X. Because Y.", "The answer isn't X. It's Y.",
   "It feels like X. It's actually Y.", "stops being X and starts being Y",
   "doesn't mean X, but actually Y", "not just X but also Y".
-- **Colon reveals.** "The best part: it learns." Rewrite as a plain sentence.
+- **Colon reveals.** "The best part: it learns." Drop the drumroll and write
+  the sentence straight.
 - **Negative listings.** "Not a X. Not a Y. A Z." Say Z.
 - **Dramatic fragments.** "X. And Y. And Z." Use complete sentences.
 - **Em-dash clusters.** Three or more dashes in a short text is a rhythm
@@ -130,9 +131,10 @@ Trailing `-ing` clauses that pretend to explain meaning:
   `reflecting our focus`, `showcasing our dedication`, `hailing the
   milestone`, `a testament to our ingenuity`.
 
-They name a feeling instead of a mechanism. "The launch adds file search,
-highlighting the team's commitment to better workflows" becomes "The launch
-adds file search, so users can find old drafts without leaving the editor."
+They name a feeling instead of a mechanism. When a sentence ends with one of
+these, the writer has described the mood of the change rather than the change.
+Cut the clause and put the consequence in its place: "Search now covers
+archived drafts, so an old file no longer means leaving the editor."
 
 ### 7. Cut meta-commentary and emphasis crutches
 
@@ -213,8 +215,8 @@ These are the machine-default moves of generated UI. Every one of them is a
 - **The full-sentence display headline** — a whole pitch at `text-6xl
   font-extrabold tracking-tight`, wrapping three or four lines. Compress to
   a few words at display size.
-- **Crushed tracking** — `letter-spacing: -0.06em` past the point letterforms
-  keep their shapes. Tighten only as far as the face was designed to go.
+- **Crushed tracking** — `letter-spacing: -0.06em` once letters start
+  colliding. Tighten no further than the typeface was drawn to allow.
 - **Decorative strikes** — `line-through`, `<s>`, `<mark>`, underline used
   for emphasis, not for edits/links/annotation.
 - **The editorial dashboard** — a serif "Good morning" greeting, serif
@@ -255,8 +257,9 @@ These are the machine-default moves of generated UI. Every one of them is a
 - **Marquees/tickers** — `animation: marquee`, `ticker` strips. Static
   content or a real feed; let the reader scroll.
 - **Content hidden at rest** — a `.reveal`/`.animate` class setting
-  `opacity: 0` with no `.js` gating ships blank when a script fails.
-  Visible by default; hide only under a `.js` class.
+  `opacity: 0` with no `.js` gate turns into a blank page the moment the
+  script fails to run. Ship it visible, and scope the hidden state under
+  a class JavaScript adds itself.
 
 ### Layout tells
 
@@ -318,38 +321,42 @@ node api/cli.js --dir src --json       # machine-readable, for triage
 The scanner walks the tree, infers each file's lens (prose → text tells;
 markup → HTML; styles/code → design tells over raw source), skips
 `node_modules`/`dist`/`.git`/lockfiles/binaries, and never edits anything.
-Use its output as a starting map, not gospel — confirm each hit by reading
-the code.
+Treat its output as a map drawn from the outside, not as a verdict: check
+every hit against the source yourself.
 
 Then follow the kill-ai-slop style **scan → triage → report → fix → verify**
 loop:
 
 1. **Scan** and read the grouped summary.
 2. **Triage** — this is the step that separates the skill from a lint rule.
-   A gradient, serif, or emoji can be a real, defended choice (brand tokens,
-   a logo, a deliberate illustration). Flag only defaults nobody chose.
+   A gradient, serif, or emoji may be a choice someone can defend: a brand
+   token, a logo, a commissioned illustration. Report only habits that no one
+   appears to have selected on purpose.
 3. **Report** the grouped findings before changing anything: each tell, the
    `file:line` hits you confirmed, one sentence on why, the proposed fix.
-   Ask which groups to apply, or whether to proceed on all.
+   Then let the user choose which groups to act on — or ask to do the lot.
 4. **Fix** with the smallest change that removes the tell while preserving
-   intent: prefer shared tokens/components over touching every call site;
-   never invent new brand colours; keep copy meaning.
+   intent. Reach for a shared token or component before editing every call
+   site; invent no new brand colours; leave the copy's meaning intact.
 5. **Verify** — re-run `node api/cli.js --dir src` and confirm the count
-   dropped. Note hits you intentionally left, with the reason.
+   dropped. List the hits you chose to leave, each with its reason.
 
-Guardrails: respect authorship (ask before stripping an unfamiliar file),
-small reviewable diffs, never `git add -A`, no new dependencies, and verify
-visually when a dev server exists — a passing scan is not a better page.
+Guardrails: respect authorship — ask before stripping a file you do not
+understand; keep diffs small enough to review; never `git add -A`; add no
+dependencies; and when a dev server exists, look at the page — a clean scan
+is not proof the page got better.
 
 ## Principles
 
-- **Decide before you decorate.** Every visual choice must be explainable.
-- **Subtract first.** The first move toward not-ugly is removing things.
+- **Decide before you decorate.** If you cannot explain a visual choice,
+  it is a default wearing a costume.
+- **Subtract first.** Removing things is the quickest way out of ugly.
 - **Specific beats punchy** in copy.
 - **One accent, one voice.**
-- **A tell is only slop when it is a default nobody chose.** A gradient, a
-  serif, an emoji can be a deliberate, defended choice. Keep anything the
-  user clearly chose — brand tokens, a logo, a real illustration.
+- **A tell is slop only when nobody chose it.** Gradient, serif, emoji: any
+  of these is fine once someone can say why. Whatever the user clearly picked
+  on purpose — brand tokens, a logo, a commissioned illustration — survives
+  the edit.
 
 ## License
 

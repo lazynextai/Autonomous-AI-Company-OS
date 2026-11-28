@@ -105,6 +105,7 @@ function scoreMatches(matches, profile) {
   const counts = new Map(); // category -> { count, points }
 
   for (const m of filtered) {
+    if (m.suppressed) continue; // a suppressed finding stays in the record, never in the score
     const cap = m.severity * PATTERN_POINT_CAP_MULTIPLIER;
     const used = pointsByPattern.get(m.id) || 0;
     let add = m.severity * (scale ? scale[m.severity] || 0 : 1);

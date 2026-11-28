@@ -7,18 +7,19 @@ taxonomy, impeccable's design vocabulary and hallmark's floor. See
 
 ## The rule under everything
 
-Slop is the *absence of a decision*. A tell is only slop when it is a default
-nobody chose. The same gradient, serif, or emoji, chosen and defended, is
-fine. When you look at a page, ask: *did someone decide this, or did a model
-fill the slot?*
+What makes a page read as slop is the absence of any decision behind its
+effects, however many or few there are. The same gradient, serif, or emoji is
+harmless once somebody can say why it is there. So the question to hold up to
+every element is: *was this chosen, or did a model fill the slot because that
+is what the slot usually holds?*
 
 ## The signature in one paragraph
 
-Vibe-coded pages are ugly in a specific way: they pile on every available
-style without settling on a focus. A gradient, a glow, a mascot, emoji, a
-wall of glowing cards, every default switched on at once, until every
-product looks like the same garish template. It reads as "designed" in a
-thumbnail and falls apart the moment anyone looks.
+The failure is recognisable at thumbnail size. A generated page does not
+commit to one idea; it switches on every effect it can reach — a gradient
+somewhere near the top, a halo, a mascot, emoji in the headings, a row of
+glowing cards — and the result is the same loud template every other
+generated page is using. It survives a glance and collapses under one.
 
 ## Colour
 
@@ -42,7 +43,7 @@ thumbnail and falls apart the moment anyone looks.
 | Decorative strikes | strike/underline/highlighter on a word, not for edits or links | Let structure carry emphasis |
 | Kicker over every heading | tiny `uppercase tracking-widest` label above hero *and* each section | Delete kickers that restate their heading |
 | Full-sentence display headline | a whole marketing sentence at `text-6xl extrabold`, crushed tracking | Compress to two or three words at display size; say the rest in a subline |
-| Crushed tracking | `letter-spacing: -0.06em` past the point letterforms keep their shapes | Tighten only as far as the face was designed to go |
+| Crushed tracking | `letter-spacing: -0.06em`, far enough that letters start touching | Stop tightening where the typeface stops allowing it |
 | Flat hierarchy | every size between 14-18px; hierarchy left to shades of gray | A scale with real steps (1.25×+); let the most important thing be big |
 | Editorial dashboard | serif "Good evening" greeting, serif numerals, cream paper, tracked-caps kickers | Type follows the job: sans + tabular numerals for scanned surfaces |
 | Default faces | Inter body + Space Grotesk display (or Geist/Manrope/Plus Jakarta) | Choose a face like a logo; landing on Inter after trying others is a choice |
@@ -54,10 +55,10 @@ thumbnail and falls apart the moment anyone looks.
 | Glowing status dot | solid dot in a pale halo, pulsing, saturated green | Small flat dot + a word; no halo, no pulse |
 | Colored left border | 4px bar on the left of every rounded list row | Lists are lists; callouts are scarce (1-2 a page) |
 | Icon tiles | rounded-square chip + line icon per feature in a grid | An icon must carry meaning or go |
-| Giant decorative icon | a `w-24 h-24` line icon or 96px+ SVG parked in a card | A clear label + one sentence beats a row of glyphs |
+| Giant decorative icon | a `w-24 h-24` line icon or 96px+ SVG parked in a card | One plain label and a sentence out-communicate any stack of glyphs |
 | Max radius + glass | every card a `rounded-full` pill or `backdrop-blur` pane | One small radius, held site-wide; depth from solids |
 | Oversized shadow | small card under a huge soft blur, opaque, no offset | Tight blur, small offset; often a hairline suffices |
-| Ghost card | a hairline border *and* a wide diffuse shadow on the same card | Commit to an edge or an elevation; usually the hairline |
+| Ghost card | one card carrying both a 1px border and a broad soft shadow | Pick a side: an edge, or a lift. The edge usually wins |
 | Hard offset shadow | `box-shadow: 4px 4px 0 #000` (neobrutalist costume) | A real elevation scale, or no shadow at all |
 | Corners that don't nest | same big radius on outer box and inner box | inner radius = outer − padding |
 | Border that dies at corners | hairline on straight edges, nothing on the arcs | border + radius on the same box |
@@ -100,8 +101,9 @@ still dodge the identity decision:
 - **The tasteful terminal**: mono everywhere, near-black background, one
   warm accent, ASCII art. "An AI that read one Vercel blog post."
 - **The editorial dashboard**: giant serif "Good evening" greeting, serif
-  numerals in stat cards, cream paper, tracked-caps kickers. A magazine is
-  read once; a console is scanned all day.
+  numerals in stat cards, cream paper, tracked-caps kickers. That typography
+  suits an article you sit with; a tool you watch all day wants plain sans and
+  numbers that hold their column.
 - **The stock pairing, politely**: Space Grotesk + Inter with good spacing,
   but still the training-data average. The face is the loudest signal of who
   made this.
@@ -113,8 +115,8 @@ safest template?*
 
 Before you sign off a UI, answer these:
 
-1. **Would a neighbouring prompt produce this exact combination?** If yes,
-   change one decision and say which.
+1. **Could a near-identical prompt have produced this same combination?** If
+   so, change one decision deliberately, and name the decision you changed.
 2. **Does every visual choice have an owner?** (a declarer, not a linter)
 3. **What is the single most important thing on this screen, and does it
    look like it?**

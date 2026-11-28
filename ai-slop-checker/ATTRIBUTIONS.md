@@ -18,12 +18,25 @@ what was absorbed from each project and where it landed.
 | [Nutlope/hallmark](https://github.com/Nutlope/hallmark) | MIT | Licensed |
 
 > Note: `gh repo view` reported `license: null` for all five repos, but every
-> cloned repository ships a LICENSE file (MIT ×3, Apache-2.0 ×2). The clone
-> contents are authoritative. Our work is original code and copy; short
-> individual words and phrases from the slop lists are factual terms rather
-> than creative expression, and are listed in the classification corpus.
-> Nothing from any source repo was copied verbatim — descriptions, fixes,
-> skill text, docs and code were written by Lazynext.
+> cloned repository ships a LICENSE file (MIT ×3, Apache-2.0 ×2), re-verified
+> at HEAD on 2026-11-27. The clone contents are authoritative. Upstream
+> copyright holders and the full MIT/Apache-2.0 texts are retained in
+> [`NOTICE.md`](NOTICE.md).
+>
+> **Provenance, stated accurately (corrected 2026-11-27).** An earlier version
+> of this file claimed that nothing from any source repo was copied verbatim.
+> Measurement on 2026-11-27 showed that was false: the skill file carried runs
+> of 14+ identical words against `petergyang/no-ai-slop`'s `SKILL.md`, and one
+> pattern description reproduced `hardikpandya/stop-slop`'s line about listing
+> what something is not. Both were rewritten in Lazynext's own words, and the
+> claim is now enforced mechanically rather than asserted in prose:
+> `npm run verbatim-audit` fails on any run of 14 or more identical words
+> shared with an upstream prose file. Current status: **clean**.
+>
+> The banned-word and banned-phrase lists are a separate matter. They are
+> factual vocabularies — ordinary words and stock phrases any audit of the same
+> language would surface — not creative prose attributable to one author. They
+> are kept and labelled as such in the classification corpus.
 
 ## What was absorbed from each project
 
@@ -184,12 +197,16 @@ Where: `.cursor/rules/slop-guard.mdc`, `skill/SKILL.md`, `skill/CLAUDE.md`,
 - **Kill-ai-slop's standalone scanner CLI** — reimplemented as our own
   zero-dep CLI with the same report/triage spirit, and now with a native
   project-scan mode (`--dir`).
-- **No source code from any project was copied verbatim.** Anything
-  resembling a sentence from a source README/skill file in our docs is an
-  independent paraphrase of a factual idea.
+- **No source code from any project is present in this repository.** Prose that
+  once ran 14+ words identically to an upstream skill file was rewritten on
+  2026-11-27 in Lazynext's own words; anything else resembling a sentence from
+  a source README or skill file is an independent statement of a factual idea.
+  This is enforced by `npm run verbatim-audit`, not left to review.
 
 ## Files referencing these projects
 
+- `NOTICE.md` — upstream copyright holders, full MIT and Apache-2.0 texts,
+  the modifications statement, and the excluded third-party scope
 - `data/slop-patterns.js` — corpus categories/patterns
 - `src/scanner.js`, `src/rewriter.js` — engine
 - `src/render-checks.js` — rendered-tier checks (impeccable/hallmark
