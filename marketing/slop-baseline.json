@@ -1,0 +1,17 @@
+{
+  "$comment": "Baseline scores for marketing/public/*.html. Regenerate with `node scripts/slop_gate.mjs --update-baseline` after an intentional copy change, and review the diff before committing.",
+  "tolerance": 3,
+  "generated": "2026-11-28",
+  "pages": {
+    "accessibility.html": 39,
+    "blog/three-times-our-own-metrics-lied-to-us/index.html": 47,
+    "changelog.html": 7,
+    "docs.html": 30,
+    "index.html": 27,
+    "legal.html": 4,
+    "pricing.html": 13,
+    "privacy.html": 4,
+    "status.html": 27,
+    "terms.html": 4
+  }
+}

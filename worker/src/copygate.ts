@@ -17,6 +17,10 @@
  *
  * Deterministic, no LLM, no network, no imports. Rule text was written for
  * this codebase; nothing is copied from any third-party rule set.
+ *
+ * `slopScore()` is built ONLY from the rules below — no second vocabulary, so
+ * the Python twin can reproduce the number exactly. It is advisory: nothing in
+ * either runtime blocks on a score (see the constant's comment).
  */
 
 export type CopySeverity = "warn" | "block";
@@ -38,6 +42,7 @@ export interface CopyFinding {
 export const COPY_RULES: readonly CopyRule[] = [
   { id: "slop-empty-phrase", severity: "warn", purpose: "an empty marketing phrase that adds words without information" },
   { id: "slop-not-just-x-its-y", severity: "warn", purpose: "the 'not just X, it's Y' frame is a recognised machine-writing tell" },
+  { id: "slop-puffery", severity: "warn", purpose: "an inflated adjective that asserts significance instead of describing the thing" },
   { id: "claim-unsupported-conformance", severity: "block", purpose: "a conformance/certification claim with no cited audit — never imply a site is compliant" },
   { id: "claim-unsourced-superlative", severity: "warn", purpose: "a superlative about our product with no citation on or beside the line" },
   { id: "style-excess-exclamation", severity: "warn", purpose: "three or more exclamation marks in one paragraph" },
@@ -66,9 +71,33 @@ export const SLOP_PHRASES: readonly string[] = [
   "supercharge",
 ];
 
+// Puffery — inflated adjectives and verbs that assert significance instead of
+// describing the thing. A separate rule from `slop-empty-phrase` because these
+// are single words inside otherwise reasonable sentences, and separate from
+// `claim-unsourced-superlative` (which is a comparative claim about us). The
+// lists deliberately do not overlap: every entry here is puffery and NOT a
+// superlative, so one sentence cannot be counted twice by two rules.
+export const PUFFERY_PHRASES: readonly string[] = [
+  "unleash",
+  "elevate",
+  "next-generation",
+  "state-of-the-art",
+  "transformative",
+  "paradigm shift",
+  "synergy",
+  "frictionless",
+  "effortless",
+  "holistic",
+  "empower",
+];
+
 const escapePhrase = (p: string): string => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const SLOP_RE = new RegExp(
   `\\b(?:${SLOP_PHRASES.map(escapePhrase).join("|")})(?:s|es|ed|d|ing|ly)?\\b`,
+  "gi",
+);
+const PUFFERY_RE = new RegExp(
+  `\\b(?:${PUFFERY_PHRASES.map(escapePhrase).join("|")})(?:s|es|ed|d|ing)?\\b`,
   "gi",
 );
 const NOT_JUST_X_RE = /\bnot\s+(?:just|only|merely)\b[^.!?\n]{0,80}?\b(?:it'?s|it\s+is)\b/gi;
@@ -134,6 +163,7 @@ function slopFindings(lineNo: number, line: string): CopyFinding[] {
   const out: CopyFinding[] = [];
   for (const m of line.matchAll(SLOP_RE)) out.push(finding("slop-empty-phrase", lineNo, m[0]));
   for (const m of line.matchAll(NOT_JUST_X_RE)) out.push(finding("slop-not-just-x-its-y", lineNo, m[0]));
+  for (const m of line.matchAll(PUFFERY_RE)) out.push(finding("slop-puffery", lineNo, m[0]));
   return out;
 }
 
@@ -272,6 +302,76 @@ export function blockingFindings(findings: CopyFinding[]): CopyFinding[] {
 
 export function warningFindings(findings: CopyFinding[]): CopyFinding[] {
   return findings.filter((f) => f.severity === "warn");
+}
+
+/**
+ * Deterministic AI-slop score for outbound copy — 0..100, no LLM, no network.
+ *
+ * Why a score and not another rule: the existing rules answer "is this line
+ * wrong?", which is the right question for a block. A slop score answers "how
+ * much of this copy reads as machine-written?", which is a *trend* an operator
+ * can watch go down. It is deliberately built only from the rules above, so
+ * the two runtimes cannot disagree: no second vocabulary, no second pattern
+ * list, nothing imported from the product's 446-pattern corpus (that corpus
+ * would balloon the worker bundle and immediately put the two tables out of
+ * sync — the exact drift the shared fixtures exist to prevent).
+ *
+ * Weights are per distinct finding, capped per rule, then clamped at 100. The
+ * caps are what make length irrelevant: a 3,000-word document that uses
+ * "cutting-edge" three times in different sections scores the same as a
+ * paragraph that does, and cannot cross the threshold on length alone.
+ *
+ * `block` findings carry NO weight on purpose — an unsupported conformance
+ * claim is a legal risk, not a style score, and it is already handled by the
+ * blocking path. Folding it in would let a style number imply a legal one.
+ */
+export const SLOP_WEIGHTS: Readonly<Record<string, number>> = {
+  "slop-empty-phrase": 15,
+  "slop-not-just-x-its-y": 20,
+  "slop-puffery": 8,
+  "claim-unsourced-superlative": 8,
+  "style-hedge-stack": 6,
+  "style-excess-exclamation": 5,
+};
+
+// Per-rule cap on counted findings — repetition adds evidence up to a point,
+// then the score should stop climbing (see the length argument above).
+export const SLOP_RULE_CAPS: Readonly<Record<string, number>> = {
+  "slop-empty-phrase": 3,
+  "slop-not-just-x-its-y": 2,
+  "slop-puffery": 3,
+  "claim-unsourced-superlative": 2,
+  "style-hedge-stack": 1,
+  "style-excess-exclamation": 1,
+};
+
+/**
+ * The documented threshold: 60.
+ *
+ * Chosen so that no single tell can reach it (the heaviest single finding is
+ * 20) and neither can two: it takes either three empty marketing phrases plus
+ * the "not just X, it's Y" frame, or three empty phrases plus repeated
+ * puffery — i.e. machine tells in consecutive sentences, which is the pattern
+ * a reader recognises. Competent product copy scores 0, and the live
+ * `SEQUENCE` nurture mail scores 0 (pinned by a static test), because the
+ * threshold has to sit far above copy we already send.
+ *
+ * Nothing in either runtime blocks on this number. It is returned and logged
+ * so an operator can watch it, and so CI can fail on a *regression* against a
+ * committed baseline — never on a bare score at a send seam.
+ */
+export const SLOP_SCORE_THRESHOLD = 60;
+
+export function slopScore(findings: CopyFinding[]): number {
+  const counts = new Map<string, number>();
+  for (const f of findings) counts.set(f.rule_id, (counts.get(f.rule_id) ?? 0) + 1);
+  let total = 0;
+  for (const [ruleId, count] of counts) {
+    const weight = SLOP_WEIGHTS[ruleId];
+    if (!weight) continue;
+    total += weight * Math.min(count, SLOP_RULE_CAPS[ruleId] ?? 1);
+  }
+  return Math.min(100, total);
 }
 
 /** One actionable sentence for a blocked send — names rule, line and match. */

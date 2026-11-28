@@ -1,4 +1,4 @@
-.PHONY: setup models dev dashboard test seed agents validate-env worker-resources worker-deploy worker-migrate
+.PHONY: setup models dev dashboard test seed agents validate-env worker-resources worker-deploy worker-migrate slop-gate
 
 PY := $(shell [ -x .venv/bin/python ] && echo .venv/bin/python || echo python3)
 
@@ -53,3 +53,9 @@ seed:
 
 agents:
 	PYTHONPATH=. $(PY) scripts/run_agents.py
+
+# Marketing copy regression gate — fails if any user-facing page scores worse
+# than the committed baseline in marketing/slop-baseline.json. After an
+# intentional copy change, regenerate with: node scripts/slop_gate.mjs --update-baseline
+slop-gate:
+	@node scripts/slop_gate.mjs
